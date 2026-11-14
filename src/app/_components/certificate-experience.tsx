@@ -13,6 +13,7 @@ import {
 } from "@/ui/scoring-details";
 import { ReviewScreen } from "@/screens/review/review-screen";
 import { ChatMessage } from "@/ui/chat-message";
+import { formatSkill } from "@/ui/lib/format";
 import { Button } from "@/ui/primitives/button";
 import { PublicShell } from "./product";
 import { LoadingState } from "./providers";
@@ -45,8 +46,8 @@ export function CertificateExperience({
         {(sample || local) && (
           <p className="rounded-lg border bg-surface p-4 text-sm text-muted-foreground">
             {sample
-              ? "Example certificate · fictional results for illustration."
-              : "Browser preview · this record is stored in this browser tab. Sharing a real certificate requires the backend."}
+              ? "Example case record · fictional results for illustration."
+              : "Browser preview · this case record is available in the tab where you completed the case."}
           </p>
         )}
         <CertificateCard
@@ -57,6 +58,14 @@ export function CertificateExperience({
             full ? () => setShowReview((value) => !value) : undefined
           }
         />
+        {certificate.skillCertificate && (
+          <Button asChild variant="outline">
+            <Link href={`/s/${certificate.skillCertificate.slug}`}>
+              View {formatSkill(certificate.skillCertificate.skill)} skill
+              certificate
+            </Link>
+          </Button>
+        )}
         <section className="space-y-3 rounded-xl border bg-surface p-5 text-sm leading-relaxed">
           <h2 className="font-medium">What this record means</h2>
           <p className="text-muted-foreground">
@@ -77,7 +86,7 @@ export function CertificateExperience({
             ) : (
               <Copy aria-hidden="true" />
             )}
-            {copied ? "Link copied" : "Copy certificate link"}
+            {copied ? "Link copied" : "Copy case record link"}
           </Button>
           <Button
             variant="outline"
@@ -103,13 +112,13 @@ export function CertificateExperience({
         </div>
         {copyError && (
           <p role="status" className="text-sm text-muted-foreground">
-            Copy the address from your browser to share this certificate.
+            Copy the address from your browser to share this case record.
           </p>
         )}
         {!full && (
           <p className="text-xs text-muted-foreground">
-            This certificate includes the summary. A full certificate can also
-            include a move-by-move review and public conversation transcript.
+            This case record includes the summary. Pro case records also include
+            a move-by-move review and the published transcript.
           </p>
         )}
       </main>
@@ -176,21 +185,21 @@ export function LocalCertificate({ slug }: { slug: string }) {
   if (query.isPending)
     return (
       <PublicShell>
-        <LoadingState label="Loading this preview certificate…" />
+        <LoadingState label="Loading this preview case record…" />
       </PublicShell>
     );
   if (query.isError)
     return (
       <PublicShell>
         <main className="mx-auto max-w-2xl space-y-4 px-4 py-16">
-          <h1 className="text-2xl font-medium">Certificate unavailable</h1>
+          <h1 className="text-2xl font-medium">Case record unavailable</h1>
           <ErrorPanel error={query.error} retry={() => void query.refetch()} />
           <p className="text-sm text-muted-foreground">
-            Preview certificates are only available in the browser tab where the
+            Preview case records are only available in the browser tab where the
             case was completed.
           </p>
           <Button asChild variant="outline">
-            <Link href="/c/sample">View an example certificate</Link>
+            <Link href="/c/sample">View an example case record</Link>
           </Button>
         </main>
       </PublicShell>

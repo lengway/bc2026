@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getPublicCertificate } from "@/app/_lib/public-certificate";
 export const alt =
-  "Recorded work simulation — assessment coverage and limitations available on the certificate";
+  "Recorded work simulation — assessment coverage and limitations available in the case record";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export default async function Image({
@@ -36,7 +36,7 @@ export default async function Image({
         }}
       >
         <span>GAMBIT</span>
-        <span>RECORDED SIMULATION</span>
+        <span>CASE RECORD</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <span style={{ fontSize: 50 }}>
@@ -50,11 +50,11 @@ export default async function Image({
             ? certificate.accuracy === null
               ? "Not enough evidence"
               : `${certificate.accuracy}% case accuracy`
-            : "View the certificate for details"}
+            : "View the case record for details"}
         </span>
       </div>
       <div style={{ display: "flex", fontSize: 20, color: "#71717a" }}>
-        AI help permitted · Scope and assessment coverage on the certificate
+        AI help permitted · Scope and assessment coverage in the case record
       </div>
     </div>,
     size,

@@ -117,12 +117,12 @@ describe("ReviewScreen", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("calls onShare, and blocks it while the certificate is being issued", async () => {
+  it("calls onShare, and blocks it while the case record is being prepared", async () => {
     const onShare = vi.fn();
     const { rerender } = renderReady({ onShare });
 
     await userEvent.click(
-      screen.getAllByRole("button", { name: "Share certificate" })[0],
+      screen.getAllByRole("button", { name: "Share case record" })[0],
     );
     expect(onShare).toHaveBeenCalledTimes(1);
 
@@ -139,7 +139,7 @@ describe("ReviewScreen", () => {
       />,
     );
     for (const button of screen.getAllByRole("button", {
-      name: "Preparing certificate",
+      name: "Preparing case record",
     })) {
       expect(button).toBeDisabled();
     }

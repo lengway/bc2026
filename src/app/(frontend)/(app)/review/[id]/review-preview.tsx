@@ -2,11 +2,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useCase, useReview, useCreateCase } from "@/app/_hooks/case-hooks";
+import {
+  useCase,
+  useReview,
+  useCreateCase,
+  useSkillPath,
+} from "@/app/_hooks/case-hooks";
 import { ErrorPanel } from "@/app/_components/error-panel";
 import { LoadingState } from "@/app/_components/providers";
 import { Button } from "@/ui/primitives/button";
 import { ReviewScreen } from "@/screens/review/review-screen";
+import { formatSkill } from "@/ui/lib/format";
+import { Surface } from "@/app/_components/product";
 export function ReviewPreview({ id }: { id: string }) {
   const [slow, setSlow] = useState(false);
   const current = useCase(id, !slow);
@@ -14,6 +21,7 @@ export function ReviewPreview({ id }: { id: string }) {
   const create = useCreateCase();
   const ready = current.data?.status === "evaluated";
   const query = useReview(id, ready);
+  const path = useSkillPath(ready);
   useEffect(() => {
     if (ready) return;
     const timer = setTimeout(() => setSlow(true), 60_000);
@@ -72,7 +80,12 @@ export function ReviewPreview({ id }: { id: string }) {
     return (
       <ErrorPanel error={query.error} retry={() => void query.refetch()} />
     );
-  const { evaluation, moves, certificateSlug, transcript } = query.data;
+  const { evaluation, moves, caseRecordSlug, certificateSlug, transcript } =
+    query.data;
+  const recordSlug = caseRecordSlug ?? certificateSlug;
+  const countedSeries = path.data?.series.filter((series) =>
+    series.casesCounted.some((item) => item.caseId === id),
+  );
   const persona = view.personas[0];
   if (!persona)
     return (
@@ -90,22 +103,43 @@ export function ReviewPreview({ id }: { id: string }) {
         moves={moves}
         transcript={transcript}
         onShare={
-          certificateSlug
-            ? () => router.push(`/c/${encodeURIComponent(certificateSlug)}`)
+          recordSlug
+            ? () => router.push(`/c/${encodeURIComponent(recordSlug)}`)
             : undefined
         }
-        sharePending={!certificateSlug}
+        sharePending={!recordSlug}
         onNextCase={() => {
           if (!create.isPending)
-            create.mutate("daily", {
-              onSuccess: (r) => router.push(`/case/${r.caseId}`),
-            });
+            create.mutate(
+              { type: "daily" },
+              {
+                onSuccess: (r) => router.push(`/case/${r.caseId}?type=daily`),
+              },
+            );
         }}
       />
       <div className="mx-auto max-w-6xl space-y-4 px-4 pb-10 sm:px-8">
-        {!certificateSlug && (
+        {!!countedSeries?.length && (
+          <Surface className="space-y-3">
+            <h2 className="font-medium">This case counts toward</h2>
+            <ul className="space-y-2 text-sm">
+              {countedSeries.map((series) => (
+                <li key={series.skill}>
+                  <Link
+                    href={`/path#${series.skill}`}
+                    className="underline underline-offset-4"
+                  >
+                    {formatSkill(series.skill)} · {series.casesCounted.length}{" "}
+                    of {series.required} cases
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Surface>
+        )}
+        {!recordSlug && (
           <p className="text-sm text-muted-foreground">
-            The certificate link has not been issued yet.
+            The case record link is not ready yet.
           </p>
         )}
         {create.isPending && (

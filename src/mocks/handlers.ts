@@ -13,7 +13,11 @@ import {
   EditorBatch,
   EditorBatchAck,
   Outcome,
-  CertificateLimited,
+  CaseRecordLimited,
+  SKILL_IDS,
+  CASES_REQUIRED,
+  WINDOW_DAYS,
+  type SkillId,
 } from "@/app/_lib/contracts";
 import {
   makeCase,
@@ -28,6 +32,7 @@ import {
 const StoredCase = z.object({
   view: CaseView,
   readyAt: z.number(),
+  targetSkill: z.enum(SKILL_IDS).optional(),
   evaluatedAt: z.number().optional(),
   events: z.array(PublicEvent),
   trust: z.number(),
@@ -230,7 +235,10 @@ export function createMockHandlers({
       if (input.data.type === "weekly")
         return error("PAYWALL", "Weekly cases are included in Pro.", 403);
       const view = makeCase(crypto.randomUUID(), input.data.type);
-      cases.set(view.id, createRecord(view, Date.now() + generationMs));
+      cases.set(view.id, {
+        ...createRecord(view, Date.now() + generationMs),
+        targetSkill: input.data.skill,
+      });
       persistCases();
       return HttpResponse.json(
         { caseId: view.id, status: "generating" },
@@ -517,7 +525,7 @@ export function createMockHandlers({
       );
       const item = match && getCase(match.view.id);
       if (!item || item.view.status !== "evaluated")
-        return error("NOT_FOUND", "We could not find this certificate.", 404);
+        return error("NOT_FOUND", "We could not find this case record.", 404);
       const evaluation = makeReview(
         item.view,
         item.events,
@@ -525,7 +533,7 @@ export function createMockHandlers({
         item.outcome ?? "incomplete",
       ).evaluation;
       return HttpResponse.json(
-        CertificateLimited.parse({
+        CaseRecordLimited.parse({
           ...previewCertificate,
           slug,
           caseTitle: item.view.brief.title,
@@ -546,7 +554,55 @@ export function createMockHandlers({
       const completed = list
         .filter((item) => item.view.status === "evaluated")
         .sort((a, b) => (b.evaluatedAt ?? 0) - (a.evaluatedAt ?? 0));
+      const scored = completed.flatMap((item) => {
+        const evaluation = makeReview(
+          item.view,
+          item.events,
+          [],
+          item.outcome ?? "incomplete",
+        ).evaluation;
+        const finished = item.evaluatedAt ?? Date.now();
+        if (
+          evaluation.accuracy === null ||
+          Date.now() - finished > WINDOW_DAYS * 86_400_000
+        )
+          return [];
+        return [
+          {
+            skill: item.targetSkill ?? ("discovery" satisfies SkillId),
+            ref: {
+              caseId: item.view.id,
+              title: item.view.brief.title,
+              archetypeId: "account-renewal",
+              accuracy: evaluation.accuracy,
+              outcome: evaluation.outcome,
+              completedAt: new Date(finished).toISOString(),
+            },
+          },
+        ];
+      });
       return HttpResponse.json({
+        series: SKILL_IDS.map((skill) => {
+          const casesCounted = scored
+            .filter((item) => item.skill === skill)
+            .slice(0, CASES_REQUIRED)
+            .map((item) => item.ref);
+          return {
+            skill,
+            casesCounted,
+            required: CASES_REQUIRED,
+            windowDays: WINDOW_DAYS,
+            averageAccuracy: casesCounted.length
+              ? casesCounted.reduce((total, item) => total + item.accuracy, 0) /
+                casesCounted.length
+              : null,
+            eligible: false,
+            blockers:
+              casesCounted.length < CASES_REQUIRED
+                ? ["insufficient_cases"]
+                : ["insufficient_archetypes"],
+          };
+        }),
         skills: completed.length
           ? [
               {

@@ -74,8 +74,8 @@ export function Providers({ children }: { children: ReactNode }) {
                   More room to practice
                 </Dialog.Title>
                 <Dialog.Description className="text-sm leading-relaxed text-muted-foreground">
-                  Weekly cases and full certificates are included in Pro. Your
-                  free practice and results stay available.
+                  Weekly cases and key moves on skill certificates are included
+                  in Pro. Your free practice and results stay available.
                 </Dialog.Description>
                 <p>
                   <strong>$19 / month</strong> or $149 / year
