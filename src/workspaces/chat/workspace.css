@@ -1,0 +1,14 @@
+/* Keep the desktop composer in view; each panel owns its scroll area. */
+@media (min-width: 1024px) {
+  body:has([data-workspace="chat"]) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  body:has([data-workspace="chat"]) > header,
+  body:has([data-workspace="chat"]) > [role="note"] {
+    flex-shrink: 0;
+  }
+  #main:has([data-workspace="chat"]) {
+    min-height: 0;
+  }
+}

@@ -2,7 +2,7 @@ import { act } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { hydrateRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { certificateLimited } from "@/app/design/fixtures";
+import { certificateLimited } from "@/app/(design)/design/fixtures";
 import { AccuracyStat } from "@/ui/accuracy-stat";
 import { CertificateCard } from "@/ui/certificate-card";
 import { Reveal } from "@/ui/reveal";

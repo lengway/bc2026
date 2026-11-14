@@ -24,4 +24,38 @@ describe('sales catalog', () => {
     expect(next.subfield).toBe('sdr_outbound');
     expect(next.id).not.toBe(first.id);
   });
+
+  it('tags every archetype with at least one focus area', async () => {
+    const pack = await createCatalogService().getPack('sales');
+    for (const archetype of pack.archetypes) expect(archetype.focus.length, archetype.id).toBeGreaterThan(0);
+  });
+
+  it('picks the case that trains what the person asked to practice', async () => {
+    const catalog = createCatalogService();
+    const intakeText = 'Role: Account executive.\nWants to practice: Price and discount pressure, Negotiation.';
+    const picked = await catalog.pickArchetype({ field: 'sales', subfield: 'account_executive', level: 'intermediate', intakeText }, []);
+    expect(picked.id).toBe('price-objection');
+  });
+
+  it('matches difficulty to the level when focus does not decide', async () => {
+    const catalog = createCatalogService();
+    const beginner = await catalog.pickArchetype({ field: 'sales', subfield: 'sdr_outbound', level: 'beginner', intakeText: '' }, []);
+    const advanced = await catalog.pickArchetype({ field: 'sales', subfield: 'sdr_outbound', level: 'advanced', intakeText: '' }, []);
+    expect(beginner.difficulty).toBe('beginner');
+    expect(advanced.difficulty).toBe('advanced');
+  });
+
+  it('crosses into another role only for a strong focus match', async () => {
+    const catalog = createCatalogService();
+    const intakeText = 'Wants to practice: Renewals and churn risk, Upset or angry clients.';
+    const picked = await catalog.pickArchetype({ field: 'sales', subfield: 'sdr_outbound', level: 'intermediate', intakeText }, []);
+    expect(picked.id).toBe('renewal-risk');
+  });
+
+  it('falls back to used archetypes only when every option has been used', async () => {
+    const catalog = createCatalogService();
+    const pack = await catalog.getPack('sales');
+    const picked = await catalog.pickArchetype({ field: 'sales', subfield: 'sdr_outbound' }, pack.archetypes.map((a) => a.id));
+    expect(pack.archetypes.map((a) => a.id)).toContain(picked.id);
+  });
 });

@@ -1,4 +1,5 @@
 import type { PublicEvaluation, MoveReview, PersonaPublic } from "@/contracts";
+import { trapLabels } from "@/ui/scoring-details";
 import {
   AccuracyStat,
   LabelCounts,
@@ -38,19 +39,32 @@ export function ReviewPreview({
           <span className="font-semibold">Review</span>
           <span className="text-muted-foreground"> · {caseTitle}</span>
         </p>
-        <span className="font-mono text-xs text-muted-foreground">{reference}</span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {reference}
+        </span>
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 px-5 pt-5 pb-4">
-        <AccuracyStat accuracy={evaluation.accuracy} animate size="lg" />
+        <AccuracyStat
+          accuracy={evaluation.accuracy}
+          animate
+          size="lg"
+          label={`Accuracy · ${evaluation.scoreAudit.completionStatus.replaceAll("_", " ")}`}
+        />
         <dl className="m-0 grid grid-cols-[auto_auto] gap-x-5 gap-y-1.5 text-[13px]">
           <dt className="text-muted-foreground">Outcome</dt>
-          <dd className="m-0 text-right font-medium">{formatOutcome(evaluation.outcome)}</dd>
-          <dt className="text-muted-foreground">AI dependency</dt>
-          <dd className="m-0 text-right font-mono tabular-nums">{evaluation.aiDependency === null ? "Unavailable" : `${evaluation.aiDependency}%`}</dd>
+          <dd className="m-0 text-right font-medium">
+            {formatOutcome(evaluation.outcome)}
+          </dd>
+          <dt className="text-muted-foreground">Copilot text similarity</dt>
+          <dd className="m-0 text-right font-mono tabular-nums">
+            {evaluation.assistance.copilotTextSimilarityPercent === null
+              ? "Not enough evidence"
+              : `${evaluation.assistance.copilotTextSimilarityPercent}%`}
+          </dd>
           <dt className="text-muted-foreground">Copilot trap</dt>
           <dd className="m-0 text-right font-medium">
-            {{ caught: "Caught", missed: "Missed", not_presented: "Not presented", insufficient_evidence: "Insufficient evidence" }[evaluation.trapResult]}
+            {trapLabels[evaluation.trapResult]}
           </dd>
         </dl>
       </div>
@@ -66,7 +80,10 @@ export function ReviewPreview({
         />
       </div>
 
-      <ol aria-label="Key moves" className="m-0 list-none divide-y border-t p-0 text-[13px]">
+      <ol
+        aria-label="Key moves"
+        className="m-0 list-none divide-y border-t p-0 text-[13px]"
+      >
         {evaluation.topMoves.map((move) => {
           const moveNumber = moves.findIndex((m) => m.seq === move.seq) + 1;
           return (
