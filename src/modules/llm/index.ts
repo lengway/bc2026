@@ -15,7 +15,12 @@ export const GeneratedRubric = Rubric;
 export const PersonaReply = z.object({ reply: NonEmpty, typingMs: z.int().nonnegative(), trustDelta: z.int().min(-20).max(20), patienceDelta: z.int().min(-3).max(1), revealed: z.array(NonEmpty), outcome: PersonaOutcome.nullable(), innerThought: NonEmpty });
 export const CopilotReply = z.object({ reply: NonEmpty });
 export const DirectorTwist = z.object({ event: z.object({ kind: z.enum(['email', 'slack', 'persona_message']), from: NonEmpty, content: NonEmpty }) });
-export const EvaluatedMoves = z.object({ moves: z.array(z.object({ eventId: NonEmpty, label: MoveLabel, why: NonEmpty, betterMove: NonEmpty.nullable(), rubricRef: NonEmpty.nullable(), evidence: z.array(ScoreEvidence), assessmentStatus: AssessmentStatus })), aiUseChecks: z.array(AiUseCheck), summary: NonEmpty, skills: z.array(z.object({ skill: NonEmpty, score: z.int().min(0).max(100) })) });
+export const EvaluatedMoves = z.object({
+  moves: z.array(z.object({ eventId: NonEmpty, label: MoveLabel, why: NonEmpty, betterMove: NonEmpty.nullable(), rubricRef: NonEmpty.nullable(), evidence: z.array(ScoreEvidence), assessmentStatus: AssessmentStatus })),
+  aiUseChecks: z.array(AiUseCheck),
+  trapAssessment: z.object({ status: z.enum(['caught','missed','insufficient_evidence']), evidence: z.array(ScoreEvidence) }).optional(),
+  summary: NonEmpty, skills: z.array(z.object({ skill: NonEmpty, score: z.int().min(0).max(100) })),
+});
 export type GeneratedCase = z.infer<typeof GeneratedCase>;
 export type GeneratedRubric = z.infer<typeof GeneratedRubric>;
 export type PersonaReply = z.infer<typeof PersonaReply>;

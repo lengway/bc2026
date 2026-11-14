@@ -86,7 +86,7 @@ describe('LLM service', () => {
     for (const [id, schema] of Object.entries(schemas)) {
       const result = await llm.run(id, { text: 'sample input' }, schema as z.ZodType<unknown>);
       expect(result.meta.model).toBe('test-model');
-      expect(result.meta.promptVersion).toBe('1');
+      expect(result.meta.promptVersion).toBe(id === 'eval.moves' ? '2' : '1');
     }
   });
 

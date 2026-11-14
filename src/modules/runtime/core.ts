@@ -2,6 +2,9 @@ import { createDatabase, type Database } from '@/modules/database';
 import { createCatalogService } from '@/modules/catalog';
 import { createCaseEngineService } from '@/modules/case-engine';
 import { createSimulationService } from '@/modules/simulation';
+import { createEvaluationService,type EvaluationService } from '@/modules/evaluation';
+import { createCredentialsService,type CredentialsService } from '@/modules/credentials';
+import { createProgressService } from '@/modules/progress';
 import { createEventsService } from '@/modules/events';
 import { createJobsService } from '@/modules/jobs';
 import { createIdentityService,createProfileService,createSmtpMailer,type MagicLinkMailer } from '@/modules/identity';
@@ -27,6 +30,13 @@ export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;pr
   const events=createEventsService({db,now});
   const caseEngine=createCaseEngineService({db,jobs,llm,catalog,now,demoMode:config.DEMO_MODE});
   const simulation=createSimulationService({db,caseEngine,events,jobs,llm,now,operationLeaseMs:Math.max(120_000,config.LLM_TIMEOUT_MS*3+30_000)});
-  return {config,db,identity,catalog,llm,jobs,events,caseEngine,simulation};
+  const progress=createProgressService({db,loadSubmission:simulation.loadSubmission,getCaseForUser:caseEngine.getCaseForUser,now});
+  const evaluation:EvaluationService=createEvaluationService({db,llm,simulation,jobs,now,onEvaluated:async(tx,snapshot,result)=>{
+    await credentials.issueCertificateWithExecutor(tx,snapshot);
+    await progress.awardWithExecutor(tx,snapshot,result);
+  }});
+  // T5 supplies the owner subscription entitlement here.
+  const credentials:CredentialsService=createCredentialsService({db,loadSubmission:simulation.loadSubmission,getReview:evaluation.getReview,canFull:async()=>false,now});
+  return {config,db,identity,catalog,llm,jobs,events,caseEngine,simulation,evaluation,credentials,progress};
 }
 export type CoreRuntime=ReturnType<typeof createCoreRuntime>;

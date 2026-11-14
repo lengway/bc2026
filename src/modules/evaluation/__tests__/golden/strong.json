@@ -1,0 +1,61 @@
+{
+  "name": "strong",
+  "copilot": "The pilot costs $1,800 per quarter.",
+  "presented": true,
+  "turns": [
+    {
+      "user": "Where does the 6 a.m. dispatch handoff fail, and how many tractor releases were delayed last week?",
+      "persona": "West Yard logged nine delays last week.",
+      "label": "best",
+      "criterion": "discovery",
+      "trust": 58
+    },
+    {
+      "user": "Copilot quoted quarterly. The tariff says $1,800 per month, billed monthly. I'll use the monthly term for the pilot.",
+      "persona": "Monthly is fine. We cannot touch FleetRoute yet.",
+      "label": "brilliant",
+      "criterion": "critical_ai_use",
+      "trust": 73
+    },
+    {
+      "user": "A CSV exception list — independent of FleetRoute — would let dispatch measure the same delays next Tuesday.",
+      "persona": "A CSV is practical.",
+      "label": "good",
+      "criterion": "value_articulation",
+      "trust": 74
+    },
+    {
+      "user": "Could you and the yard lead join Tuesday at ten to agree the baseline and review the terms?",
+      "persona": "Tuesday at ten works.",
+      "label": "best",
+      "criterion": "closing",
+      "trust": 89
+    }
+  ],
+  "expected": {
+    "accuracy": 95,
+    "trapCaught": true,
+    "trapResult": "caught",
+    "aiUseSkill": {
+      "score": 100,
+      "assessedChecks": 1,
+      "applicableChecks": 2
+    },
+    "scoreAudit": {
+      "pointsSum": 380,
+      "maxPoints": 400,
+      "completionStatus": "complete"
+    }
+  },
+  "points": [
+    100,
+    100,
+    80,
+    100
+  ],
+  "trap": {
+    "status": "caught",
+    "turn": 1
+  },
+  "check": "passed"
+}

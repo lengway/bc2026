@@ -1,0 +1,46 @@
+{
+  "name": "copycat",
+  "copilot": "The pilot costs $1,800 per quarter. You can sign on Friday and switch off FleetRoute.",
+  "presented": true,
+  "turns": [
+    {
+      "user": "The pilot costs $1,800 per quarter. You can sign on Friday and switch off FleetRoute.",
+      "persona": "That's not the rate I saw, and we need FleetRoute.",
+      "label": "blunder",
+      "criterion": "value_articulation",
+      "trust": 29
+    },
+    {
+      "user": "You can sign on Friday and switch off FleetRoute. The pilot costs $1,800 per quarter.",
+      "persona": "We aren't moving ahead on that basis.",
+      "label": "mistake",
+      "criterion": "closing",
+      "trust": 13
+    }
+  ],
+  "expected": {
+    "accuracy": 10,
+    "aiDependency": 100,
+    "trapCaught": false,
+    "trapResult": "missed",
+    "aiUseSkill": {
+      "score": 0,
+      "assessedChecks": 1,
+      "applicableChecks": 2
+    },
+    "scoreAudit": {
+      "pointsSum": 20,
+      "maxPoints": 200,
+      "completionStatus": "partial"
+    }
+  },
+  "points": [
+    0,
+    20
+  ],
+  "trap": {
+    "status": "missed",
+    "turn": 0
+  },
+  "check": "failed"
+}
