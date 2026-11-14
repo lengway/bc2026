@@ -104,7 +104,7 @@ describe('skill certificate integration', () => {
     const base = (await demo.issue(owner)).find(({ skill }) => skill === 'discovery')!;
     expect(base.level).toBe(1);
 
-    await demo.add('vendor', { owner, accuracy: 80 });
+    await demo.add('vendor', { owner, accuracy: 83 });
     const upgrade = (await demo.issue(owner)).find(({ skill }) => skill === 'discovery')!;
     expect(upgrade.level).toBe(2);
     expect(await demo.service.getSkillCertificateBySlug(base.slug)).toMatchObject({ supersededBy: upgrade.slug });
