@@ -1,0 +1,31 @@
+{
+  "events": [
+    {
+      "id": "82000000-4100-4810-8260-000000000001",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d02",
+      "seq": 1,
+      "actor": "user",
+      "personaId": "dana",
+      "type": "message",
+      "content": "Hi, Dana.",
+      "meta": {},
+      "createdAt": "2026-03-12T15:00:13.000Z",
+      "clientMsgId": "92000000-4100-4810-8260-000000000001",
+      "draftId": null
+    },
+    {
+      "id": "82000000-4100-4810-8260-000000000002",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d02",
+      "seq": 2,
+      "actor": "system",
+      "personaId": null,
+      "type": "submit",
+      "content": "Case submitted",
+      "meta": {},
+      "createdAt": "2026-03-12T15:00:26.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    }
+  ],
+  "lastSeq": 2
+}

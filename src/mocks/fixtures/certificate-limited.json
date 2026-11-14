@@ -1,0 +1,55 @@
+{
+  "slug": "qP7aG3_m4T",
+  "holderName": "Jordan Reyes",
+  "skill": "Outbound sales discovery",
+  "field": "sales",
+  "level": "intermediate",
+  "issuedAt": "2026-03-12T15:04:20.000Z",
+  "caseTitle": "A pilot across two Ohio yards",
+  "accuracy": 75,
+  "outcome": "won",
+  "headline": "Qualified a two-yard pilot and secured a follow-up with the operations team.",
+  "verified": true,
+  "verificationScope": "recorded_simulation",
+  "assistance": {
+    "copilotRequests": 1,
+    "knownCopilotRetainedChars": 0,
+    "totalSubmittedChars": 689,
+    "copilotRetainedPercent": null,
+    "copilotTextSimilarityPercent": 11,
+    "unknownPasteCount": 1,
+    "unknownPasteChars": 103,
+    "observedInputModes": [
+      "unknown",
+      "keyboard"
+    ],
+    "observationStatus": "partial",
+    "limitations": [
+      "Only part of the editor history was received. The external paste has an unknown source.",
+      "Text similarity uses case-insensitive unique-token Jaccard against previous copilot replies and covers all submitted messages."
+    ]
+  },
+  "aiUseSkillSummary": {
+    "score": 100,
+    "assessedChecks": 2,
+    "applicableChecks": 3,
+    "earnedPoints": 5,
+    "assessedMaxPoints": 5,
+    "applicableMaxPoints": 6
+  },
+  "scoringSummary": {
+    "rubricVersion": "sales-1.0.0",
+    "scorerModel": "fixture-scorer",
+    "scorerPromptVersion": "eval.moves.v1",
+    "caseLevel": "intermediate",
+    "scoredMoveCount": 6,
+    "totalUserMoveCount": 6,
+    "pointsSum": 450,
+    "maxPoints": 600,
+    "formula": "round(100 × pointsSum / maxPoints); maxPoints = 100 × scoredMoveCount. No scored moves: unavailable.",
+    "completionStatus": "complete",
+    "limitations": [
+      "Scores reflect this case and the evidence available at each move."
+    ]
+  }
+}
