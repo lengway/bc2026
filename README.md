@@ -1,58 +1,52 @@
-# Skills Simulation
+# Gambit
 
-Backend implementation for the BusinessCup 2026 Sales simulation. The product specification is in [CONTEXT.md](docs/spec/CONTEXT.md); backend tasks are in [PROMPT_BACKEND.md](docs/spec/PROMPT_BACKEND.md).
+Sales simulation with Ledger frontend F1–F6 and the team’s T0–T5 backend for [lengway/bc2026](https://github.com/lengway/bc2026), on `fe/frontend`. The product uses the team’s Ledger design system. The product name is **Gambit**, selected by the user on 2026-11-14. Updated requirements are in `docs/reference`.
 
-## Current status
+## Run
 
-T0–T5 backend code is implemented: contracts, auth/guest access, generation, simulation, evidence-based review, certificates, progress, Stripe test billing, HTTP/SSE and worker. See the [execution ledger](docs/superpowers/plans/2026-11-14-backend-progress.md) for verification and remaining external checks. No live deployment is claimed.
-
-This branch combines the backend with the teammate's landing, design gallery and review components from `main`. Their layouts and styling are retained; bindings and gallery fixtures use the shared backend contracts. The full product flow on `fe/frontend` is a separate branch and has not been merged here. See [DESIGN_HANDOFF.md](DESIGN_HANDOFF.md) for the design surface and [backend-handoff.md](docs/backend-handoff.md) for the API.
-
-## Local preparation
-
-Use Node.js 22 or newer and pnpm 11.25.0.
+Use Node 24 (minimum 22.12). npm is supported locally; CI and deployment use pnpm 11.25.0. Keep both lockfiles synchronized.
 
 ```sh
-pnpm install --frozen-lockfile
-cp .env.example .env
+npm ci
+# PowerShell: Copy-Item .env.example .env
+# For the browser-only preview, explicitly set NEXT_PUBLIC_API_MOCKS=1.
+npm run dev
 ```
 
-Set the local environment using `.env.example`. `LLM_MODEL=gpt-6.1-sol` handles generation/rubrics, `LLM_MODEL_DIALOGUE=gpt-6.1-terra` handles intake/personas/copilot/twists, and `LLM_MODEL_EVALUATION=gpt-6.1-sol` handles the final review. Optional role values fall back to `LLM_MODEL`. Keep database, OpenAI, SMTP and Stripe credentials in `.env` or deployment secrets, never in Git or browser configuration.
+Open http://127.0.0.1:3000. With `NEXT_PUBLIC_API_MOCKS=1`, enter an email on `/login`, request a link, then click **Open preview sign-in link**. No email is sent. Follow onboarding, acknowledge the recording notice, practice with Dana and Copilot, submit, open the review and certificate. `/path` shows completed practice. `/c/sample` and `/c/sample-full` are fictional public examples; `/design` preserves the component gallery.
+
+MSW runs in the browser and must finish starting before data consumers mount. Preview sessions/cases use non-secret tab-local storage. Editor changes stay in RAM; reloads can reduce observation coverage. Dynamic preview certificates cannot be shared outside that tab. Mocked scores/AI checks are illustrative fixtures, not professional assessments. Checkout does not collect money or activate a subscription.
+
+## Verify
 
 ```sh
-pnpm test
-pnpm test:backend
-pnpm test:frontend
-pnpm typecheck
-pnpm lint
-pnpm build
+# Combined tests need TEST_DATABASE_URL pointing to local test PostgreSQL.
+npm run check
+npm run build
+npx playwright install chromium
+npm run test:e2e
+npm run format:check
 ```
 
-`pnpm db:migrate` applies SQL migrations using `DATABASE_URL`. Tests require `TEST_DATABASE_URL` in the environment or ignored `.env.test.local`; that account needs permission to create disposable databases. Tests create and drop only randomly named `bc_test_*` databases, never the database named in your connection string. Tests fail explicitly when PostgreSQL is unavailable.
+Browser tests start the MSW preview on port 3100. See `docs/FRONTEND.md` for verification results and scope. CI verifies both Node/backend and jsdom/frontend tests, formatting, build, and Chromium E2E. Standalone Next output is enabled; production packaging must include `public` and `.next/static`.
 
-`pnpm test` runs both projects: server tests in Node.js and UI tests in jsdom with the design branch's React setup. The focused commands run each project separately. pnpm is the CI/VPS package manager; `package-lock.json` is also synchronized for teammates using npm. Keep both lockfiles synchronized when changing dependencies.
+## Code map
 
-Run `pnpm dev` and `pnpm worker` in separate terminals after migrating. For a production build use `pnpm build` then `pnpm start`, keeping the worker running separately. `/`, `/design`, `/design/landing` and `/design/review` serve the existing design work. Cache Components is disabled because the backend route handlers explicitly use request-time execution; the design's Tailwind/Turbopack configuration is preserved.
+- `src/app/(frontend)`: landing/login, protected onboarding/dashboard/case/review/path, public certificates/pricing, billing return states.
+- `src/ui`, `src/screens`: Ledger primitives and presentational screens. The separate `(design)` root preserves designer previews.
+- `src/contracts`: updated public schemas, including assistance, scoring, telemetry and safe certificate projections. The private rubric is excluded from the public barrel.
+- `src/app/_lib`: validated API, trusted server origin/cookie forwarding, safe public certificate loader, integration proposals. `_hooks` owns queries and stable optimistic mutations.
+- `src/workspaces/chat`: conversation UI, SSE/HTTP replay/deduplication, server-based deadline, applied editor changes and bounded RAM-only batch delivery.
+- `src/mocks`: authenticated mock handlers, deterministic scenarios and preview-only projections.
 
-Paid checks are opt-in: `LLM_LIVE=1 pnpm test:live` (PowerShell: set `$env:LLM_LIVE='1'`, then run the command). It uses a disposable PostgreSQL database and real OpenAI, with email/payment network calls disabled. The runner reserves a conservative cost estimate before each request, stops at $2 per run or $40 cumulative reserved in ignored `.tmp/llm-live-spend.json`, and serializes runs through a lock. Do not delete that ledger to bypass the limit. This is a local smoke-runner guard, not an account-wide or production spending limit. Keep $10 of the approved $50 for the pitch. Verify actual usage in the provider dashboard, especially after requests with no reported usage.
+The backend merged from main supplies API routes, PostgreSQL migrations, the evaluation worker and deployment scripts. Real scoring, attribution, activity analysis, ownership and subscription enforcement remain server responsibilities. See [backend handoff](docs/backend-handoff.md) and [deployment instructions](deploy/README.md).
 
-Current external check: the key can list both selected models, but generation returns HTTP 429 `credit_balance_exhausted`. No successful live model result has been validated. Fund the API organization before rerunning. SMTP fields and real Stripe delivery also require deployment configuration.
+## Run the real application
 
-After migrations, `pnpm seed:onboarding` uses the configured OpenAI model to prepare nine onboarding templates: one per level in each of the three Sales subfields. This command makes real provider calls. It skips existing templates on retry. Each user receives separate case/persona records; repeated practice generates a fresh scenario after that user's matching template has been used.
+Set `NEXT_PUBLIC_API_MOCKS=0`, set server-only `APP_URL` to the canonical application origin, and rebuild. Set DATABASE_URL and the server-only provider configuration in .env, then run `npm run db:migrate`. Start `npm run dev` and `npm run worker` in separate terminals. `npm run seed:onboarding` and `npm run test:live` call paid providers; they are not part of the ordinary test suite. Frontend sends no browser token or custom secret header. Magic-link verification/cookies, Origin checks, SSE replay and Stripe webhook access require server validation.
 
-See [VPS deployment and backup instructions](deploy/README.md). Docker Compose starts migration, web, worker, PostgreSQL and Caddy. OpenAI/SMTP/Stripe integrations need real local configuration; mocks verify service behavior only. Set `GUEST_ACCESS_ENABLED=true` to enable the approved jury flow; details and frontend additions are in the [guest-access addendum](docs/superpowers/specs/2026-11-14-guest-access-design.md).
+Read [integration contracts and real-API checklist](docs/INTEGRATION.md) before connecting. Backend source is integrated and its isolated PostgreSQL tests pass. Live OpenAI, email delivery, VPS streams and Stripe delivery remain external integration checks. The real auth API supports guest sessions when enabled server-side; a guest-entry UI is not part of this conflict-resolution change. Public certificates use SSR and generated OG in real mode; only safe public fields are serialized. Null scores remain **Not enough evidence**, and certificates say **Recorded simulation**.
 
-## Architecture
+See [scope and progress](docs/FRONTEND.md) and the [implementation plan](docs/superpowers/plans/2026-11-14-f2-f6-product.md) for continuation.
 
-1. Next.js route handlers validate requests and call modules through `index.ts`.
-2. PostgreSQL is private to the server; repositories use parameterized queries.
-3. Magic links establish server-side cookie sessions.
-4. Events provide ordered, idempotent simulation history and safe SSE projections.
-5. PostgreSQL jobs and a separate worker run generation and evaluation durably.
-6. Only the LLM module imports the provider SDK.
-7. Case performance, observed assistance and AI-advice checks are separate measures.
-8. Evidence and saved scoring versions make grading inspectable.
-9. Private editor/interaction data and diagnostics are excluded from public certificates.
-10. Docker Compose deploys the application, worker, database and Caddy to a VPS.
-
-All pushes and pull requests are performed by the repository owner.
+Backend tests create and drop randomly named `bc_test_*` databases; TEST_DATABASE_URL must use a local test account with database-creation permission. Missing PostgreSQL is a test failure, not a skipped check. `npm run test:backend` and `npm run test:frontend` run each project separately.

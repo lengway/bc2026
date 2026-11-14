@@ -5,7 +5,12 @@ import { cn } from "@/ui/lib/utils";
 import { MoveLabelBadge } from "@/ui/move-label-badge";
 
 type MoveTimelineProps = {
-  moves: ReadonlyArray<Pick<MoveReview, "seq" | "label" | "userText" | "trustAfter" | "assessmentStatus">>;
+  moves: ReadonlyArray<
+    Pick<
+      MoveReview,
+      "seq" | "label" | "userText" | "trustAfter" | "assessmentStatus"
+    >
+  >;
   selectedSeq?: number | null;
   onSelectMove?: (seq: number) => void;
   className?: string;
@@ -51,12 +56,16 @@ export function MoveTimeline({
               <span className="font-mono text-xs text-muted-foreground tabular-nums">
                 {index + 1}
               </span>
-              <MoveLabelBadge
-                label={move.assessmentStatus === "assessed" ? move.label : null}
-                variant="glyph"
-                size="sm"
-                className="justify-self-start"
-              />
+              {move.assessmentStatus === "insufficient_evidence" ? (
+                <MoveLabelBadge label={null} variant="glyph" size="sm" />
+              ) : (
+                <MoveLabelBadge
+                  label={move.label}
+                  variant="glyph"
+                  size="sm"
+                  className="justify-self-start"
+                />
+              )}
               <span className="truncate">{move.userText}</span>
               <span
                 className="font-mono text-xs text-muted-foreground tabular-nums"

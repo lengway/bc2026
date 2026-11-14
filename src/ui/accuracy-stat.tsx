@@ -1,6 +1,5 @@
 "use client";
 
-import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import { cn } from "@/ui/lib/utils";
 import { NumberTicker } from "@/ui/primitives/number-ticker";
 
@@ -28,29 +27,38 @@ export function AccuracyStat({
   label = "Accuracy",
   className,
 }: AccuracyStatProps) {
-  const prefersReducedMotion = useReducedMotion();
-  const value = accuracy === null ? null : Math.round(Math.min(100, Math.max(0, accuracy)));
-  const shouldAnimate = animate && !prefersReducedMotion;
+  if (accuracy === null)
+    return (
+      <div className={cn("flex flex-col gap-2", className)}>
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-xl font-medium">Not enough evidence</span>
+      </div>
+    );
+  const value = Math.round(Math.min(100, Math.max(0, accuracy)));
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       <span className="text-xs text-muted-foreground">{label}</span>
-      {value === null ? (
-        <span className="text-sm text-muted-foreground">Unavailable</span>
-      ) : (
-        <>
-          <span className="sr-only">{value}%</span>
-          <span
-            aria-hidden="true"
-            className={cn(
-              "font-mono leading-none font-medium tracking-tight tabular-nums",
-              SIZE_CLASS[size],
-            )}
-          >
-            {shouldAnimate ? <NumberTicker value={value} /> : value}%
-          </span>
-        </>
-      )}
+      <span className="sr-only">{value}%</span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "font-mono leading-none font-medium tracking-tight tabular-nums",
+          SIZE_CLASS[size],
+        )}
+      >
+        {animate ? (
+          <>
+            <span className="motion-reduce:hidden">
+              <NumberTicker value={value} />
+            </span>
+            <span className="hidden motion-reduce:inline">{value}</span>
+          </>
+        ) : (
+          value
+        )}
+        %
+      </span>
     </div>
   );
 }

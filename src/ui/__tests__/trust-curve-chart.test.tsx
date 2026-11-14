@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { evaluation, moves } from "@/app/design/fixtures";
+import { evaluation, moves } from "@/app/(design)/design/fixtures";
 import { TrustCurveChart } from "@/ui/trust-curve-chart";
 
 describe("TrustCurveChart", () => {
