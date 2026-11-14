@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CaseType, PersonaOutcome } from './case';
-import { CertificateSlug } from './certificate';
+import { CertificateSlug, CertificateTranscriptEvent } from './certificate';
 import { Evaluation, MoveReview } from './evaluation';
 import { Event } from './events';
 import { Id, NonEmpty, NonNegativeInt, Percent, Timestamp } from './primitives';
@@ -91,6 +91,7 @@ export type SubmitCaseResponse = z.infer<typeof SubmitCaseResponse>;
 export const ReviewResponse = z.object({
   evaluation: Evaluation,
   moves: z.array(MoveReview),
+  transcript: z.array(CertificateTranscriptEvent).default([]),
   certificateSlug: CertificateSlug.optional(),
 });
 export type ReviewResponse = z.infer<typeof ReviewResponse>;

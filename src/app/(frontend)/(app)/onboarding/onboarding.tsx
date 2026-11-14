@@ -24,9 +24,24 @@ import {
 } from "./intake";
 
 const FIELDS = [
-  { value: "sales", label: "Sales", detail: "Discovery, objections, negotiation and closing", available: true },
-  { value: "project_management", label: "Project management", detail: "Coming soon", available: false },
-  { value: "software", label: "Software", detail: "Coming soon", available: false },
+  {
+    value: "sales",
+    label: "Sales",
+    detail: "Discovery, objections, negotiation and closing",
+    available: true,
+  },
+  {
+    value: "project_management",
+    label: "Project management",
+    detail: "Coming soon",
+    available: false,
+  },
+  {
+    value: "software",
+    label: "Software",
+    detail: "Coming soon",
+    available: false,
+  },
 ] as const;
 
 function Question({
@@ -84,7 +99,9 @@ function Choice({
       />
       <span className="grid gap-0.5">
         <span className="font-medium">{label}</span>
-        {detail && <span className="text-xs text-muted-foreground">{detail}</span>}
+        {detail && (
+          <span className="text-xs text-muted-foreground">{detail}</span>
+        )}
       </span>
     </label>
   );
@@ -123,7 +140,9 @@ function FocusChips({
               disabled && "cursor-not-allowed opacity-45 hover:border-border",
             )}
           >
-            {on && <Check aria-hidden="true" className="size-3.5" strokeWidth={2} />}
+            {on && (
+              <Check aria-hidden="true" className="size-3.5" strokeWidth={2} />
+            )}
             {FOCUS_AREAS[area].label}
           </button>
         );
@@ -137,12 +156,17 @@ export function Onboarding() {
   const [answers, setAnswers] = useState<IntakeAnswers>(EMPTY_ANSWERS);
   const [triedSubmit, setTriedSubmit] = useState(false);
   const router = useRouter();
-  const intake = useMutation({ mutationFn: api.intake, onSuccess: () => setStep(2) });
+  const intake = useMutation({
+    mutationFn: api.intake,
+    onSuccess: () => setStep(2),
+  });
   const create = useCreateCase();
   const busy = intake.isPending || create.isPending;
 
-  const set = <K extends keyof IntakeAnswers>(key: K, value: IntakeAnswers[K]) =>
-    setAnswers((a) => ({ ...a, [key]: value }));
+  const set = <K extends keyof IntakeAnswers>(
+    key: K,
+    value: IntakeAnswers[K],
+  ) => setAnswers((a) => ({ ...a, [key]: value }));
 
   const missing = [
     !answers.role && "your role",
@@ -153,7 +177,11 @@ export function Onboarding() {
   function submit() {
     setTriedSubmit(true);
     if (missing.length) return;
-    intake.mutate({ field: "sales", level: answers.level, text: composeIntakeText(answers) });
+    intake.mutate({
+      field: "sales",
+      level: answers.level,
+      text: composeIntakeText(answers),
+    });
   }
 
   function prepare() {
@@ -170,7 +198,10 @@ export function Onboarding() {
         </p>
         <div aria-hidden="true" className="grid grid-cols-2 gap-2">
           {[1, 2].map((n) => (
-            <div key={n} className={`h-1 rounded-sm ${n <= step ? "bg-ink" : "bg-muted"}`} />
+            <div
+              key={n}
+              className={`h-1 rounded-sm ${n <= step ? "bg-ink" : "bg-muted"}`}
+            />
           ))}
         </div>
       </header>
@@ -185,10 +216,12 @@ export function Onboarding() {
           }}
         >
           <div className="space-y-3">
-            <h1 className="text-3xl font-medium tracking-tight">Tell us about your work</h1>
+            <h1 className="text-3xl font-medium tracking-tight">
+              Tell us about your work
+            </h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Your answers decide which situations you practice. It takes about a minute, and your
-              first case takes about eight.
+              Your answers decide which situations you practice. It takes about
+              a minute, and your first case takes about eight.
             </p>
           </div>
 
@@ -231,15 +264,30 @@ export function Onboarding() {
                     key={e.id}
                     name="experience"
                     checked={answers.experience === e.id}
-                    onChange={() => setAnswers((a) => ({ ...a, experience: e.id, level: e.level }))}
+                    onChange={() =>
+                      setAnswers((a) => ({
+                        ...a,
+                        experience: e.id,
+                        level: e.level,
+                      }))
+                    }
                     label={e.label}
                   />
                 ))}
               </div>
             </Question>
-            <Question title="Case difficulty" hint="Set from your experience. Change it if you like.">
+            <Question
+              title="Case difficulty"
+              hint="Set from your experience. Change it if you like."
+            >
               <div className="grid gap-2">
-                {(["beginner", "intermediate", "advanced"] as const satisfies readonly Level[]).map((value) => (
+                {(
+                  [
+                    "beginner",
+                    "intermediate",
+                    "advanced",
+                  ] as const satisfies readonly Level[]
+                ).map((value) => (
                   <Choice
                     key={value}
                     name="level"
@@ -287,23 +335,32 @@ export function Onboarding() {
               label="What you want to practice"
               selected={answers.practice}
               blocked={answers.strengths}
-              onToggle={(area) => set("practice", toggleFocus(answers.practice, area))}
+              onToggle={(area) =>
+                set("practice", toggleFocus(answers.practice, area))
+              }
             />
           </Question>
 
-          <Question title="Where are you already strong?" hint={`Optional. Up to ${MAX_FOCUS}.`}>
+          <Question
+            title="Where are you already strong?"
+            hint={`Optional. Up to ${MAX_FOCUS}.`}
+          >
             <FocusChips
               label="Where you are already strong"
               selected={answers.strengths}
               blocked={answers.practice}
-              onToggle={(area) => set("strengths", toggleFocus(answers.strengths, area))}
+              onToggle={(area) =>
+                set("strengths", toggleFocus(answers.strengths, area))
+              }
             />
           </Question>
 
           <div>
             <label htmlFor="intake" className={labelClass}>
               Anything else we should know
-              <span className="ml-2 font-normal text-muted-foreground">Optional</span>
+              <span className="ml-2 font-normal text-muted-foreground">
+                Optional
+              </span>
             </label>
             <textarea
               id="intake"
@@ -320,7 +377,10 @@ export function Onboarding() {
           </div>
 
           {triedSubmit && missing.length > 0 && (
-            <p role="alert" className="rounded-lg border border-label-mistake/30 bg-label-mistake-soft px-4 py-3 text-sm text-label-mistake">
+            <p
+              role="alert"
+              className="rounded-lg border border-label-mistake/30 bg-label-mistake-soft px-4 py-3 text-sm text-label-mistake"
+            >
               Please choose {missing.join(", ")}.
             </p>
           )}
@@ -336,9 +396,12 @@ export function Onboarding() {
       {step === 2 && intake.data && (
         <>
           <div className="space-y-3">
-            <h1 className="text-3xl font-medium tracking-tight">Does this sound like you?</h1>
+            <h1 className="text-3xl font-medium tracking-tight">
+              Does this sound like you?
+            </h1>
             <p className="text-sm text-muted-foreground">
-              Your first case is chosen from this profile. You can change it before we prepare it.
+              Your first case is chosen from this profile. You can change it
+              before we prepare it.
             </p>
           </div>
           <Surface className="space-y-6">
@@ -350,14 +413,21 @@ export function Onboarding() {
                   ? "Experience not specified"
                   : `${intake.data.years} ${intake.data.years === 1 ? "year" : "years"}`}
               </p>
-              <p className="text-sm text-muted-foreground">{LEVEL_LABEL[intake.data.level]} cases</p>
+              <p className="text-sm text-muted-foreground">
+                {LEVEL_LABEL[intake.data.level]} cases
+              </p>
             </div>
             {answers.practice.length > 0 && (
               <div>
-                <h2 className="mb-2 text-xs font-medium text-muted-foreground">Your cases will focus on</h2>
+                <h2 className="mb-2 text-xs font-medium text-muted-foreground">
+                  Your cases will focus on
+                </h2>
                 <ul className="flex flex-wrap gap-2">
                   {answers.practice.map((area) => (
-                    <li key={area} className="rounded-md bg-ink px-2.5 py-1 text-sm text-primary-foreground">
+                    <li
+                      key={area}
+                      className="rounded-md bg-ink px-2.5 py-1 text-sm text-primary-foreground"
+                    >
                       {FOCUS_AREAS[area].label}
                     </li>
                   ))}
@@ -366,23 +436,34 @@ export function Onboarding() {
             )}
             {intake.data.pains.length > 0 && (
               <div>
-                <h2 className="mb-2 text-xs font-medium text-muted-foreground">What feels difficult</h2>
+                <h2 className="mb-2 text-xs font-medium text-muted-foreground">
+                  What feels difficult
+                </h2>
                 <ul className="space-y-2 text-sm">
                   {intake.data.pains.map((pain) => (
                     <li key={pain} className="flex gap-2">
-                      <Check aria-hidden="true" className="size-4 shrink-0 text-ink" />
+                      <Check
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-ink"
+                      />
                       {pain}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
-            <Button variant="outline" disabled={busy} onClick={() => setStep(1)}>
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setStep(1)}
+            >
               <Pencil aria-hidden="true" />
               Edit my answers
             </Button>
           </Surface>
-          {create.isError && <ErrorPanel error={create.error} retry={prepare} />}
+          {create.isError && (
+            <ErrorPanel error={create.error} retry={prepare} />
+          )}
           <Button size="lg" disabled={busy} onClick={prepare}>
             {busy ? "Preparing your case…" : "Looks right, prepare my case"}
             <ArrowRight aria-hidden="true" />

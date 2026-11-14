@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { focusAreasIn } from "@/contracts";
-import { EMPTY_ANSWERS, MAX_FOCUS, composeIntakeText, toggleFocus } from "./intake";
+import {
+  EMPTY_ANSWERS,
+  MAX_FOCUS,
+  composeIntakeText,
+  toggleFocus,
+} from "./intake";
 
 describe("composeIntakeText", () => {
   it("writes every answer on its own labelled line", () => {
@@ -46,7 +51,10 @@ describe("toggleFocus", () => {
     expect(list).toEqual(["pricing"]);
     list = toggleFocus(list, "pricing");
     expect(list).toEqual([]);
-    const full = toggleFocus(toggleFocus(toggleFocus([], "pricing"), "closing"), "renewal");
+    const full = toggleFocus(
+      toggleFocus(toggleFocus([], "pricing"), "closing"),
+      "renewal",
+    );
     expect(full).toHaveLength(MAX_FOCUS);
     expect(toggleFocus(full, "discovery")).toBe(full);
   });

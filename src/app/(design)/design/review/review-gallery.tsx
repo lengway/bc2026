@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Evaluation, MoveReview } from "@/contracts";
 import { ReviewScreen } from "@/screens/review";
 import { cn } from "@/ui/lib/utils";
-import { evaluation, moves, persona } from "../fixtures";
+import { evaluation, moves, persona, transcript } from "../fixtures";
 import { noAiChecks } from "@/mocks/scenarios/sales";
 
 const CASE_TITLE = "Renewal at risk: Brightline Logistics";
@@ -18,7 +18,14 @@ const lostMoves: MoveReview[] = [
     userText: "I can take 10% off today if you sign before Friday.",
     label: "mistake",
     points: 20,
-    evidence: [{ source: "user_event", sourceId: moves[5].eventId, quote: "I can take 10% off today if you sign before Friday.", explanation: "The gallery example discounts before discovery." }],
+    evidence: [
+      {
+        source: "user_event",
+        sourceId: moves[5].eventId,
+        quote: "I can take 10% off today if you sign before Friday.",
+        explanation: "The gallery example discounts before discovery.",
+      },
+    ],
     why: "You discounted before you knew what the problem was. It tells Dana the list price was never real.",
     betterMove: "Before we talk numbers: what happened in March?",
     innerThought: "So the price has air in it. Good to know.",
@@ -31,9 +38,18 @@ const lostMoves: MoveReview[] = [
     userText: "I really need an answer today. The offer expires at five.",
     label: "blunder",
     points: 0,
-    evidence: [{ source: "user_event", sourceId: moves[6].eventId, quote: "I really need an answer today. The offer expires at five.", explanation: "The gallery example applies pressure with an invented deadline." }],
+    evidence: [
+      {
+        source: "user_event",
+        sourceId: moves[6].eventId,
+        quote: "I really need an answer today. The offer expires at five.",
+        explanation:
+          "The gallery example applies pressure with an invented deadline.",
+      },
+    ],
     why: "Pressure with an invented deadline, to a client who was already looking elsewhere. Her patience ran out here.",
-    betterMove: "Take the time you need. What would you have to see from us to stay?",
+    betterMove:
+      "Take the time you need. What would you have to see from us to stay?",
     innerThought: "I do not negotiate with a countdown. We are done.",
     trustAfter: 9,
   },
@@ -42,10 +58,30 @@ const lostMoves: MoveReview[] = [
 const lostEvaluation: Evaluation = {
   ...evaluation,
   accuracy: 33,
-  labelCounts: { brilliant: 0, best: 0, good: 1, inaccuracy: 0, mistake: 1, blunder: 1 },
+  labelCounts: {
+    brilliant: 0,
+    best: 0,
+    good: 1,
+    inaccuracy: 0,
+    mistake: 1,
+    blunder: 1,
+  },
   aiDependency: 85,
-  assistance: { ...evaluation.assistance, copilotTextSimilarityPercent: 85, totalSubmittedChars: lostMoves.reduce((sum, move) => sum + move.userText.length, 0) },
-  scoreAudit: { ...evaluation.scoreAudit, scoredMoveCount: 3, totalUserMoveCount: 3, pointsSum: 100, maxPoints: 300 },
+  assistance: {
+    ...evaluation.assistance,
+    copilotTextSimilarityPercent: 85,
+    totalSubmittedChars: lostMoves.reduce(
+      (sum, move) => sum + move.userText.length,
+      0,
+    ),
+  },
+  scoreAudit: {
+    ...evaluation.scoreAudit,
+    scoredMoveCount: 3,
+    totalUserMoveCount: 3,
+    pointsSum: 100,
+    maxPoints: 300,
+  },
   trapCaught: false,
   trapResult: "not_presented",
   aiUseSkill: { ...noAiChecks, checks: [] },
@@ -58,7 +94,10 @@ const lostEvaluation: Evaluation = {
     { skill: "objection_handling", score: 22 },
     { skill: "critical_ai_use", score: 10 },
   ],
-  trustCurve: lostMoves.map((move) => ({ seq: move.seq, trust: move.trustAfter })),
+  trustCurve: lostMoves.map((move) => ({
+    seq: move.seq,
+    trust: move.trustAfter,
+  })),
 };
 
 const STATES = [
@@ -80,7 +119,9 @@ export function ReviewGallery() {
         aria-label="Screen state"
         className="flex flex-wrap items-center gap-1 border-b bg-surface px-4 py-2 sm:px-8"
       >
-        <span className="mr-2 font-mono text-xs text-muted-foreground uppercase">Review</span>
+        <span className="mr-2 font-mono text-xs text-muted-foreground uppercase">
+          Review
+        </span>
         {STATES.map((option) => (
           <button
             key={option.id}
@@ -109,6 +150,28 @@ export function ReviewGallery() {
           persona={persona}
           evaluation={lostEvaluation}
           moves={lostMoves}
+          transcript={lostMoves.flatMap((move, index) => [
+            {
+              id: move.eventId,
+              seq: move.seq,
+              actor: "user" as const,
+              type: "message" as const,
+              content: move.userText,
+              createdAt: "2026-11-14T15:31:08Z",
+            },
+            {
+              id: transcript[index * 2 + 1].id,
+              seq: move.seq + 1,
+              actor: "persona" as const,
+              type: "message" as const,
+              content: [
+                "I need the routing problems fixed.",
+                "Why offer a discount before understanding the problem?",
+                "We are done. I am moving to another vendor.",
+              ][index],
+              createdAt: "2026-11-14T15:31:21Z",
+            },
+          ])}
           onShare={() => undefined}
           onNextCase={() => undefined}
         />
@@ -120,6 +183,7 @@ export function ReviewGallery() {
           persona={persona}
           evaluation={evaluation}
           moves={moves}
+          transcript={transcript}
           sharePending={state === "sharing"}
           onShare={() => undefined}
           onNextCase={() => undefined}

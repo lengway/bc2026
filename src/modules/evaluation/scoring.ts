@@ -1,8 +1,9 @@
-import { Evaluation, MOVE_LABEL_POINTS, ReviewResponse, type AiUseSkill, type CriterionCoverage, type MoveReview, type TrapResult } from '@/contracts';
+import { CertificateTranscriptEvent, Evaluation, MOVE_LABEL_POINTS, ReviewResponse, type AiUseSkill, type CriterionCoverage, type MoveReview, type TrapResult } from '@/contracts';
 import { Percent } from '@/contracts/primitives';
 import type { EvaluatedMoves } from '@/modules/llm';
 import { createEvidenceValidator, looksLikeScorerInstruction, type EvidenceValidator } from './evidence';
 import { similarityVersion, type PreparedSubmission } from './observations';
+import { moveAssessmentIssues } from './proposals';
 
 const normalize = (text: string) => text.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
 
@@ -115,9 +116,7 @@ function makeMoves(prepared: PreparedSubmission, proposals: EvaluatedMoves['move
     const before = personaTrust.get(personId) ?? 0;
     const trustAfter = reply?.trust ?? before;
     personaTrust.set(personId, trustAfter);
-    const assessed = proposal?.assessmentStatus === 'assessed' && !!proposal.rubricRef && criteria.has(proposal.rubricRef) &&
-      proposal.evidence.some((item) => item.source === 'user_event' && item.sourceId === move.id) &&
-      proposal.evidence.every((item) => evidence.validates(item, move));
+    const assessed = proposal?.assessmentStatus === 'assessed' && moveAssessmentIssues(proposal, move, criteria, evidence).length === 0;
     const review = {
       eventId: move.id, seq: move.seq, userText: move.content, trustAfter, innerThought: reply?.innerThought ?? '',
       ...(assessed ? {
@@ -229,5 +228,5 @@ export function assessSubmission(
       ],
     },
   });
-  return ReviewResponse.parse({ evaluation, moves });
+  return ReviewResponse.parse({ evaluation, moves, transcript: prepared.events.map((event) => CertificateTranscriptEvent.parse(event)) });
 }

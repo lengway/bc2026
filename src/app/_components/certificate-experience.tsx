@@ -125,7 +125,7 @@ export function CertificateExperience({
               persona={certificate.personas[0]}
               evaluation={certificate.evaluation}
               moves={certificate.moves}
-              events={certificate.transcript}
+              transcript={certificate.transcript}
             />
           )}
           <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-8">

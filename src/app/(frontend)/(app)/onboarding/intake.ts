@@ -1,9 +1,24 @@
 import { FOCUS_AREAS, type FocusArea, type Level } from "@/contracts";
 
 export const ROLES = [
-  { id: "sdr", label: "SDR / BDR", detail: "Outbound, first calls, booking meetings", text: "SDR / BDR (sdr_outbound)" },
-  { id: "ae", label: "Account executive", detail: "Discovery to signed deal", text: "Account executive (account_executive)" },
-  { id: "am", label: "Account manager", detail: "Renewals, expansion, keeping clients", text: "Account manager (account_management)" },
+  {
+    id: "sdr",
+    label: "SDR / BDR",
+    detail: "Outbound, first calls, booking meetings",
+    text: "SDR / BDR (sdr_outbound)",
+  },
+  {
+    id: "ae",
+    label: "Account executive",
+    detail: "Discovery to signed deal",
+    text: "Account executive (account_executive)",
+  },
+  {
+    id: "am",
+    label: "Account manager",
+    detail: "Renewals, expansion, keeping clients",
+    text: "Account manager (account_management)",
+  },
 ] as const;
 export type RoleId = (typeof ROLES)[number]["id"];
 
@@ -12,7 +27,12 @@ export const EXPERIENCE = [
   { id: "1-2", label: "1–2 years", years: 1, level: "beginner" },
   { id: "3-5", label: "3–5 years", years: 3, level: "intermediate" },
   { id: "6+", label: "6+ years", years: 6, level: "advanced" },
-] as const satisfies ReadonlyArray<{ id: string; label: string; years: number; level: Level }>;
+] as const satisfies ReadonlyArray<{
+  id: string;
+  label: string;
+  years: number;
+  level: Level;
+}>;
 export type ExperienceId = (typeof EXPERIENCE)[number]["id"];
 
 export const SEGMENTS = [
@@ -78,10 +98,14 @@ export function composeIntakeText(answers: IntakeAnswers): string {
   if (role) lines.push(`Role: ${role.text}.`);
   if (experience) lines.push(`Experience: ${experience.label}.`);
   if (segment || industry) {
-    lines.push(`Sells to: ${[segment?.label.toLowerCase(), industry && `in ${industry}`].filter(Boolean).join(" ")}.`);
+    lines.push(
+      `Sells to: ${[segment?.label.toLowerCase(), industry && `in ${industry}`].filter(Boolean).join(" ")}.`,
+    );
   }
-  if (answers.strengths.length) lines.push(`Strong at: ${answers.strengths.map(label).join(", ")}.`);
-  if (answers.practice.length) lines.push(`Wants to practice: ${answers.practice.map(label).join(", ")}.`);
+  if (answers.strengths.length)
+    lines.push(`Strong at: ${answers.strengths.map(label).join(", ")}.`);
+  if (answers.practice.length)
+    lines.push(`Wants to practice: ${answers.practice.map(label).join(", ")}.`);
   const notes = answers.notes.trim();
   if (notes) lines.push(`In their own words: ${notes}`);
   return lines.join("\n");

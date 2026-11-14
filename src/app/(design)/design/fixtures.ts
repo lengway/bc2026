@@ -20,7 +20,7 @@ import type { ChecklistStep } from "@/ui";
 
 const CASE_ID = "00000000-0000-4000-8000-000000000100";
 const eventId = (n: number) =>
-  `00000000-0000-4000-8000-0000000000${String(n).padStart(2, "0")}`;
+  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 export const persona: PersonaPublic = {
   id: "dana-whitfield",
@@ -164,7 +164,10 @@ export const evaluation: Evaluation = {
   assistance: {
     ...sampleEvaluation.assistance,
     copilotRequests: 2,
-    totalSubmittedChars: moves.reduce((total, move) => total + move.userText.length, 0),
+    totalSubmittedChars: moves.reduce(
+      (total, move) => total + move.userText.length,
+      0,
+    ),
     copilotTextSimilarityPercent: 31,
   },
   aiUseSkill: {
@@ -174,28 +177,31 @@ export const evaluation: Evaluation = {
     earnedPoints: 0,
     assessedMaxPoints: 100,
     applicableMaxPoints: 100,
-    checks: [{
-      id: "sample-pricing",
-      criterionId: "verify_pricing",
-      status: "failed",
-      earnedPoints: 0,
-      maxPoints: 100,
-      reason: "The 15% claim repeats AI advice without checking the agreement's 8% volume tier.",
-      evidence: [
-        {
-          source: "user_event",
-          sourceId: moves[5].eventId,
-          quote: moves[5].userText,
-          explanation: "The unsupported discount quoted to the customer.",
-        },
-        {
-          source: "case_doc",
-          sourceId: "doc-note",
-          quote: "Customer receives a discount of eight percent (8%)",
-          explanation: "The MSA excerpt supplies the actual volume tier.",
-        },
-      ],
-    }],
+    checks: [
+      {
+        id: "sample-pricing",
+        criterionId: "verify_pricing",
+        status: "failed",
+        earnedPoints: 0,
+        maxPoints: 100,
+        reason:
+          "The 15% claim repeats AI advice without checking the agreement's 8% volume tier.",
+        evidence: [
+          {
+            source: "user_event",
+            sourceId: moves[5].eventId,
+            quote: moves[5].userText,
+            explanation: "The unsupported discount quoted to the customer.",
+          },
+          {
+            source: "case_doc",
+            sourceId: "doc-note",
+            quote: "Customer receives a discount of eight percent (8%)",
+            explanation: "The MSA excerpt supplies the actual volume tier.",
+          },
+        ],
+      },
+    ],
   },
   scoreAudit: {
     ...sampleEvaluation.scoreAudit,
@@ -204,7 +210,10 @@ export const evaluation: Evaluation = {
     pointsSum: 670,
     maxPoints: 900,
     completionStatus: "partial",
-    criterionCoverage: [{ criterionId: "discovery", status: "partially_met" }, { criterionId: "verify_pricing", status: "not_met" }],
+    criterionCoverage: [
+      { criterionId: "discovery", status: "partially_met" },
+      { criterionId: "verify_pricing", status: "not_met" },
+    ],
     limitations: ["Fictional example; only part of the rubric is shown."],
   },
   caseId: CASE_ID,
@@ -252,32 +261,36 @@ export const certificateLimited: CertificateLimited = {
   scoringSummary: evaluation.scoreAudit,
 };
 
-const transcript: TranscriptEntry[] = [
+// Fictional conversation for the design gallery; never used as a live transcript.
+const galleryReplies = [
+  "Busy. March was rough. What do you need from me today?",
+  "Since the March migration, our dispatch team has been fixing routing mistakes by hand.",
+  "212 loads were misrouted. We paid carrier penalties and lost hours fixing them.",
+  "We already have a support ticket. I need someone to own the fix.",
+  "Yes. A named engineer and a date would give me something concrete for our CFO.",
+  "Fifteen percent? That is not the volume tier in our agreement.",
+  "Please check it before you send the proposal.",
+  "That matches the agreement. Put the commitments in writing too.",
+  "Send it by three. I can take that to Thursday's meeting.",
+];
+export const transcript: TranscriptEntry[] = moves.flatMap((move, index) => [
   {
-    id: eventId(1),
-    seq: 1,
-    actor: "user",
-    type: "message",
-    content: moves[0].userText,
+    id: move.eventId,
+    seq: move.seq,
+    actor: "user" as const,
+    type: "message" as const,
+    content: move.userText,
     createdAt: "2026-11-14T15:31:08Z",
   },
   {
-    id: eventId(2),
-    seq: 2,
-    actor: "persona",
-    type: "message",
-    content: "Busy. March was rough. What do you need from me today?",
+    id: eventId(100 + index),
+    seq: move.seq + 1,
+    actor: "persona" as const,
+    type: "message" as const,
+    content: galleryReplies[index],
     createdAt: "2026-11-14T15:31:21Z",
   },
-  {
-    id: eventId(3),
-    seq: 3,
-    actor: "user",
-    type: "message",
-    content: moves[1].userText,
-    createdAt: "2026-11-14T15:31:54Z",
-  },
-];
+]);
 
 export const certificateFull: CertificateFull = {
   ...certificateLimited,

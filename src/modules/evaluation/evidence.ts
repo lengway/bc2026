@@ -22,20 +22,27 @@ export function createEvidenceValidator(prepared: PreparedSubmission) {
   const eventById = new Map(prepared.events.map((event) => [event.id, event]));
   const docs = new Map(prepared.snapshot.case.docs.map((doc) => [doc.id, quoteMaterial(doc)]));
 
-  function validates(evidence: ScoreEvidence, move: SnapshotEvent): boolean {
-    if (!evidence.quote.trim()) return false;
+  function rejection(evidence: ScoreEvidence, move: SnapshotEvent): string | null {
+    if (!evidence.quote.trim()) return 'Evidence quote is blank.';
     if (evidence.source === 'case_doc') {
       const available = move.meta.availableDocumentIds;
-      return Array.isArray(available) && available.includes(evidence.sourceId) &&
-        (docs.get(evidence.sourceId)?.some((text) => text.includes(evidence.quote)) ?? false);
+      if (!Array.isArray(available) || !available.includes(evidence.sourceId)) return 'Document was not available at this move.';
+      return docs.get(evidence.sourceId)?.some((text) => text.includes(evidence.quote))
+        ? null : 'Quote is not an exact excerpt of the referenced document field.';
     }
     const source = eventById.get(evidence.sourceId);
-    if (!source || source.seq > move.seq || !source.content.includes(evidence.quote)) return false;
+    if (!source) return 'Evidence source event does not exist in this case.';
+    if (source.seq > move.seq) return 'Evidence source occurred after this move.';
+    if (!source.content.includes(evidence.quote)) return 'Quote is not an exact excerpt of the referenced event content.';
     switch (evidence.source) {
-      case 'user_event': return source.actor === 'user' && source.type === 'message' && !looksLikeScorerInstruction(evidence.quote);
-      case 'persona_event': return source.actor === 'persona' && source.type === 'message';
-      case 'copilot_event': return source.actor === 'copilot' && source.type === 'copilot_reply';
-      case 'editor_aggregate': return false;
+      case 'user_event':
+        if (source.actor !== 'user' || source.type !== 'message') return 'user_event must reference a learner message.';
+        return looksLikeScorerInstruction(evidence.quote) ? 'Instructions to the evaluator are not skill evidence.' : null;
+      case 'persona_event': return source.actor === 'persona' && source.type === 'message'
+        ? null : 'persona_event must reference a persona message.';
+      case 'copilot_event': return source.actor === 'copilot' && source.type === 'copilot_reply'
+        ? null : 'copilot_event must reference a copilot reply.';
+      case 'editor_aggregate': return 'Editor observations cannot establish a move score.';
     }
   }
 
@@ -45,6 +52,6 @@ export function createEvidenceValidator(prepared: PreparedSubmission) {
     return cited.reduce<SnapshotEvent | undefined>((latest, event) => event && (!latest || event.seq > latest.seq) ? event : latest, undefined);
   }
 
-  return { validates, moveFor };
+  return { validates: (item: ScoreEvidence, move: SnapshotEvent) => rejection(item, move) === null, rejection, moveFor };
 }
 export type EvidenceValidator = ReturnType<typeof createEvidenceValidator>;

@@ -50,49 +50,54 @@ export function Providers({ children }: { children: ReactNode }) {
     }),
   );
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-    <QueryClientProvider client={client}>
-      <PreviewContext.Provider value={preview}>
-        {mocksEnabled && <PreviewBootstrap onStateChange={setPreview} />}
-        {children}
-        <Dialog.Root open={paywall} onOpenChange={setPaywall}>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/40" />
-            <Dialog.Content
-              className="fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-5 rounded-xl border bg-background p-6 shadow-raised"
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                returnFocus?.focus();
-              }}
-            >
-              <Dialog.Title className="text-xl font-medium tracking-tight">
-                More room to practice
-              </Dialog.Title>
-              <Dialog.Description className="text-sm leading-relaxed text-muted-foreground">
-                Weekly cases and full certificates are included in Pro. Your
-                free practice and results stay available.
-              </Dialog.Description>
-              <p>
-                <strong>$19 / month</strong> or $149 / year
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Dialog.Close asChild>
-                  <Link
-                    className="inline-flex h-11 items-center rounded-md bg-ink px-4 text-sm font-medium text-primary-foreground"
-                    href="/pricing"
-                  >
-                    Compare plans
-                  </Link>
-                </Dialog.Close>
-                <Dialog.Close className="inline-flex h-11 items-center rounded-md border px-4 text-sm font-medium">
-                  Keep practicing free
-                </Dialog.Close>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
-      </PreviewContext.Provider>
-    </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <QueryClientProvider client={client}>
+        <PreviewContext.Provider value={preview}>
+          {mocksEnabled && <PreviewBootstrap onStateChange={setPreview} />}
+          {children}
+          <Dialog.Root open={paywall} onOpenChange={setPaywall}>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/40" />
+              <Dialog.Content
+                className="fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-5 rounded-xl border bg-background p-6 shadow-raised"
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                  returnFocus?.focus();
+                }}
+              >
+                <Dialog.Title className="text-xl font-medium tracking-tight">
+                  More room to practice
+                </Dialog.Title>
+                <Dialog.Description className="text-sm leading-relaxed text-muted-foreground">
+                  Weekly cases and full certificates are included in Pro. Your
+                  free practice and results stay available.
+                </Dialog.Description>
+                <p>
+                  <strong>$19 / month</strong> or $149 / year
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Dialog.Close asChild>
+                    <Link
+                      className="inline-flex h-11 items-center rounded-md bg-ink px-4 text-sm font-medium text-primary-foreground"
+                      href="/pricing"
+                    >
+                      Compare plans
+                    </Link>
+                  </Dialog.Close>
+                  <Dialog.Close className="inline-flex h-11 items-center rounded-md border px-4 text-sm font-medium">
+                    Keep practicing free
+                  </Dialog.Close>
+                </div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
+        </PreviewContext.Provider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
