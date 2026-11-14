@@ -7,6 +7,8 @@ const Env = z.object({
   DATABASE_URL: z.string().min(1),
   LLM_PROVIDER: z.literal('openai').default('openai'),
   LLM_MODEL: z.string().min(1),
+  LLM_MODEL_DIALOGUE: z.string().optional(),
+  LLM_MODEL_EVALUATION: z.string().optional(),
   OPENAI_API_KEY: z.string().min(1),
   LLM_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
   DEMO_MODE: Flag,

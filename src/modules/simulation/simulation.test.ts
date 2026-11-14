@@ -238,4 +238,18 @@ describe('simulation on PostgreSQL', () => {
     expect(response.events.find((event) => event.type === 'twist')?.content).toBe('The approved budget is $40,000, due Friday.');
     expect(JSON.stringify((await f.events.listByCase(f.caseId)).events)).not.toContain('$90,000');
   });
+  it('bounds failed provider retries for one clientMsgId while completed replays stay free', async () => {
+    let valid = false;
+    const f = await setup({ provider: async () => valid ? { reply: 'Ask about the operational impact.' } : {} });
+    await f.service.startCase(f.caseId,f.userId);
+    const request = { clientMsgId: randomUUID(),text: 'Help with pricing' };
+    for (let i=0;i<10;i++) await expect(f.service.askCopilot(f.caseId,f.userId,request)).rejects.toMatchObject({ code: 'LLM_FAILED' });
+    await expect(f.service.askCopilot(f.caseId,f.userId,request)).rejects.toMatchObject({ code: 'RATE_LIMIT' });
+    expect(f.requests.filter((request) => request.promptId === 'copilot.reply')).toHaveLength(30);
+    f.advance(60_001); valid = true;
+    const response = await f.service.askCopilot(f.caseId,f.userId,request);
+    for (let i=0;i<12;i++) expect(await f.service.askCopilot(f.caseId,f.userId,request)).toEqual(response);
+    expect(f.requests.filter((request) => request.promptId === 'copilot.reply')).toHaveLength(31);
+    expect((await f.events.listByCase(f.caseId)).events.filter((event) => event.type === 'copilot_prompt')).toHaveLength(1);
+  });
 });

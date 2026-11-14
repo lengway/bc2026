@@ -91,6 +91,7 @@ export type SubmitCaseResponse = z.infer<typeof SubmitCaseResponse>;
 export const ReviewResponse = z.object({
   evaluation: Evaluation,
   moves: z.array(MoveReview),
+  certificateSlug: CertificateSlug.optional(),
 });
 export type ReviewResponse = z.infer<typeof ReviewResponse>;
 

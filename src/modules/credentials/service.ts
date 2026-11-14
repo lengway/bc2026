@@ -1,8 +1,9 @@
 import { CertificateSlug,type CertificateResponse,type ReviewResponse } from '@/contracts';
+import { z } from 'zod';
 import type { Database,SqlExecutor } from '@/modules/database';
 import { AppError,systemClock,type Clock } from '@/modules/shared';
 import type { SubmittedSnapshot } from '@/modules/simulation';
-import { findBySlug,issue } from './repo';
+import { findBySlug,findOwnedSlug,issue } from './repo';
 import { toPublicFull,toPublicLimited } from './projection';
 
 export interface CredentialsDeps {
@@ -14,6 +15,12 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
   return {
     issueCertificate:(snapshot:SubmittedSnapshot)=>db.transaction(tx=>issue(tx,snapshot,now())),
     issueCertificateWithExecutor:(tx:SqlExecutor,snapshot:SubmittedSnapshot)=>issue(tx,snapshot,now()),
+    async getOwnedSlug(caseId:string,userId:string):Promise<string> {
+      if(!z.uuid().safeParse(caseId).success||!z.uuid().safeParse(userId).success) throw new AppError('NOT_FOUND',404,'Certificate not found.');
+      const slug=await findOwnedSlug(db,caseId,userId);
+      if(!slug) throw new AppError('NOT_FOUND',404,'Certificate not found.');
+      return CertificateSlug.parse(slug);
+    },
     async getBySlug(slug:string):Promise<CertificateResponse> {
       if(!CertificateSlug.safeParse(slug).success) throw new AppError('NOT_FOUND',404,'Certificate not found.');
       const found=await findBySlug(db,slug);

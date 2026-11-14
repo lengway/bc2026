@@ -2,7 +2,7 @@
 
 The frontend remains owned by the teammate. Shared Zod schemas and inferred TypeScript types are in `src/contracts/index.ts`; realistic examples are in `src/mocks/fixtures`. The original product/route specification remains `docs/spec/CONTEXT.md`.
 
-Status: services are implemented through T3, including simulation and immutable submission. HTTP routes are wired in T5. This document describes the agreed integration contract, not a claim that every endpoint is already running.
+Status: T0–T5 services and all specified HTTP routes are implemented. Production build and local HTTP startup have been checked. Live OpenAI passage, email delivery, Stripe delivery and VPS deployment remain separate checks; OpenAI currently returns credit_balance_exhausted.
 
 ## Requests and retries
 
@@ -36,4 +36,11 @@ No frontend implementation was modified for these changes. The entry control and
 - Label points are fixed; the server returns evidence and the arithmetic behind accuracy. AI-use skill and observed assistance are separate from accuracy.
 - `aiDependency` is a legacy text-similarity field. It does not mean an AI probability or proven authorship.
 - Certificate depth depends on the case owner's subscription. Detect the full shape using the `evaluation` property; the limited shape intentionally excludes transcript and move reviews.
+- `GET /api/cases/:id/review` additionally returns `certificateSlug`. Use it to request `/api/certificates/:slug` and build the share URL. It is optional in the shared schema for compatibility with earlier fixtures, but the real successful owner-review response supplies it. A foreign owner receives 404. This closes the original API table's missing discovery step.
 - Evidence uses event/document IDs and exact quotes. Link only to data actually available in the current owner review or public certificate; otherwise show the quote without a private-data link.
+
+## Running together
+
+Run the web app and worker against the same migrated PostgreSQL database. Use the same origin for frontend/API, matching `APP_URL`; a frontend on another port needs a same-origin development proxy, not direct cross-origin cookie calls. No backend secret belongs in a `NEXT_PUBLIC_*` variable.
+
+Auth uses `/api/auth/options`, `/guest`, `/magic-link`, `/verify`, `/session`, `/logout`. Free quota denial is HTTP 403 with `error.code=PAYWALL`; rate limits use HTTP 429; pending operations/reviews use 409. Distinguish these codes rather than showing every response as a network error. Do not tight-loop retry LLM failures. Final grades/certificates require the evaluation worker; an HTTP submit alone does not compute them.

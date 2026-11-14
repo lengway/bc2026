@@ -7,9 +7,15 @@ Requirements: Linux VPS with Docker Compose v2, a hostname pointing to the VPS, 
 3. Inspect `docker compose --env-file .env -f deploy/compose.yml ps` and the web/worker logs. Do not paste private connection strings or request payloads into shared logs.
 4. Configure the Stripe **test-mode** webhook at `https://HOST/api/billing/webhook`, then store its signing secret and test price IDs in `.env`. Restart web/worker after changing environment variables.
 
+Subscribe to `checkout.session.completed` and `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`. The server verifies the raw signature and canonical subscription ownership/price before granting Pro. Early events can return 503 until the checkout association arrives; let Stripe retry them. A browser success redirect alone does not grant access. Live keys/events are intentionally rejected in this hackathon implementation.
+
+Selected models: `LLM_MODEL=gpt-6.1-sol`, `LLM_MODEL_DIALOGUE=gpt-6.1-terra`, `LLM_MODEL_EVALUATION=gpt-6.1-sol`, with `LLM_TIMEOUT_MS=90000`. Generation/review output is capped at 8192 tokens; dialogue at 4096. Standard service tier is used. These bounds and user rate limits are not an account-wide cost ceiling. The team reserved $40 for tests and $10 for the pitch; configure account/project spending controls accordingly and monitor usage before opening guest access.
+
 For jury access set `GUEST_ACCESS_ENABLED=true` and recreate web/worker with Compose. The frontend can read `/api/auth/options` and enter via `POST /api/auth/guest`; existing session cookies are reused. Guest sessions last 24 hours, have separate users/cases and are disabled when the flag is off. Guest creation is capped at 10 per IP per hour and 100 globally per day to limit anonymous API spend. Caddy sets the client IP; do not expose web directly when relying on that header.
 
 The worker image retains the TypeScript runtime/build dependencies for the hackathon. The web image runs Next.js standalone as the unprivileged `node` user. Local Docker execution has not yet been verified on the Windows development machine.
+
+The build command removes Next's automatically copied `.env` files from `.next/standalone`; the original root `.env` is preserved. Supply secrets at runtime. Docker also excludes `.env*`, `.tmp` and Git from its build context.
 
 ## Backup and restore
 

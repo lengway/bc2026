@@ -203,6 +203,25 @@ describe('case engine on PostgreSQL', () => {
     await expect(engine.getCaseRecord(job.caseId)).resolves.toMatchObject({ status: 'ready', isDemo: true, timeLimitSec: 600 });
   });
 
+  it('keeps free daily quota after an evaluation failure but releases an unstarted failed generation', async () => {
+    const evaluatedUser = await user();
+    const generationUser = await user();
+    const startedUser = await user();
+    const { engine } = setup();
+    await fixture.db.query(`INSERT INTO cases(user_id,field,subfield,type,workspace,status,started_at,submitted_at)
+      VALUES($1,'sales','sdr_outbound','daily','chat','failed',now(),now())`, [evaluatedUser]);
+    await fixture.db.query(`INSERT INTO cases(user_id,field,subfield,type,workspace,status)
+      VALUES($1,'sales','sdr_outbound','daily','chat','failed')`, [generationUser]);
+    const startedCaseId = randomUUID();
+    await fixture.db.query(`INSERT INTO cases(id,user_id,field,subfield,type,workspace,status,started_at)
+      VALUES($1,$2,'sales','sdr_outbound','daily','chat','generating',now())`, [startedCaseId,startedUser]);
+    await fixture.db.query("INSERT INTO jobs(kind,case_id,dedupe_key,payload,status) VALUES('case.generate',$1,$2,'{}','failed')", [startedCaseId,randomUUID()]);
+    await expect(engine.generateCase(evaluatedUser,'daily')).rejects.toMatchObject({ code: 'PAYWALL' });
+    await expect(engine.generateCase(startedUser,'daily')).rejects.toMatchObject({ code: 'PAYWALL' });
+    await expect(engine.generateCase(generationUser,'daily')).resolves.toMatchObject({ status: 'generating' });
+    await fixture.db.query("UPDATE cases SET status='failed' WHERE id=$1", [startedCaseId]);
+  });
+
   it('fences writes by job and lease, and permits replay after a valid publication', async () => {
     const userId = await user();
     const demo = await catalog.getDemoCase('sales', 'sdr_outbound');

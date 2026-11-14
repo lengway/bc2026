@@ -9,7 +9,7 @@ export async function createTestDatabase(): Promise<{ db: Database; cleanup(): P
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return {};
     throw error;
   });
-  const connectionString = process.env.TEST_DATABASE_URL ?? local.TEST_DATABASE_URL;
+  const connectionString = process.env.TEST_DATABASE_URL?.trim() || local.TEST_DATABASE_URL;
   if (!connectionString) throw new Error('TEST_DATABASE_URL is required; PostgreSQL tests are never skipped');
   const name = `bc_test_${randomUUID().replaceAll('-', '')}`;
   const admin = new Pool({ connectionString, max: 1 });

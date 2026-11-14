@@ -1,4 +1,5 @@
 import { afterAll,beforeAll,describe,expect,it } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import { createTestDatabase } from '../../../tests/backend/db-helper';
 import { reviewedCase } from '../../../tests/backend/review-fixture';
 import { createCredentialsService,toPublicFull,toPublicLimited } from './index';
@@ -15,6 +16,8 @@ describe('public certificates',()=>{
     const [first,second]=await Promise.all([service.issueCertificate(sample.snapshot),service.issueCertificate(sample.snapshot)]);
     expect(first).toEqual(second);
     expect(first.slug).toMatch(/^[A-Za-z0-9_-]{10}$/);
+    expect(await service.getOwnedSlug(sample.snapshot.case.id,sample.userId)).toBe(first.slug);
+    await expect(service.getOwnedSlug(sample.snapshot.case.id,randomUUID())).rejects.toMatchObject({status:404});
     const limited=await service.getBySlug(first.slug);
     expect(limited).not.toHaveProperty('moves');
     expect(limited).not.toHaveProperty('transcript');

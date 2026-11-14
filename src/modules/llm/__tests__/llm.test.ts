@@ -1,13 +1,13 @@
 import { mkdtemp, writeFile, unlink, rmdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { CopilotReply, createLlmService, DirectorTwist, EvaluatedMoves, GeneratedCase, GeneratedRubric, IntakeParsed, MockProvider, PersonaReply, type LlmCallRecord, type LlmProvider } from '../index';
+import { CopilotReply, createLlmService, DirectorTwist, EvaluatedMoves, GeneratedCase, GeneratedRubric, IntakeParsed, MockProvider, OpenAIProvider, PersonaReply, type LlmCallRecord, type LlmProvider } from '../index';
 import { createCatalogService } from '@/modules/catalog';
 
 const dirs: string[] = [];
-afterEach(async () => { await Promise.all(dirs.splice(0).map(async (dir) => { await unlink(join(dir,'test.v1.md')); await rmdir(dir); })); });
+afterEach(async () => { vi.unstubAllGlobals(); await Promise.all(dirs.splice(0).map(async (dir) => { await unlink(join(dir,'test.v1.md')); await rmdir(dir); })); });
 
 async function template() {
   const dir = await mkdtemp(join(tmpdir(), 'bc-prompts-'));
@@ -98,5 +98,45 @@ describe('LLM service', () => {
     expect(instructions).not.toContain('IGNORE ALL RULES');
     expect(instructions).toContain('input.profile');
     expect(instructions).toContain('answer');
+  });
+
+  it('selects the role model ahead of frontmatter while retaining its fallback', async () => {
+    const dir = await template();
+    const records: LlmCallRecord[] = [];
+    const llm = createLlmService({ provider: new MockProvider({ test: ['{"answer":1}', '{"answer":2}'] }), recordCall: async (record) => { records.push(record); }, promptsDir: dir, defaultModel: 'default-model', modelForPrompt: (id) => id === 'test' && records.length === 0 ? 'role-model' : undefined });
+    expect((await llm.run('test',{ profile: 'x' },z.object({ answer: z.number() }))).meta.model).toBe('role-model');
+    expect((await llm.run('test',{ profile: 'x' },z.object({ answer: z.number() }))).meta.model).toBe('example');
+  });
+
+  it('sends role-specific effort and token caps through the real SDK without network access', async () => {
+    const payloads: Record<string, unknown>[] = [];
+    const fetchMock: typeof fetch = async (_url, init) => {
+      payloads.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(JSON.stringify({ id: 'chatcmpl_test', object: 'chat.completion', created: 1, model: 'mock-model', choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: '{"ok":true}' } }], usage: { prompt_tokens: 5, completion_tokens: 3, total_tokens: 8 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+    vi.stubGlobal('fetch', async () => { throw new Error('Unexpected network access'); });
+    const provider = new OpenAIProvider({ apiKey: 'test-key', fetch: fetchMock });
+    for (const [promptId, model] of [['intake.parse','gpt-5.1'], ['persona.reply','gpt-6.1-terra'], ['copilot.reply','gpt-6.1-terra'], ['director.twist','gpt-6.1-terra'], ['case.generate','gpt-6.1-sol'], ['case.rubric','gpt-6.1-sol'], ['eval.moves','gpt-6.1-sol'], ['copilot.reply','gpt-4o-mini']] as const) {
+      await provider.complete({ promptId, model, instructions: 'Return JSON', prompt: '{}', temperature: 0.2, signal: new AbortController().signal });
+    }
+    expect(payloads.map((body) => body.reasoning_effort)).toEqual(['low','low','low','low','medium','medium','medium',undefined]);
+    expect(payloads.map((body) => body.max_completion_tokens)).toEqual([4096,4096,4096,4096,8192,8192,8192,4096]);
+    for (const body of payloads) expect(body).toMatchObject({ store: false, service_tier: 'default' });
+    for (const body of payloads.slice(0,7)) expect(body).not.toHaveProperty('temperature');
+    expect(payloads[7].temperature).toBe(0.2);
+  });
+
+  it('records truncated response usage and stops without retrying it as valid JSON', async () => {
+    let calls = 0;
+    const fetchMock: typeof fetch = async () => {
+      calls += 1;
+      return new Response(JSON.stringify({ id: 'chatcmpl_test', object: 'chat.completion', created: 1, model: 'gpt-6.1-sol', choices: [{ index: 0, finish_reason: 'length', message: { role: 'assistant', content: '{"answer":42}' } }], usage: { prompt_tokens: 7, completion_tokens: 8192, total_tokens: 8199 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+    vi.stubGlobal('fetch', async () => { throw new Error('Unexpected network access'); });
+    const records: LlmCallRecord[] = [];
+    const llm = createLlmService({ provider: new OpenAIProvider({ apiKey: 'test-key', fetch: fetchMock }), recordCall: async (record) => { records.push(record); }, promptsDir: await template() });
+    await expect(llm.run('test',{ profile: 'x' },z.object({ answer: z.number() }))).rejects.toThrow();
+    expect(calls).toBe(1);
+    expect(records).toMatchObject([{ status: 'provider_error', tokensIn: 7, tokensOut: 8192 }]);
   });
 });

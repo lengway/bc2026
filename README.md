@@ -4,7 +4,7 @@ Backend implementation for the BusinessCup 2026 Sales simulation. The product sp
 
 ## Current status
 
-T0 contracts, T1 infrastructure and T2 profile/case generation are implemented; simulation, evaluation and API wiring follow in T3–T5. See the [execution ledger](docs/superpowers/plans/2026-11-14-backend-progress.md) for verified stage results. No live deployment is claimed.
+T0–T5 backend code is implemented: contracts, auth/guest access, generation, simulation, evidence-based review, certificates, progress, Stripe test billing, HTTP/SSE and worker. See the [execution ledger](docs/superpowers/plans/2026-11-14-backend-progress.md) for verification and remaining external checks. No live deployment is claimed.
 
 The frontend is developed separately by a teammate. This branch owns backend modules, API routes, contracts, fixture data, PostgreSQL migrations, worker and deployment configuration. It does not implement frontend screens.
 
@@ -17,15 +17,22 @@ pnpm install --frozen-lockfile
 cp .env.example .env
 ```
 
-Set the local environment using `.env.example`. Production uses OpenAI; `LLM_MODEL` must be an API model available to your account. Keep database, OpenAI, SMTP and Stripe credentials in `.env` or deployment secrets, never in Git or browser configuration.
+Set the local environment using `.env.example`. `LLM_MODEL=gpt-6.1-sol` handles generation/rubrics, `LLM_MODEL_DIALOGUE=gpt-6.1-terra` handles intake/personas/copilot/twists, and `LLM_MODEL_EVALUATION=gpt-6.1-sol` handles the final review. Optional role values fall back to `LLM_MODEL`. Keep database, OpenAI, SMTP and Stripe credentials in `.env` or deployment secrets, never in Git or browser configuration.
 
 ```sh
 pnpm test
 pnpm typecheck
 pnpm lint
+pnpm build
 ```
 
 `pnpm db:migrate` applies SQL migrations using `DATABASE_URL`. Tests require `TEST_DATABASE_URL` in the environment or ignored `.env.test.local`; that account needs permission to create disposable databases. Tests create and drop only randomly named `bc_test_*` databases, never the database named in your connection string. Tests fail explicitly when PostgreSQL is unavailable.
+
+Run `pnpm dev` and `pnpm worker` in separate terminals after migrating. For a production build use `pnpm build` then `pnpm start`, keeping the worker running separately. This branch serves API routes only; the teammate supplies screens. Frontend integration details are in [backend-handoff.md](docs/backend-handoff.md).
+
+Paid checks are opt-in: `LLM_LIVE=1 pnpm test:live` (PowerShell: set `$env:LLM_LIVE='1'`, then run the command). It uses a disposable PostgreSQL database and real OpenAI, with email/payment network calls disabled. The runner reserves a conservative cost estimate before each request, stops at $2 per run or $40 cumulative reserved in ignored `.tmp/llm-live-spend.json`, and serializes runs through a lock. Do not delete that ledger to bypass the limit. This is a local smoke-runner guard, not an account-wide or production spending limit. Keep $10 of the approved $50 for the pitch. Verify actual usage in the provider dashboard, especially after requests with no reported usage.
+
+Current external check: the key can list both selected models, but generation returns HTTP 429 `credit_balance_exhausted`. No successful live model result has been validated. Fund the API organization before rerunning. SMTP fields and real Stripe delivery also require deployment configuration.
 
 After migrations, `pnpm seed:onboarding` uses the configured OpenAI model to prepare nine onboarding templates: one per level in each of the three Sales subfields. This command makes real provider calls. It skips existing templates on retry. Each user receives separate case/persona records; repeated practice generates a fresh scenario after that user's matching template has been used.
 

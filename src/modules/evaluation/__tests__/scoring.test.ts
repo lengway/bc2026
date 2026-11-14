@@ -142,6 +142,33 @@ describe('grounded score calculation', () => {
     expect(assessSubmission(prepareSubmission(snapshot), response, scorer).evaluation.trapResult).toBe('insufficient_evidence');
   });
 
+  it.each([
+    { text: 'The pilot is not billed monthly; the price stays $1,800 per quarter.', quote: 'billed monthly' },
+    { text: 'The pilot is not billed monthly; the price stays $1,800 per quarter.', quote: 'The pilot is not billed monthly; the price stays $1,800 per quarter.' },
+    { text: "The pilot isn't billed monthly. It stays $1,800 per quarter.", quote: "The pilot isn't billed monthly. It stays $1,800 per quarter." },
+  ])('does not reward a correction that the learner negated ($quote)', ({ text, quote }) => {
+    const { snapshot, response } = snapshotFor(strong);
+    const move = snapshot.events.find((event) => event.id === response.moves[1].eventId)!;
+    move.content = text;
+    for (const assessment of [response.trapAssessment!, response.aiUseChecks[0]]) assessment.evidence[0].quote = quote;
+
+    const { evaluation } = assessSubmission(prepareSubmission(snapshot), response, scorer);
+    expect(evaluation).toMatchObject({
+      trapResult: 'insufficient_evidence', trapCaught: false,
+      aiUseSkill: { score: null, assessedChecks: 0, checks: [{ status: 'not_observed' }, { status: 'not_observed' }] },
+    });
+  });
+
+  it('credits a documented correction that negates the wrong cadence and then affirms the right one', () => {
+    const { snapshot, response } = snapshotFor(strong);
+    const move = snapshot.events.find((event) => event.id === response.moves[1].eventId)!;
+    move.content = 'The pilot is billed not per quarter, per month as specified in the tariff.';
+    for (const assessment of [response.trapAssessment!, response.aiUseChecks[0]]) assessment.evidence[0].quote = move.content;
+
+    const { evaluation } = assessSubmission(prepareSubmission(snapshot), response, scorer);
+    expect(evaluation).toMatchObject({ trapResult: 'caught', trapCaught: true, aiUseSkill: { score: 100 } });
+  });
+
   it('marks interrupted operation coverage partial even with all required criteria observed', () => {
     const { snapshot, response } = snapshotFor(strong);
     snapshot.limitations.push('incomplete_simulation_operation');

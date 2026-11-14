@@ -64,9 +64,9 @@ export async function lockAndReadProfile(tx: SqlExecutor, userId: string): Promi
 
 export async function hasUsableDailyCase(tx: SqlExecutor, userId: string, since: Date): Promise<boolean> {
   const { rows } = await tx.query(`SELECT id FROM cases c WHERE user_id=$1 AND type='daily'
-    AND created_at>$2 AND status<>'failed' AND NOT EXISTS (
+    AND created_at>$2 AND (c.started_at IS NOT NULL OR c.submitted_at IS NOT NULL OR (c.status<>'failed' AND NOT EXISTS (
       SELECT FROM jobs j WHERE j.case_id=c.id AND j.kind='case.generate' AND j.status='failed'
-    ) LIMIT 1`, [userId, since]);
+    ))) LIMIT 1`, [userId, since]);
   return rows.length > 0;
 }
 

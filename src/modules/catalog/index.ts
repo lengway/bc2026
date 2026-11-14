@@ -15,14 +15,14 @@ export type DemoCase = z.infer<typeof DemoCase>;
 export type Pack = z.infer<typeof PackManifest> & { archetypes: Archetype[]; personas: z.infer<typeof PersonaTemplate>[]; labels: Record<string, string> };
 
 export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'field-packs') }: { packsDir?: string } = {}) {
-  const readJson = async (path: string): Promise<unknown> => JSON.parse(await readFile(path, 'utf8'));
+  const readJson = async (path: string): Promise<unknown> => JSON.parse(await readFile(/*turbopackIgnore: true*/ path, 'utf8'));
   const readDirectory = async <T>(path: string, schema: z.ZodType<T>): Promise<T[]> => {
-    const names = (await readdir(path)).filter((name) => name.endsWith('.json')).sort();
+    const names = (await readdir(/*turbopackIgnore: true*/ path)).filter((name) => name.endsWith('.json')).sort();
     return Promise.all(names.map(async (name) => schema.parse(await readJson(join(path, name)))));
   };
   const getPack = async (field: Field): Promise<Pack> => {
     const validField = Field.parse(field);
-    const dir = join(packsDir, validField);
+    const dir = join(/*turbopackIgnore: true*/ packsDir, validField);
     const [manifest, archetypes, personas, labels] = await Promise.all([
       readJson(join(dir, 'pack.json')).then((value) => PackManifest.parse(value)),
       readDirectory(join(dir, 'archetypes'), Archetype),
@@ -35,7 +35,7 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
   return {
     getPack,
     async listFields(): Promise<Field[]> {
-      const entries = await readdir(packsDir, { withFileTypes: true });
+      const entries = await readdir(/*turbopackIgnore: true*/ packsDir, { withFileTypes: true });
       return entries.filter((entry) => entry.isDirectory() && Field.safeParse(entry.name).success).map((entry) => Field.parse(entry.name)).sort();
     },
     async pickArchetype(profile: { field: Field; subfield: string }, history: readonly (string | { archetypeId: string })[]): Promise<Archetype> {
@@ -49,7 +49,7 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
     async getDemoCase(field: Field, subfield: string): Promise<DemoCase> {
       const pack = await getPack(field);
       if (!pack.subfields.includes(subfield)) throw new Error('Unknown subfield');
-      const demo = DemoCase.parse(await readJson(join(packsDir, field, 'demo', `${subfield}.json`)));
+      const demo = DemoCase.parse(await readJson(join(/*turbopackIgnore: true*/ packsDir, field, 'demo', `${subfield}.json`)));
       if (demo.case.field !== field || demo.case.subfield !== subfield) throw new Error('Demo does not match requested field and subfield');
       return demo;
     },

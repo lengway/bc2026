@@ -16,7 +16,7 @@ export interface SimulationDeps {
   db: Database; caseEngine: CaseEngineService; events: EventsService; jobs: JobsService; llm: LlmService;
   now?: Clock; operationLeaseMs?: number;
 }
-interface Lease { caseId: string; userId: string; clientMsgId: string; token: string }
+interface Lease { caseId: string; userId: string; clientMsgId: string; token: string; providerAttemptCharged?: boolean }
 type ActionResult = MoveResponse | CopilotResponse;
 type BeginResult = { response: ActionResult } | { lease: Lease } | { timedOut: true };
 const busy = () => new AppError('VALIDATION',409,'An action is unfinished. Retry the same clientMsgId after it finishes or its lease expires.');
@@ -122,8 +122,14 @@ export function createSimulationService({ db,caseEngine,events,jobs,llm,now = sy
   }
   async function stage<T>(lease: Lease, promptId: string, input: Record<string,unknown>, schema: z.ZodType<T>, merge: (checkpoint: repo.Checkpoint, data: T) => repo.Checkpoint): Promise<T> {
     await withLease(lease,async (tx,_record,operation) => {
+      // A resumed action can spend provider resources again even though its user event
+      // already exists. Charge once per lease only when a missing stage needs the LLM;
+      // saved-result replays and checkpoint-only publication never enter this path.
+      if (!lease.providerAttemptCharged) await consumeRateLimit(tx,`simulation:attempt:${operation.kind}:${lease.caseId}`,
+        operation.kind === 'move' ? 30 : 10,60_000,now());
       await repo.writeCheckpoint(tx,operation,operation.checkpoint,new Date(now().getTime()+operationLeaseMs),now());
     });
+    lease.providerAttemptCharged = true;
     let data: T;
     try { data = (await llm.run(promptId,input,schema,{ caseId: lease.caseId })).data; }
     catch { throw new AppError('LLM_FAILED',502,'The simulation response is unavailable. Retry the same clientMsgId.'); }

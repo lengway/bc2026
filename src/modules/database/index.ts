@@ -48,7 +48,7 @@ export function createDatabase(connectionString: string): Database {
 
 /** Explicit, atomic and checksum-protected. Concurrent runners serialize on a transaction lock. */
 export async function migrate(db: Database, directory = path.resolve('db/migrations')): Promise<void> {
-  const files = (await readdir(directory)).filter((name) => /^\d+_[a-z0-9_]+\.sql$/.test(name)).sort();
+  const files = (await readdir(/*turbopackIgnore: true*/ directory)).filter((name) => /^\d+_[a-z0-9_]+\.sql$/.test(name)).sort();
   await db.transaction(async (tx) => {
     await tx.query('SELECT pg_advisory_xact_lock($1)', [80141234]);
     await tx.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -59,7 +59,7 @@ export async function migrate(db: Database, directory = path.resolve('db/migrati
     );
     const applied = new Map(rows.map((row) => [row.name, row.checksum]));
     for (const name of files) {
-      const sql = await readFile(path.join(directory, name), 'utf8');
+      const sql = await readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ directory, name), 'utf8');
       const checksum = createHash('sha256').update(sql).digest('hex');
       if (applied.has(name)) {
         if (applied.get(name) !== checksum) throw new Error(`Applied migration checksum changed: ${name}`);

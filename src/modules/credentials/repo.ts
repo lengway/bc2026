@@ -10,6 +10,10 @@ export function parseCertificate(input:unknown) {
   return {id:row.id,caseId:row.case_id,userId:row.user_id,slug:row.slug,skill:row.skill,issuedAt:row.issued_at.toISOString()};
 }
 export type CertificateRecord=ReturnType<typeof parseCertificate>;
+export async function findOwnedSlug(db:SqlExecutor,caseId:string,userId:string):Promise<string|null> {
+  const result=await db.query('SELECT c.slug FROM certificates c JOIN cases k ON k.id=c.case_id AND k.user_id=c.user_id WHERE c.case_id=$1 AND c.user_id=$2 AND k.status=$3',[caseId,userId,'evaluated']);
+  return result.rows[0]?z.object({slug:z.string()}).parse(result.rows[0]).slug:null;
+}
 export async function issue(tx:SqlExecutor,snapshot:SubmittedSnapshot,now:Date):Promise<CertificateRecord> {
   const ownership=z.object({user_id:z.uuid(),status:z.string()}).parse((await tx.query('SELECT user_id,status FROM cases WHERE id=$1',[snapshot.case.id])).rows[0]);
   if(ownership.user_id!==snapshot.case.userId||ownership.status!=='evaluated') throw new AppError('VALIDATION',409,'Only an evaluated case can issue a certificate.');

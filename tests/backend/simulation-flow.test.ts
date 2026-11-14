@@ -7,6 +7,7 @@ import { createCoreRuntime } from '@/modules/runtime';
 import { createSimulationService } from '@/modules/simulation';
 import { createWorker } from '../../src/worker/runner';
 import { createTestDatabase } from './db-helper';
+import { createApi } from '../../src/app/api/_lib/handlers';
 
 let state:Awaited<ReturnType<typeof createTestDatabase>>;
 beforeAll(async()=>{state=await createTestDatabase();});
@@ -97,6 +98,14 @@ it('runs corrected copilot use through immutable submission, evaluation, certifi
   const certificate=await app.credentials.getBySlug(String(certificateRows.rows[0].slug));
   expect(certificate).toMatchObject({accuracy:90,isDemo:true,holderName:'Demo Guest'});
   expect(JSON.stringify(certificate)).not.toContain('processObservations');
+  const api=createApi(app);
+  const httpReview=await api.review(new Request('https://skills.example/api/cases/'+caseId+'/review',{headers:{cookie:`skills_session=${auth.token}`}}),{params:Promise.resolve({id:caseId})});
+  expect(httpReview.status).toBe(200);
+  const httpResult=await httpReview.json();
+  expect(httpResult.certificateSlug).toBe(certificateRows.rows[0].slug);
+  const publicResult=await api.certificate(new Request('https://skills.example/api/certificates/'+httpResult.certificateSlug),{params:Promise.resolve({slug:httpResult.certificateSlug})});
+  expect(publicResult.status).toBe(200);
+  expect(await publicResult.json()).toMatchObject({accuracy:90,isDemo:true});
   const path=await app.progress.getSkillPath(userId);
   expect(path.skills.map(skill=>skill.xp)).toEqual([90,90]);
   expect(await evaluationWorker.runOnce()).toBe(false);

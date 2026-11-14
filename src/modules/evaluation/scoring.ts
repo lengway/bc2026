@@ -27,6 +27,21 @@ function sharedClaimTerms(left: string, right: string, exclude = new Set<string>
   return [...wordSet(left)].filter((word) => word.length > 1 && !associationStopWords.has(word) && !exclude.has(word) && rightWords.has(word)).length;
 }
 
+function negatesDocumentCorrection(message: string, wrongClaim: string, documentQuote: string) {
+  const wrongTerms = wordSet(wrongClaim);
+  const documentTerms = new Set([...wordSet(documentQuote)].filter((term) =>
+    term.length > 1 && !wrongTerms.has(term) && !associationStopWords.has(term)));
+  // Inspect the full message so a clipped evidence quote cannot hide a local negation.
+  // A new clause can affirm the correct term after negating the mistaken one.
+  const clauses = normalize(message).split(/[,.:](?!\d)|[;!?—–]|\b(?:but|instead|rather)\b/);
+  return clauses.some((clause) => {
+    const negation = /\b(?:not|never|[a-z]+n['’]t)\b(?!\s+only\b)/.exec(clause);
+    if (!negation) return false;
+    const negatedText = clause.slice(negation.index + negation[0].length);
+    return [...wordSet(negatedText)].some((term) => documentTerms.has(term));
+  });
+}
+
 function classifyTrap(prepared: PreparedSubmission, proposal: EvaluatedMoves['trapAssessment'], evidence: EvidenceValidator): TrapResult {
   const presented = presentedTraps(prepared);
   if (presented.length === 0) return 'not_presented';
@@ -51,7 +66,9 @@ function classifyTrap(prepared: PreparedSubmission, proposal: EvaluatedMoves['tr
   const docs = proposal.evidence.filter((item) => item.source === 'case_doc');
   const wrongTerms = wordSet(claim);
   const citesCorrection = citedMove.some(({ quote }) => !source.reply.content.includes(quote) &&
-    sharedClaimTerms(quote, claim) > 0 && docs.some((doc) => sharedClaimTerms(quote, doc.quote, wrongTerms) > 0));
+    sharedClaimTerms(quote, claim) > 0 && docs.some((doc) => (
+      sharedClaimTerms(quote, doc.quote, wrongTerms) > 0 && !negatesDocumentCorrection(move.content, claim, doc.quote)
+    )));
   return citesCorrection ? 'caught' : fallback;
 }
 
@@ -118,6 +135,7 @@ function makeMoves(prepared: PreparedSubmission, proposals: EvaluatedMoves['move
 function evaluateAiSkill(prepared: PreparedSubmission, proposals: EvaluatedMoves['aiUseChecks'], evidence: EvidenceValidator): AiUseSkill {
   const grouped = uniqueProposals(proposals, (proposal) => proposal.id);
   const anyOpportunity = prepared.messages.some((message) => prepared.replies.some((reply) => reply.seq < message.seq));
+  const presented = presentedTraps(prepared);
   const checks = prepared.snapshot.case.rubric.aiUseChecks.map((check) => {
     const proposal = grouped.get(check.id);
     const move = proposal && evidence.moveFor(proposal.evidence);
@@ -128,7 +146,13 @@ function evaluateAiSkill(prepared: PreparedSubmission, proposals: EvaluatedMoves
       proposal.evidence.some((item) => item.source === 'copilot_event') &&
       (proposal.status === 'failed' || check.sourceRefs.length === 0 ||
         proposal.evidence.some((item) => check.sourceRefs.includes(item.sourceId)));
-    if (observed) return { ...proposal, earnedPoints: proposal.status === 'passed' ? check.maxPoints : 0 };
+    if (observed) {
+      const negatedCorrection = proposal.status === 'passed' && presented.some(({ reply, trap }) =>
+        proposal.evidence.some((item) => item.source === 'copilot_event' && item.sourceId === reply.id) &&
+        proposal.evidence.some((item) => item.source === 'case_doc' && check.sourceRefs.includes(item.sourceId) &&
+          negatesDocumentCorrection(move.content, trap.errorToInject, item.quote)));
+      if (!negatedCorrection) return { ...proposal, earnedPoints: proposal.status === 'passed' ? check.maxPoints : 0 };
+    }
     return {
       id: check.id, criterionId: check.criterionId, maxPoints: check.maxPoints, earnedPoints: 0, evidence: [],
       ...(anyOpportunity ? { status: 'not_observed' as const, reason: 'No verified evidence established this check.' } :
