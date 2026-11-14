@@ -21,7 +21,7 @@ export const getPublicCertificate = cache(async (slug: string) => {
   if (!configured)
     throw new ApiError(
       "UNAVAILABLE",
-      "Certificates are temporarily unavailable.",
+      "Case records are temporarily unavailable.",
     );
   try {
     return await apiClient(

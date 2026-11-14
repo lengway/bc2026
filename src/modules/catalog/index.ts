@@ -5,7 +5,8 @@ import { CaseBrief, CaseDoc, CaseType, Field, PersonaPublic, WorkspaceType } fro
 import { PersonaHidden } from '@/contracts/case';
 import { Rubric } from '@/contracts/rubric';
 import { NonEmpty } from '@/contracts/primitives';
-import { FOCUS_AREA_IDS, focusAreasIn, type FocusArea } from '@/contracts/focus';
+import type { SkillId } from '@/contracts/skill-series';
+import { FOCUS_AREA_IDS, focusAreasIn, skillsForFocus, type FocusArea } from '@/contracts/focus';
 
 export { FOCUS_AREAS, FOCUS_AREA_IDS, focusAreasIn, type FocusArea } from '@/contracts/focus';
 
@@ -42,15 +43,20 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
       return entries.filter((entry) => entry.isDirectory() && Field.safeParse(entry.name).success).map((entry) => Field.parse(entry.name)).sort();
     },
     /**
-     * Prefers, in order: an archetype not used before, one that trains what the person asked
-     * to practice, one at their level, one in their subfield. Ties keep catalog order.
+     * For targeted practice, prefer an archetype outside the counted series. Within those
+     * candidates, prefer unused scenarios, intake focus, subfield, and level.
      */
     async pickArchetype(
       profile: { field: Field; subfield: string; level?: string; intakeText?: string; pains?: readonly string[]; goals?: readonly string[] },
       history: readonly (string | { archetypeId: string })[],
+      { skill, seriesArchetypeIds = [] }: { skill?: SkillId; seriesArchetypeIds?: readonly string[] } = {},
     ): Promise<Archetype> {
       const pack = await getPack(profile.field);
-      if (!pack.archetypes.length) throw new Error('No archetypes available');
+      const matching = skill ? pack.archetypes.filter((item) => skillsForFocus(item.focus).includes(skill)) : pack.archetypes;
+      if (!matching.length) throw new Error('No archetypes available');
+      const recentSeries = new Set(seriesArchetypeIds);
+      const outsideSeries = matching.filter(({ id }) => !recentSeries.has(id));
+      const candidates = outsideSeries.length ? outsideSeries : matching;
       const used = new Set(history.map((item) => typeof item === 'string' ? item : item.archetypeId));
       const wanted = focusAreasIn([profile.intakeText ?? '', ...(profile.pains ?? []), ...(profile.goals ?? [])].join('\n'));
       const levels = ['beginner', 'intermediate', 'advanced'];
@@ -61,7 +67,7 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
         const subfieldFit = item.subfield === profile.subfield ? 1 : 0;
         return (used.has(item.id) ? 0 : 1000) + overlap * 30 + subfieldFit * 40 + levelFit * 5;
       };
-      return pack.archetypes
+      return candidates
         .map((item, index) => ({ item, index, value: score(item) }))
         .sort((a, b) => b.value - a.value || a.index - b.index)[0].item;
     },

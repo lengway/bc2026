@@ -17,7 +17,7 @@ const FEATURES: ReadonlyArray<Feature> = [
   { label: "Onboarding case", free: "Included", pro: "Included" },
   { label: "Daily cases", free: "1 per week", pro: "Unlimited" },
   { label: "Weekly case, 30–40 minutes", free: null, pro: "Included" },
-  { label: "Certificate", free: "Summary only", pro: "Full verifiable review" },
+  { label: "Skill certificate", free: "Three case results", pro: "Results and key moves" },
   { label: "Skill path", free: "Basic", pro: "Full, with recommendations" },
 ];
 
@@ -116,7 +116,7 @@ export function PricingTable({
               $0
             </p>
             <p className="m-0 text-sm text-muted-foreground">
-              One case a week and a summary certificate.
+              One case a week and a shareable case record.
             </p>
           </header>
           <FeatureList plan="free" />
@@ -158,7 +158,7 @@ export function PricingTable({
                   yearly.
                 </>
               ) : (
-                "Unlimited daily cases and the full review on every certificate."
+                "Unlimited daily cases and key moves on skill certificates."
               )}
             </p>
           </header>

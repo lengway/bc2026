@@ -30,8 +30,8 @@ export default async function LoginPage({
           />
         </ClientData>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Your cases and reviews stay private. A certificate is only shared
-          through its public link.
+          Your cases and reviews stay private. You can share a case record or
+          skill certificate through its public link.
         </p>
       </main>
     </PublicShell>

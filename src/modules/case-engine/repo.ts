@@ -97,6 +97,14 @@ export async function readHistory(db: SqlExecutor, userId: string, caseId: strin
 }
 export type HistoryRow = z.infer<typeof HistoryRow>;
 
+export async function readUsedArchetypes(db: SqlExecutor, userId: string, caseId: string): Promise<string[]> {
+  const { rows } = await db.query(`SELECT DISTINCT archetype_id FROM cases
+    WHERE user_id=$1 AND id<>$2 AND status IN ('ready','in_progress','submitted','evaluated')
+      AND archetype_id IS NOT NULL`, [userId, caseId]);
+  return rows.map((row) => z.string().parse(row.archetype_id));
+}
+
+
 const PoolTemplate = z.object({
   id: z.uuid(), workspace: WorkspaceType, seed: z.string(), archetypeId: z.string(), model: z.string(),
   promptVersion: z.string(), generated: GeneratedCase, rubric: Rubric,

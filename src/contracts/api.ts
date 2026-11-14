@@ -1,12 +1,13 @@
 import { z } from 'zod';
 import { CaseType, PersonaOutcome } from './case';
-import { CertificateSlug, CertificateTranscriptEvent } from './certificate';
+import { CaseRecordSlug, CaseRecordTranscriptEvent, SkillCertificateSlug } from './certificate';
 import { Evaluation, MoveReview } from './evaluation';
+import { SkillId } from './skill-series';
 import { Event } from './events';
 import { Id, NonEmpty, NonNegativeInt, Percent, Timestamp } from './primitives';
 
 export { CaseResponse } from './case';
-export { CertificateResponse } from './certificate';
+export { CaseRecordResponse, CertificateResponse, SkillCertificateResponse } from './certificate';
 export { EventsPage } from './events';
 export { EditorBatch, EditorBatchAck } from './telemetry';
 export { IntakeRequest, Profile as IntakeResponse } from './profile';
@@ -24,10 +25,19 @@ export type ApiError = z.infer<typeof ApiError>;
 export const CaseParams = z.strictObject({ id: Id });
 export type CaseParams = z.infer<typeof CaseParams>;
 
-export const CertificateParams = z.strictObject({ slug: CertificateSlug });
-export type CertificateParams = z.infer<typeof CertificateParams>;
+export const CaseRecordParams = z.strictObject({ slug: CaseRecordSlug });
+export type CaseRecordParams = z.infer<typeof CaseRecordParams>;
 
-export const GenerateCaseRequest = z.strictObject({ type: CaseType });
+export const CertificateParams = CaseRecordParams;
+export type CertificateParams = CaseRecordParams;
+
+export const SkillCertificateParams = z.strictObject({ slug: SkillCertificateSlug });
+export type SkillCertificateParams = z.infer<typeof SkillCertificateParams>;
+
+export const GenerateCaseRequest = z.strictObject({ type: CaseType, skill: SkillId.optional() })
+  .refine(({ type, skill }) => skill === undefined || type === 'daily', {
+    path: ['skill'], message: 'Only daily cases accept a target skill',
+  });
 export type GenerateCaseRequest = z.infer<typeof GenerateCaseRequest>;
 
 export const GenerateCaseResponse = z.object({ caseId: Id, status: z.literal('generating') });
@@ -91,8 +101,9 @@ export type SubmitCaseResponse = z.infer<typeof SubmitCaseResponse>;
 export const ReviewResponse = z.object({
   evaluation: Evaluation,
   moves: z.array(MoveReview),
-  transcript: z.array(CertificateTranscriptEvent).default([]),
-  certificateSlug: CertificateSlug.optional(),
+  transcript: z.array(CaseRecordTranscriptEvent).default([]),
+  caseRecordSlug: CaseRecordSlug.optional(),
+  certificateSlug: CaseRecordSlug.optional(),
 });
 export type ReviewResponse = z.infer<typeof ReviewResponse>;
 

@@ -1,11 +1,7 @@
 import { LandingScreen } from "@/screens/landing";
-import { CertificateLimited, PublicEvaluation } from "@/contracts";
-import {
-  certificateLimited,
-  evaluation,
-  moves,
-  persona,
-} from "@/app/(design)/design/fixtures";
+import { PublicEvaluation } from "@/contracts";
+import { evaluation, moves, persona } from "@/app/(design)/design/fixtures";
+import { sampleSkillCertificate } from "@/mocks/scenarios/skill-certificate";
 export default function HomePage() {
   return (
     <LandingScreen
@@ -13,7 +9,7 @@ export default function HomePage() {
       hrefs={{
         start: "/login?next=/onboarding",
         signIn: "/login",
-        sampleCertificate: "/c/sample",
+        sampleCertificate: "/s/sample",
       }}
       preview={{
         caseTitle: "Renewal at risk: Brightline Logistics",
@@ -22,7 +18,7 @@ export default function HomePage() {
         moves,
         persona,
       }}
-      sampleCertificate={CertificateLimited.parse(certificateLimited)}
+      sampleCertificate={sampleSkillCertificate}
     />
   );
 }

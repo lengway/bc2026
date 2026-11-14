@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   outputFileTracingIncludes: {
     "/api/**/*": ["./src/prompts/**/*.md", "./src/field-packs/**/*.json"],
+    "/s/*": ["./src/field-packs/**/*.json"],
   },
   outputFileTracingExcludes: {
     "*": [

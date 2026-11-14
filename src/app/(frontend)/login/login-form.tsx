@@ -3,10 +3,14 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/ui/primitives/button";
 import { inputClass, labelClass } from "@/app/_components/product";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/app/_lib/api";
-import { ApiError } from "@/app/_lib/api-client";
+import { z } from "zod";
+import { SessionView } from "@/contracts";
+import { ApiError, apiClient } from "@/app/_lib/api-client";
 import { mocksEnabled } from "@/app/_lib/environment";
+const GuestAccessOptions = z.object({ guestAccessEnabled: z.boolean() });
+
 export function LoginForm({
   next,
   invalidLink,
@@ -16,6 +20,7 @@ export function LoginForm({
 }) {
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
+  const [guestPending, setGuestPending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState(
     invalidLink
@@ -24,6 +29,33 @@ export function LoginForm({
   );
   const router = useRouter();
   const client = useQueryClient();
+  const authOptions = useQuery({
+    queryKey: ["auth", "options"],
+    queryFn: ({ signal }) =>
+      apiClient("/api/auth/options", GuestAccessOptions, { signal }),
+    enabled: !mocksEnabled,
+    retry: false,
+  });
+  async function tryDemo() {
+    setError("");
+    setGuestPending(true);
+    try {
+      const session = await apiClient("/api/auth/guest", SessionView.unwrap(), {
+        method: "POST",
+        body: {},
+      });
+      client.setQueryData(["session"], session);
+      router.replace("/dashboard");
+    } catch (failure) {
+      setError(
+        failure instanceof ApiError
+          ? failure.message
+          : "Couldn't open the demo. Please try again.",
+      );
+    } finally {
+      setGuestPending(false);
+    }
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -99,9 +131,19 @@ export function LoginForm({
         />
       </div>
       {error && <p role="alert">{error}</p>}
-      <Button disabled={pending}>
+      <Button disabled={pending || guestPending}>
         {pending ? "Sending link…" : "Send sign-in link"}
       </Button>
+      {authOptions.data?.guestAccessEnabled && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending || guestPending}
+          onClick={() => void tryDemo()}
+        >
+          {guestPending ? "Opening demo…" : "Try the demo as a guest"}
+        </Button>
+      )}
     </form>
   );
 }

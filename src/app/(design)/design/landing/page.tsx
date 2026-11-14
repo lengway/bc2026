@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { LandingScreen } from "@/screens/landing";
-import { certificateLimited, evaluation, moves, persona } from "../fixtures";
+import { evaluation, moves, persona } from "../fixtures";
+
+import { sampleSkillCertificate } from "@/mocks/scenarios/skill-certificate";
 
 export const metadata: Metadata = { title: "Design · Landing", robots: { index: false } };
 
@@ -15,7 +17,7 @@ export default function DesignLandingPage() {
         evaluation,
         moves,
       }}
-      sampleCertificate={certificateLimited}
+      sampleCertificate={sampleSkillCertificate}
     />
   );
 }

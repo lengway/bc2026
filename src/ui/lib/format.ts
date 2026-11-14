@@ -29,6 +29,15 @@ export function formatSkill(skill: string): string {
   return sentence.replace(/\bai\b/g, "AI");
 }
 
+const AVERAGE_ACCURACY_FORMAT = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 1,
+});
+
+export function formatAverageAccuracy(accuracy: number): string {
+  return AVERAGE_ACCURACY_FORMAT.format(accuracy / 100);
+}
+
 export const FIELD_LABEL: Record<Field, string> = {
   sales: "Sales",
   project_management: "Project management",

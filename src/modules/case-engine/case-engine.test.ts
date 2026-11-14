@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { skillsForFocus } from '@/contracts/focus';
 import { RubricTwist } from '@/contracts/rubric';
 import { createCatalogService, type DemoCase } from '@/modules/catalog';
 import { createJobsService, type Job } from '@/modules/jobs';
 import { createLlmService, MockProvider, type LlmCallRecord } from '@/modules/llm';
 import { createTestDatabase } from '../../../tests/backend/db-helper';
+import { reviewedCase } from '../../../tests/backend/review-fixture';
 import { createCaseEngineService } from './index';
 
 describe('case engine on PostgreSQL', () => {
@@ -134,6 +136,39 @@ describe('case engine on PostgreSQL', () => {
     await engine.handleGenerateJob(dailyWork.job, dailyWork.lease);
     await expect(engine.getCaseForUser(daily.caseId, userId)).resolves.toEqual({ id: daily.caseId, status: 'failed' });
     expect((await fixture.db.query('SELECT count(*)::int AS count FROM rubrics WHERE case_id=$1', [daily.caseId])).rows[0].count).toBe(0);
+  });
+
+  it('uses unfinished daily skill series and honors an explicit daily target', async () => {
+    const userId = await user();
+    const demo = await catalog.getDemoCase('sales', 'sdr_outbound');
+    const automatic = outputs(demo, 'Julia Crane', 'Everton Freight');
+    const targeted = outputs(demo, 'Robin Cook', 'Brightway Freight');
+    const { engine, jobs, now } = setup({
+      'case.generate': [automatic.generated, targeted.generated],
+      'case.rubric': [automatic.rubric, targeted.rubric],
+    }, { allow: true });
+    const sample = await reviewedCase(fixture.db, { userId, submittedAt: now().toISOString() });
+    await fixture.db.query("UPDATE cases SET archetype_id='outage' WHERE id=$1", [sample.caseId]);
+    await fixture.db.query(`INSERT INTO evaluations(case_id,accuracy,label_counts,trap_caught,outcome,summary,skills,
+      assistance,ai_use_skill,trap_result,score_audit,process_observations)
+      VALUES($1,75,'{}',false,'won','Test score','[]','{}','{}','not_presented','{}','{}')`, [sample.caseId]);
+
+    const pack = await catalog.getPack('sales');
+    await expect(engine.generateCase(userId, 'weekly', { skill: 'closing' })).rejects.toMatchObject({ code: 'VALIDATION' });
+
+    const autoCase = await engine.generateCase(userId, 'daily');
+    const autoWork = await claim(jobs, autoCase.caseId);
+    await engine.handleGenerateJob(autoWork.job, autoWork.lease);
+    const autoId = (await engine.getCaseRecord(autoCase.caseId))?.archetypeId;
+    expect(autoId).not.toBe('outage');
+    expect(skillsForFocus(pack.archetypes.find(({ id }) => id === autoId)!.focus)).toContain('objection_handling');
+
+    const targetCase = await engine.generateCase(userId, 'daily', { skill: 'closing' });
+    const targetWork = await claim(jobs, targetCase.caseId);
+    expect(targetWork.job.payload.skill).toBe('closing');
+    await engine.handleGenerateJob(targetWork.job, targetWork.lease);
+    const targetId = (await engine.getCaseRecord(targetCase.caseId))?.archetypeId;
+    expect(skillsForFocus(pack.archetypes.find(({ id }) => id === targetId)!.focus)).toContain('closing');
   });
 
   it('preserves rubric prose when a scenario ID is also a word in a commercial term', async () => {

@@ -48,8 +48,20 @@ The backend merged from main supplies API routes, PostgreSQL migrations, the eva
 
 Set `NEXT_PUBLIC_API_MOCKS=0`, set server-only `APP_URL` to the canonical application origin, and rebuild. Set DATABASE_URL and the server-only provider configuration in .env, then run `npm run db:migrate`. Start `npm run dev` and `npm run worker` in separate terminals. `npm run seed:onboarding` and `npm run test:live` call paid providers; they are not part of the ordinary test suite. Frontend sends no browser token or custom secret header. Magic-link verification/cookies, Origin checks, SSE replay and Stripe webhook access require server validation.
 
-Read [integration contracts and real-API checklist](docs/INTEGRATION.md) before connecting. Backend source is integrated and its isolated PostgreSQL tests pass. Live OpenAI, email delivery, VPS streams and Stripe delivery remain external integration checks. The real auth API supports guest sessions when enabled server-side; a guest-entry UI is not part of this conflict-resolution change. Public certificates use SSR and generated OG in real mode; only safe public fields are serialized. Null scores remain **Not enough evidence**, and certificates say **Recorded simulation**.
+Read [integration contracts and real-API checklist](docs/INTEGRATION.md) before connecting. Run the isolated PostgreSQL tests before relying on changes to the real API. Live OpenAI, email delivery, VPS streams and Stripe delivery remain external integration checks. Public certificates use SSR and generated OG in real mode; only safe public fields are serialized. Null scores remain **Not enough evidence**, and certificates say **Recorded simulation**.
 
 See [scope and progress](docs/FRONTEND.md) and the [implementation plan](docs/superpowers/plans/2026-11-14-f2-f6-product.md) for continuation.
 
 Backend tests create and drop randomly named `bc_test_*` databases; TEST_DATABASE_URL must use a local test account with database-creation permission. Missing PostgreSQL is a test failure, not a skipped check. `npm run test:backend` and `npm run test:frontend` run each project separately.
+
+## Skill certificates
+
+A case record summarizes one simulation and keeps its original `/c/<slug>` link. A skill certificate at `/s/<slug>` uses the latest three scored cases that train the skill, completed within 30 days. The cases must span two or more archetypes, average at least 70% Accuracy, and have no client-left outcome. Unscored cases leave the series unchanged. Level 2 requires an 80% average and at least one intermediate or advanced archetype. Level 3 requires an 88% average and at least one advanced archetype.
+
+Email confirmation unlocks publication for members. A higher qualifying level supersedes the last certificate and both links remain readable. Edit the thresholds in `src/contracts/skill-series.ts` and the Sales focus mapping in `src/contracts/focus.ts`.
+
+## Seed the skill certificate demo
+
+Set `GUEST_ACCESS_ENABLED=true` in the real application to give every new guest a private copy of the synthetic Sales examples. Open `/path` to see two of three qualifying Objection Handling cases and a Full Closing certificate based on three qualifying cases. The Procurement Stall example counts toward both skills. Reusing an existing guest session keeps that guest’s data.
+
+For a separate shareable example, point `DATABASE_URL` at your local demo database and run `npm run db:migrate` followed by `npm run seed:demo-series`. The seed prints the `/s/<slug>` route. It reuses the same dedicated demo identity and certificate on repeat runs. Both guest signup and this script use prepared transcripts and reviews derived from the Sales field pack. Seeding requires no LLM, email, or payment credentials.

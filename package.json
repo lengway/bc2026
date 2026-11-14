@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "db:migrate": "tsx scripts/migrate.ts",
     "seed:onboarding": "tsx scripts/seed-onboarding.ts",
+    "seed:demo-series": "tsx scripts/seed-demo-series.ts",
     "worker": "tsx src/worker/main.ts",
     "test:live": "tsx scripts/live-smoke.ts",
     "test:backend": "vitest run --config vitest.config.ts --project backend",

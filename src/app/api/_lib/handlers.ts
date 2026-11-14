@@ -3,7 +3,7 @@ import {
   CaseParams,CaseResponse,CertificateParams,CertificateResponse,CheckoutRequest,CheckoutResponse,CopilotRequest,CopilotResponse,
   EditorBatch,EditorBatchAck,EventsPage,EventsQuery,GenerateCaseRequest,GenerateCaseResponse,IntakeRequest,LogoutResponse,
   MagicLinkRequest,MagicLinkResponse,MagicLinkVerifyQuery,MoveRequest,MoveResponse,Profile,ReviewResponse,SessionView,
-  SkillPath,StartCaseResponse,StripeWebhookResponse,SubmitCaseResponse,
+  SkillCertificateParams,SkillCertificateResponse,SkillPath,StartCaseResponse,StripeWebhookResponse,SubmitCaseResponse,
 } from '@/contracts';
 import { assertOrigin,readSessionCookie,sessionCookie } from '@/modules/identity';
 import type { CoreRuntime } from '@/modules/runtime';
@@ -67,7 +67,7 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
     }),
     generateCase:(request:Request)=>respond(request,async()=>{
       csrf(request);const owner=await user(request);const input=await body(request,GenerateCaseRequest);
-      return json(GenerateCaseResponse,await app.caseEngine.generateCase(owner.id,input.type),202);
+      return json(GenerateCaseResponse,await app.caseEngine.generateCase(owner.id,input.type,{skill:input.skill}),202);
     }),
     getCase:(request:Request,context:ParamsContext)=>respond(request,async()=>{
       const owner=await user(request);return json(CaseResponse,await app.caseEngine.getCaseForUser(await caseId(context),owner.id));
@@ -106,11 +106,16 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
     review:(request:Request,context:ParamsContext)=>respond(request,async()=>{
       const owner=await user(request),id=await caseId(context);
       const review=await app.evaluation.getReview(id,owner.id);
-      return json(ReviewResponse,{...review,certificateSlug:await app.credentials.getOwnedSlug(id,owner.id)});
+      const caseRecordSlug=await app.credentials.getOwnedSlug(id,owner.id);
+      return json(ReviewResponse,{...review,caseRecordSlug,certificateSlug:caseRecordSlug});
     }),
     certificate:(_request:Request,context:ParamsContext)=>guarded(async()=>{
       const {slug}=CertificateParams.parse(await context.params);
       return json(CertificateResponse,await app.credentials.getBySlug(slug));
+    }),
+    skillCertificate:(_request:Request,context:ParamsContext)=>guarded(async()=>{
+      const {slug}=SkillCertificateParams.parse(await context.params);
+      return json(SkillCertificateResponse,await app.credentials.getSkillCertificateBySlug(slug));
     }),
     path:(request:Request)=>respond(request,async()=>json(SkillPath,await app.progress.getSkillPath((await user(request)).id))),
     checkout:(request:Request)=>respond(request,async()=>{

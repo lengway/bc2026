@@ -60,12 +60,12 @@ function Seal({ className }: { className?: string }) {
   );
 }
 
-function VerifiedMark() {
+export function VerifiedMark({ children = "Recorded simulation" }: { children?: React.ReactNode }) {
   const prefersReducedMotion = useReducedMotion();
   return (
     <span className="relative inline-flex h-7 w-fit items-center gap-1.5 rounded-md border border-ink-border bg-ink-soft px-2.5 text-xs font-medium text-ink">
       <ShieldCheck aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
-      Recorded simulation
+      {children}
       {prefersReducedMotion ? null : <span aria-hidden="true">
         <BorderBeam
           size={28}
@@ -128,7 +128,7 @@ export function CertificateCard({
             {issuer} · Record of work
           </p>
           <Title className="m-0 font-serif text-display-sm font-normal tracking-tight">
-            Certificate of recorded practice
+            Case record
           </Title>
           <div className="flex flex-wrap items-center gap-2">
             <VerifiedMark />
@@ -140,7 +140,7 @@ export function CertificateCard({
 
       <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6 px-6 py-8 sm:px-8">
         <div className="flex min-w-0 flex-1 basis-80 flex-col gap-3">
-          <p className="m-0 text-sm text-muted-foreground">Awarded to</p>
+          <p className="m-0 text-sm text-muted-foreground">Participant</p>
           <p className="m-0 font-serif text-display leading-none tracking-tight">
             {certificate.holderName}
           </p>
@@ -174,7 +174,7 @@ export function CertificateCard({
         <Fact label="Case">{certificate.caseTitle}</Fact>
         <Fact label="Outcome">{formatOutcome(certificate.outcome)}</Fact>
         <Fact label="Issued">{formatDate(certificate.issuedAt)}</Fact>
-        <Fact label="Certificate ID" mono>
+        <Fact label="Record ID" mono>
           {certificate.slug.toUpperCase()}
         </Fact>
       </dl>
@@ -249,7 +249,7 @@ export function CertificateCard({
             </Button>
           ) : null}
           {onShare ? (
-            <Button onClick={onShare}>Share certificate</Button>
+            <Button onClick={onShare}>Share case record</Button>
           ) : null}
         </div>
       </footer>

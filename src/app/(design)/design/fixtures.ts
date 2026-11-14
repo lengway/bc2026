@@ -400,6 +400,7 @@ export const docs: CaseDoc[] = [
 ];
 
 export const skillPath: SkillPath = {
+  series: [],
   skills: [
     { skill: "discovery", level: 4, xp: 310, nextLevelXp: 400 },
     { skill: "objection_handling", level: 3, xp: 240, nextLevelXp: 400 },

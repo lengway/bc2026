@@ -9,7 +9,8 @@ import { PageHeading, Surface } from "./product";
 import { Button } from "@/ui/primitives/button";
 import { SkillProgress } from "@/ui/skill-progress";
 import { PracticeRecord } from "@/ui/practice-record";
-import type { CaseView, CaseKind } from "@/contracts";
+import { SkillSeriesCard } from "./skill-series-card";
+import type { CaseView, CaseKind, GenerateCaseRequest } from "@/contracts";
 
 export function PracticeOverview({ progress = false }: { progress?: boolean }) {
   const path = useSkillPath();
@@ -26,10 +27,17 @@ export function PracticeOverview({ progress = false }: { progress?: boolean }) {
       );
       return;
     }
-    create.mutate(type, {
-      onSuccess: (r) => router.push(`/case/${r.caseId}?type=${type}`),
-    });
+    prepare({ type });
   };
+  function prepare(input: GenerateCaseRequest) {
+    create.mutate(input, {
+      onSuccess: ({ caseId }) => {
+        const params = new URLSearchParams({ type: input.type });
+        if (input.skill) params.set("skill", input.skill);
+        router.push(`/case/${caseId}?${params}`);
+      },
+    });
+  }
   return (
     <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-8 sm:py-12">
       <PageHeading
@@ -105,7 +113,9 @@ export function PracticeOverview({ progress = false }: { progress?: boolean }) {
                       {type === "weekly" && !item && (
                         <LockKeyhole aria-hidden="true" />
                       )}
-                      {create.isPending && create.variables === type
+                      {create.isPending &&
+                      create.variables?.type === type &&
+                      !create.variables.skill
                         ? "Preparing…"
                         : item
                           ? item.status === "evaluated" ||
@@ -124,8 +134,27 @@ export function PracticeOverview({ progress = false }: { progress?: boolean }) {
           {create.isError && (
             <ErrorPanel
               error={create.error}
-              retry={() => create.variables && open(create.variables, null)}
+              retry={() => create.variables && prepare(create.variables)}
             />
+          )}
+          {data.series.length > 0 && (
+            <Surface>
+              <h2 className="mb-5 text-base font-medium">Skill certificates</h2>
+              <div className="grid gap-6 [&>div+div]:border-t [&>div+div]:pt-6">
+                {data.series.map((series) => (
+                  <SkillSeriesCard
+                    key={series.skill}
+                    series={series}
+                    disabled={create.isPending}
+                    pending={
+                      create.isPending &&
+                      create.variables?.skill === series.skill
+                    }
+                    onPractice={(skill) => prepare({ type: "daily", skill })}
+                  />
+                ))}
+              </div>
+            </Surface>
           )}
           <Surface>
             <h2 className="mb-5 text-base font-medium">

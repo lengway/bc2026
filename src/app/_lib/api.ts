@@ -27,10 +27,10 @@ export const api = {
     field: "sales";
     level: "beginner" | "intermediate" | "advanced";
   }) => apiClient("/api/intake", C.Profile, { method: "POST", body }),
-  createCase: (type: C.CaseKind) =>
+  createCase: (type: C.CaseKind, skill?: C.SkillId) =>
     apiClient("/api/cases", C.CreateCaseResponse, {
       method: "POST",
-      body: { type },
+      body: { type, skill },
     }),
   case: (id: string, signal?: AbortSignal) =>
     apiClient(casePath(id), C.CaseResponse, { signal }),

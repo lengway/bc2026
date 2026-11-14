@@ -200,6 +200,7 @@ export function makeReview(
     (event) => event.type === "copilot_prompt",
   ).length;
   return Review.parse({
+    caseRecordSlug: previewCertificateSlug(view.id),
     certificateSlug: previewCertificateSlug(view.id),
     transcript: CertificateTranscriptEvent.array().parse(
       events.filter(

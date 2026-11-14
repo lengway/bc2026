@@ -11,7 +11,7 @@ import type {
   EventData,
   CopilotInput,
   CaseResponseData,
-  CaseKind,
+  GenerateCaseRequest,
 } from "@/app/_lib/contracts";
 import { api } from "@/app/_lib/api";
 import { ApiError } from "@/app/_lib/api-client";
@@ -216,16 +216,19 @@ export function useReview(id: string, enabled = true) {
     enabled,
   });
 }
-export function useSkillPath() {
+export function useSkillPath(enabled = true) {
   return useQuery({
     queryKey: ["skill-path"],
     queryFn: ({ signal }) => api.path(signal),
+    enabled,
+    staleTime: 0,
   });
 }
 export function useCreateCase() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (type: CaseKind) => api.createCase(type),
+    mutationFn: ({ type, skill }: GenerateCaseRequest) =>
+      api.createCase(type, skill),
     retry: false,
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ["skill-path"] });

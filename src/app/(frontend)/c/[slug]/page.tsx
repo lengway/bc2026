@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const certificate = await getPublicCertificate(slug);
     return {
       title: certificate
-        ? `${certificate.holderName} · Recorded practice`
-        : "Practice certificate",
+        ? `${certificate.holderName} · Case record`
+        : "Case record",
       description: certificate
         ? `${certificate.caseTitle}. Recorded simulation. ${certificate.accuracy === null ? "Not enough evidence for a score." : `Case accuracy ${certificate.accuracy}%.`} AI help is permitted; see assessment coverage and limitations.`
         : "A record of a timed work simulation.",
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   } catch {
     return {
-      title: "Practice certificate",
+      title: "Case record",
       robots: { index: false, follow: false },
     };
   }

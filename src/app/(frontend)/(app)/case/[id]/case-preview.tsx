@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { SkillId } from "@/contracts/skill-series";
 import { useCase, useStartCase, useCreateCase } from "@/app/_hooks/case-hooks";
 import { LoadingState } from "@/app/_components/providers";
 import { ErrorPanel } from "@/app/_components/error-panel";
@@ -14,11 +15,16 @@ export function CasePreview({ id }: { id: string }) {
   const start = useStartCase(id);
   const create = useCreateCase();
   const router = useRouter();
-  const requestedType = useSearchParams().get("type");
+  const params = useSearchParams();
+  const requestedType = params.get("type");
   const retryType =
     requestedType === "daily" || requestedType === "weekly"
       ? requestedType
       : "onboarding";
+  const skill =
+    retryType === "daily"
+      ? SkillId.safeParse(params.get("skill")).data
+      : undefined;
   useEffect(() => {
     if (
       query.data?.status === "evaluating" ||
@@ -45,10 +51,16 @@ export function CasePreview({ id }: { id: string }) {
           retrying={create.isPending}
           onRetry={() => {
             if (create.isPending) return;
-            create.mutate(retryType, {
-              onSuccess: (r) =>
-                router.replace(`/case/${r.caseId}?type=${retryType}`),
-            });
+            create.mutate(
+              { type: retryType, skill },
+              {
+                onSuccess: ({ caseId }) => {
+                  const retryParams = new URLSearchParams({ type: retryType });
+                  if (skill) retryParams.set("skill", skill);
+                  router.replace(`/case/${caseId}?${retryParams}`);
+                },
+              },
+            );
           }}
         />
         {create.isError && <ErrorPanel error={create.error} />}

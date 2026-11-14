@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { MagicLinkRequest, SessionView } from '@/contracts';
-import type { Database } from '@/modules/database';
+import type { Database, SqlExecutor } from '@/modules/database';
 import { AppError, type Clock, systemClock } from '@/modules/shared';
 import { consumeRateLimit, findSession, toUser } from './repo';
 import { hashToken, newToken, safeRedirect } from './security';
@@ -13,11 +13,19 @@ export interface MagicLinkMailer {
   sendMagicLink(email: string, url: string): Promise<void>;
   sendAccountMail?(email: string, purpose: MailPurpose, url: string | null): Promise<void>;
 }
-export interface IdentityDeps { db: Database; mailer: MagicLinkMailer; appUrl: string; guestAccessEnabled?: boolean; now?: Clock }
+export interface IdentityDeps {
+  db: Database;
+  mailer: MagicLinkMailer;
+  appUrl: string;
+  guestAccessEnabled?: boolean;
+  now?: Clock;
+  onEmailVerified?: (tx: SqlExecutor, userId: string) => Promise<unknown>;
+  seedGuest?: (tx: SqlExecutor, userId: string, at: Date) => Promise<unknown>;
+}
 
-export function createIdentityService({ db, mailer, appUrl, guestAccessEnabled = false, now = systemClock }: IdentityDeps) {
+export function createIdentityService({ db, mailer, appUrl, guestAccessEnabled = false, now = systemClock, onEmailVerified, seedGuest }: IdentityDeps) {
   return {
-    ...createAccountService({ db, mailer, appUrl, now }),
+    ...createAccountService({ db, mailer, appUrl, now, onEmailVerified }),
     async requestMagicLink(emailInput: string, requestKey: string, next?: string) {
       const { email: rawEmail } = MagicLinkRequest.parse({ email: emailInput });
       const email = rawEmail.toLowerCase();
@@ -59,6 +67,7 @@ export function createIdentityService({ db, mailer, appUrl, guestAccessEnabled =
           await tx.query('UPDATE auth_tokens SET consumed_at=$2 WHERE user_id=$1 AND consumed_at IS NULL',[user_id,at]);
         }
         await tx.query('UPDATE users SET email_verified_at=COALESCE(email_verified_at,$2) WHERE id=$1', [user_id, at]);
+        if (!account.rows[0].email_verified_at) await onEmailVerified?.(tx, user_id);
         const meta = z.object({ next: z.string().optional() }).parse(result.rows[0].meta);
         return { ...await issueSession(tx, user_id, at, existingToken), next: safeRedirect(meta.next) };
       });
@@ -83,6 +92,7 @@ export function createIdentityService({ db, mailer, appUrl, guestAccessEnabled =
         const users = await tx.query(`INSERT INTO users(email,display_name,is_guest) VALUES($1,'Demo Guest',true)
           RETURNING id,email,display_name,is_guest`, [`${randomUUID()}@guest.invalid`]);
         const guest = toUser(users.rows[0]);
+        await seedGuest?.(tx, guest.id, at);
         await tx.query('INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,$3)', [guest.id, hashToken(token), expiresAt]);
         return guest;
       });

@@ -1,7 +1,8 @@
 import { ArrowRight, Check, Minus } from "lucide-react";
 import Link from "next/link";
-import type { CertificateLimited } from "@/contracts";
-import { CertificateCard, Reveal } from "@/ui";
+import type { SkillCertificateLimited } from "@/contracts";
+import { SkillCertificateCard } from "@/app/_components/skill-certificate-card";
+import { Reveal } from "@/ui";
 import { cn } from "@/ui/lib/utils";
 import { Button } from "@/ui/primitives/button";
 import { GambitMark } from "@/ui/brand";
@@ -21,7 +22,7 @@ export type LandingScreenProps = {
   /** Review shown in the hero. */
   preview: ReviewPreviewData;
   /** Certificate shown in the "sample certificate" section. */
-  sampleCertificate: CertificateLimited;
+  sampleCertificate: SkillCertificateLimited;
 };
 
 const NAV = [
@@ -42,7 +43,7 @@ const STEPS = [
   },
   {
     title: "Get a move-by-move review and a shareable record",
-    body: "Every message you sent gets a label, from brilliant to blunder, with the reason and a better move. The result is a link an employer can open.",
+    body: "Review the moves you made, what worked, and what to try next. Three qualifying cases in a skill earn a shareable skill certificate.",
   },
 ];
 
@@ -70,7 +71,7 @@ const COMPARISON = [
   {
     topic: "What an employer sees",
     course: "A title and a date",
-    proof: "Accuracy, key moves and the full conversation",
+    proof: "Three qualifying results and their average accuracy",
   },
 ];
 
@@ -85,7 +86,7 @@ const EMPLOYER_POINTS = [
   },
   {
     title: "The process is visible",
-    body: "You see the accuracy, three key moves and how trust changed during the conversation. The full review is one click away.",
+    body: "You see the skill, level, and the three results that qualified. Pro certificates also show one key move per case.",
   },
 ];
 
@@ -108,7 +109,7 @@ const FAQ = [
   {
     question: "What does an employer see?",
     answer:
-      "With a free certificate: your skill and level, accuracy, the outcome and a short characterization. With Pro: the key moves, the trust curve and the full review of the conversation.",
+      "A skill certificate shows the skill, level, and results from three qualifying cases. Pro certificates also show one key move from each case. Individual case records have their own links.",
   },
   {
     question: "Which fields are available?",
@@ -219,9 +220,8 @@ export function LandingScreen({
               </h1>
               <p className="m-0 max-w-xl text-lg leading-relaxed text-muted-foreground">
                 Work a realistic sales case against a live AI counterpart, with
-                a copilot at your side. Every move is reviewed like a chess
-                game, and the result is a certificate an reader can explore,
-                with evidence and clear limitations.
+                a copilot at your side. Review your moves after each case. Three qualifying results in
+                the same skill earn a skill certificate.
               </p>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <Button asChild size="lg" className="h-12 px-5 text-[15px]">
@@ -351,15 +351,12 @@ export function LandingScreen({
             <Reveal>
               <SectionHeading
                 eyebrow="Sample certificate"
-                title="A link, not a PDF."
-                lead="Each certificate has its own address. It states the skill, the level, the result and a short characterization. It also states what went wrong, which is why it can be trusted."
+                title="Three cases. One skill certificate."
+                lead="A certificate shows the skill, level, and results from three qualifying simulations within 30 days. Each certificate has a link you can share."
               />
             </Reveal>
             <Reveal>
-              <CertificateCard
-                certificate={sampleCertificate}
-                issuer={productName}
-              />
+              <SkillCertificateCard certificate={sampleCertificate} titleAs="h3" />
             </Reveal>
             <Link
               href={hrefs.sampleCertificate}
@@ -416,7 +413,7 @@ export function LandingScreen({
               <SectionHeading
                 eyebrow="Pricing"
                 title="Start free. Pay when the proof matters."
-                lead="The first case and its certificate are free. Pro adds unlimited daily cases and the full verifiable review on every certificate."
+                lead="Start with a free case and review. Pro includes unlimited daily cases and a key move from each qualifying case on your skill certificates."
               />
             </Reveal>
             <Reveal>

@@ -216,7 +216,7 @@ function ReviewReady({
           )}
           {onShare && (
             <Button disabled={sharePending} onClick={onShare}>
-              {sharePending ? "Preparing certificate" : "Share certificate"}
+              {sharePending ? "Preparing case record" : "Share case record"}
             </Button>
           )}
         </div>

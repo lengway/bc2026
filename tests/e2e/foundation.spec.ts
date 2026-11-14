@@ -86,7 +86,7 @@ test("review replay stays readable in both themes with reachable mobile controls
   }
 });
 
-test("onboarding, three moves, twist, evidence review and matching limited certificate", async ({
+test("onboarding, three moves, twist, evidence review and matching limited case record", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -164,12 +164,15 @@ test("onboarding, three moves, twist, evidence review and matching limited certi
   ).toContainText("How much time does duplicate entry take each day?");
   await accessible(page);
   await page.screenshot({ path: "../frontend-review.png", fullPage: true });
+  await expect(
+    page.getByRole("link", { name: "Discovery · 1 of 3 cases" }),
+  ).toHaveAttribute("href", "/path#discovery");
   await page
-    .getByRole("button", { name: "Share certificate", exact: true })
+    .getByRole("button", { name: "Share case record", exact: true })
     .first()
     .click();
   await expect(
-    page.getByRole("heading", { name: "Certificate of recorded practice" }),
+    page.getByRole("heading", { name: "Case record" }),
   ).toBeVisible();
   await expect(page.getByText("80%", { exact: true }).first()).toBeVisible();
   await expect(
@@ -182,7 +185,9 @@ test("onboarding, three moves, twist, evidence review and matching limited certi
   });
   await page.goto("/path");
   await expect(
-    page.getByRole("link", { name: /A renewal at risk/ }),
+    page.getByRole("heading", {
+      name: "Discovery · 1 of 3 cases toward your certificate",
+    }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -379,7 +384,7 @@ test("a counterpart leaving ends the case and opens the review", async ({
   ).toBeVisible();
   await expect(page.getByLabel("Message Dana")).toHaveCount(0);
 });
-test("public SSR certificate and full transcript exclude private diagnostics", async ({
+test("public SSR case record and full transcript exclude private diagnostics", async ({
   page,
   request,
 }) => {

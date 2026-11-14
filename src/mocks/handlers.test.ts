@@ -55,10 +55,11 @@ it("plays the Sales scenario and repeats a request without duplicating a turn", 
       .copilotTextSimilarityPercent,
   ).toBe(0);
   const review = await api.review(created.caseId);
-  expect(review.certificateSlug).toMatch(/^[A-Za-z0-9_-]{10}$/);
-  const certificate = await api.certificate(review.certificateSlug!);
+  expect(review.caseRecordSlug).toMatch(/^[A-Za-z0-9_-]{10}$/);
+  expect(review.certificateSlug).toBe(review.caseRecordSlug);
+  const certificate = await api.certificate(review.caseRecordSlug!);
   expect(certificate).toMatchObject({
-    slug: review.certificateSlug,
+    slug: review.caseRecordSlug,
     accuracy: 80,
     isDemo: true,
   });
@@ -218,4 +219,24 @@ it("acknowledges editor batches idempotently and rejects activity after submissi
   await expect(
     api.editorBatch(created.caseId, { ...batch, batchId: crypto.randomUUID() }),
   ).rejects.toMatchObject({ status: 409 });
+});
+
+it("counts targeted daily practice toward the requested skill series", async () => {
+  const { caseId } = await api.createCase("daily", "objection_handling");
+  await api.start(caseId);
+  await api.move(caseId, {
+    clientMsgId: crypto.randomUUID(),
+    personaId: "dana",
+    text: "What outcome would justify a renewal at this price?",
+    draftId: null,
+  });
+  await api.submit(caseId);
+  const series = (await api.path()).series.find(
+    ({ skill }) => skill === "objection_handling",
+  );
+  expect(series).toMatchObject({
+    casesCounted: [{ caseId, accuracy: 80 }],
+    required: 3,
+    blockers: ["insufficient_cases"],
+  });
 });

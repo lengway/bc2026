@@ -185,9 +185,12 @@ export function Onboarding() {
   }
 
   function prepare() {
-    create.mutate("onboarding", {
-      onSuccess: (r) => router.push(`/case/${r.caseId}?type=onboarding`),
-    });
+    create.mutate(
+      { type: "onboarding" },
+      {
+        onSuccess: (r) => router.push(`/case/${r.caseId}?type=onboarding`),
+      },
+    );
   }
 
   return (
@@ -221,7 +224,8 @@ export function Onboarding() {
             </h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Your answers decide which situations you practice. It takes about
-              a minute, and your first case takes about eight.
+              a minute, and your first case takes about eight. After each
+              review, check your progress toward a three-case skill certificate.
             </p>
           </div>
 

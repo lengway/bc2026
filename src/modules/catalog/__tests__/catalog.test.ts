@@ -59,3 +59,22 @@ describe('sales catalog', () => {
     expect(pack.archetypes.map((a) => a.id)).toContain(picked.id);
   });
 });
+
+it('targets the requested skill across the pack and diversifies the latest series', async () => {
+  const catalog = createCatalogService();
+  const profile = { field: 'sales', subfield: 'sdr_outbound', level: 'advanced', intakeText: 'Wants to practice: discovery' } as const;
+  const pack = await catalog.getPack('sales');
+  const previous = pack.archetypes.map(({ id }) => id);
+  const picked = await catalog.pickArchetype(profile, previous, {
+    skill: 'critical_ai_use',
+    seriesArchetypeIds: ['competitor', 'competitor'],
+  });
+  expect(['price-objection', 'procurement']).toContain(picked.id);
+});
+
+it('prefers an archetype outside the counted series when its prior case is missing from history', async () => {
+  const catalog = createCatalogService();
+  const picked = await catalog.pickArchetype({ field: 'sales', subfield: 'account_executive' },
+    ['price-objection', 'procurement'], { skill: 'critical_ai_use', seriesArchetypeIds: ['competitor'] });
+  expect(['price-objection', 'procurement']).toContain(picked.id);
+});
