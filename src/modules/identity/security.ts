@@ -10,11 +10,19 @@ export function assertOrigin(origin: string | null, appUrl: string): void {
 }
 
 export function safeRedirect(target: string | null | undefined): string {
-  return target && ['/onboarding', '/dashboard', '/path'].includes(target) ? target : '/onboarding';
+  if (!target || !target.startsWith('/') || target.startsWith('//') || /[\\\x00-\x20]/.test(target)) return '/onboarding';
+  try {
+    const decoded = decodeURIComponent(target);
+    if (decoded.startsWith('//') || /[\\\x00-\x1f]/.test(decoded)) return '/onboarding';
+    const url = new URL(target, 'https://local.invalid');
+    if (url.origin !== 'https://local.invalid' || !/^\/(onboarding|dashboard|path|case|review|settings|billing)(\/|$)/.test(url.pathname)) return '/onboarding';
+    return url.pathname + url.search + url.hash;
+  } catch { return '/onboarding'; }
 }
 
-export function sessionCookie(token: string, expiresAt: Date, secure: boolean): string {
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${secure ? '; Secure' : ''}`;
+export function sessionCookie(token: string, expiresAt: Date, secure: boolean, now = new Date()): string {
+  const maxAge = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}; Expires=${expiresAt.toUTCString()}${secure ? '; Secure' : ''}`;
 }
 
 export function readSessionCookie(header: string | null): string | null {

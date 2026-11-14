@@ -119,8 +119,8 @@ it('closes an SSE reader on request abort and on session revocation',async()=>{
 });
 
 it('rejects oversized/invalid JSON and UTF-8, and never leaks internal failures',async()=>{
-  expect((await api.magicLink(new Request(origin,{method:'POST',headers:{origin},body:'{oops'}))).status).toBe(400);
-  expect((await api.magicLink(new Request(origin,{method:'POST',headers:{origin},body:'x'.repeat(65_537)}))).status).toBe(413);
+  expect((await api.magicLink(new Request(origin,{method:'POST',headers:{origin,'Content-Type':'application/json'},body:'{oops'}))).status).toBe(400);
+  expect((await api.magicLink(new Request(origin,{method:'POST',headers:{origin,'Content-Type':'application/json'},body:'x'.repeat(65_537)}))).status).toBe(413);
   await expect(readBody(new Request(origin,{method:'POST',body:new Uint8Array([0xff])}))).rejects.toMatchObject({status:400});
   const log=vi.spyOn(console,'error').mockImplementation(()=>{});
   const failed=await guarded(async()=>{throw new Error('sk-secret database password');});

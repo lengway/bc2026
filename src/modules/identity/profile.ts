@@ -25,7 +25,7 @@ export function createProfileService({db,llm,catalog,now=systemClock}:{db:Databa
       // This limit protects a public-facing, paid provider call independently of generation.
       await db.transaction(tx=>consumeRateLimit(tx,`intake:${userId}`,20,3_600_000,now()));
       let details:z.infer<typeof IntakeParsed>;
-      try { details=(await llm.run('intake.parse',{...request,subfields:pack.subfields},schema)).data; }
+      try { details=(await llm.run('intake.parse',{...request,subfields:pack.subfields},schema,{userId})).data; }
       catch { throw new AppError('LLM_FAILED',502,'Unable to interpret your profile. Please try again.'); }
       const result=await db.query(`INSERT INTO profiles(user_id,intake_text,field,subfield,level,years,pains,goals,updated_at)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(user_id) DO UPDATE SET

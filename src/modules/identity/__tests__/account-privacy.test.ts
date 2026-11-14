@@ -1,0 +1,41 @@
+import { randomUUID } from 'node:crypto';
+import { beforeAll, afterAll, expect, it } from 'vitest';
+import { createTestDatabase } from '../../../../tests/backend/db-helper';
+import { reviewedCase } from '../../../../tests/backend/review-fixture';
+import { createCredentialsService } from '@/modules/credentials';
+import { createIdentityService } from '../index';
+
+let state: Awaited<ReturnType<typeof createTestDatabase>>;
+beforeAll(async () => { state = await createTestDatabase(); });
+afterAll(async () => { await state?.cleanup(); });
+it('keeps the review available but cannot issue or publish an unverified member certificate', async () => {
+  const sample = await reviewedCase(state.db);
+  await state.db.query('UPDATE users SET email_verified_at=NULL WHERE id=$1', [sample.userId]);
+  const service = createCredentialsService({ db: state.db, loadSubmission: async () => sample.snapshot, getReview: async () => sample.review, canFull: async () => false });
+  await expect(service.issueCertificate(sample.snapshot)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  expect(await service.issueCertificateWithExecutor(state.db, sample.snapshot)).toBeNull();
+  expect(await service.getOwnedSlug(sample.caseId, sample.userId)).toBeUndefined();
+  await state.db.query('UPDATE users SET email_verified_at=now() WHERE id=$1', [sample.userId]);
+  const slug = await service.getOwnedSlug(sample.caseId, sample.userId);
+  expect(slug).toBeTypeOf('string');
+  expect((await service.getBySlug(slug!)).holderName).toBe('Jordan Reyes');
+});
+it('deletes case evidence and LLM payloads and makes an existing certificate unavailable', async () => {
+  const password = 'test password for deletion';
+  const service = createIdentityService({ db: state.db, appUrl: 'https://gambit.example', mailer: { async sendMagicLink() {}, async sendAccountMail() {} } });
+  const email = `${randomUUID()}@example.com`;
+  await service.register({ email, password, displayName: 'Jordan Reyes' }, randomUUID());
+  const member = await service.login({ email, password }, randomUUID());
+  await state.db.query('UPDATE users SET email_verified_at=now() WHERE id=$1', [member.session.user.id]);
+  const sample = await reviewedCase(state.db, { userId: member.session.user.id });
+  const credentials = createCredentialsService({ db: state.db, loadSubmission: async () => sample.snapshot, getReview: async () => sample.review, canFull: async () => false });
+  const certificate = await credentials.issueCertificate(sample.snapshot);
+  const eventId=randomUUID();
+  await state.db.query("INSERT INTO events(id,case_id,seq,actor,type,content) VALUES($1,$2,1,'user','message','private move')",[eventId,sample.caseId]);
+  await state.db.query("INSERT INTO simulation_operations(client_msg_id,case_id,user_id,kind,request,input_event_id,status) VALUES($1,$2,$3,'move','{}',$4,'cancelled')",[randomUUID(),sample.caseId,sample.userId,eventId]);
+  await state.db.query("INSERT INTO llm_calls(user_id,prompt_id,prompt_version,model,input,output,ok,latency_ms) VALUES($1,'intake.parse','1','test',$2,'{}',true,1)", [sample.userId, JSON.stringify({ text: 'private intake' })]);
+  await service.deleteAccount(member.token, { confirm: 'DELETE', currentPassword: password });
+  await expect(credentials.getBySlug(certificate.slug)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  expect((await state.db.query('SELECT id FROM cases WHERE user_id=$1', [sample.userId])).rows).toHaveLength(0);
+  expect((await state.db.query('SELECT id FROM llm_calls WHERE user_id=$1', [sample.userId])).rows).toHaveLength(0);
+});

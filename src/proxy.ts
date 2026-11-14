@@ -1,21 +1,42 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { mocksEnabled } from "./app/_lib/environment";
-import { apiClient } from "./app/_lib/api-client";
-import { SessionView } from "./app/_lib/contracts";
+import { getRuntime } from "@/modules/runtime";
+import { readSessionCookie, sessionCookie } from "@/modules/identity";
 export async function proxy(request: NextRequest) {
   if (mocksEnabled) return NextResponse.next();
-  const configured = process.env.APP_URL;
-  const session = configured
-    ? await apiClient(
-        new URL("/api/auth/session", new URL(configured).origin).href,
-        SessionView,
-        {
-          headers: { Cookie: request.headers.get("cookie") ?? "" },
-          timeoutMs: 5000,
+  const token = readSessionCookie(request.headers.get("cookie"));
+  try {
+    const app = getRuntime();
+    const session = await app.identity.getSession(token);
+    if (session && token) {
+      const response = NextResponse.next();
+      response.headers.set("Cache-Control", "private, no-store");
+      response.headers.set(
+        "Set-Cookie",
+        sessionCookie(
+          token,
+          new Date(session.expiresAt),
+          new URL(app.config.APP_URL).protocol === "https:",
+          app.now(),
+        ),
+      );
+      return response;
+    }
+  } catch {
+    // Infrastructure failure is not evidence that the visitor has signed out.
+    return NextResponse.json(
+      {
+        error: {
+          code: "UNAVAILABLE",
+          message: "Sign-in is temporarily unavailable. Please try again.",
         },
-      ).catch(() => null)
-    : null;
-  if (session) return NextResponse.next();
+      },
+      {
+        status: 503,
+        headers: { "Cache-Control": "no-store", "Retry-After": "5" },
+      },
+    );
+  }
   const url = request.nextUrl.clone();
   url.pathname = "/login";
   url.search = "";
@@ -33,5 +54,6 @@ export const config = {
     "/review/:path*",
     "/path/:path*",
     "/billing/:path*",
+    "/settings/:path*",
   ],
 };

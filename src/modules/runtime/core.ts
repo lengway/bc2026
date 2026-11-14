@@ -11,12 +11,12 @@ import { createJobsService } from '@/modules/jobs';
 import { createIdentityService,createProfileService,createSmtpMailer,type MagicLinkMailer } from '@/modules/identity';
 import { createLlmService,OpenAIProvider,type LlmProvider } from '@/modules/llm';
 import type { ServerConfig } from '@/modules/config';
-import type { Clock } from '@/modules/shared';
+import { systemClock, type Clock } from '@/modules/shared';
 import { createLlmCallRecorder } from './llm-recorder';
 
 export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;provider?:LlmProvider;mailer?:MagicLinkMailer;billingProvider?:BillingProvider;now?:Clock}={}) {
   const db=overrides.db??createDatabase(config.DATABASE_URL);
-  const now=overrides.now;
+  const now=overrides.now??systemClock;
   const catalog=createCatalogService();
   const llm=createLlmService({
     provider:overrides.provider??new OpenAIProvider({apiKey:config.OPENAI_API_KEY}),
@@ -40,6 +40,6 @@ export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;pr
     await progress.awardWithExecutor(tx,snapshot,result);
   }});
   const credentials:CredentialsService=createCredentialsService({db,loadSubmission:simulation.loadSubmission,getReview:evaluation.getReview,canFull:(ownerId)=>billing.can(ownerId,'full_certificate'),now});
-  return {config,db,identity,catalog,llm,jobs,events,caseEngine,simulation,evaluation,credentials,progress,billing};
+  return {config,db,identity,catalog,llm,jobs,events,caseEngine,simulation,evaluation,credentials,progress,billing,now};
 }
 export type CoreRuntime=ReturnType<typeof createCoreRuntime>;

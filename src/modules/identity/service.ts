@@ -4,14 +4,21 @@ import { MagicLinkRequest, SessionView } from '@/contracts';
 import type { Database } from '@/modules/database';
 import { AppError, type Clock, systemClock } from '@/modules/shared';
 import { consumeRateLimit, findSession, toUser } from './repo';
-import { hashToken, newToken } from './security';
+import { hashToken, newToken, safeRedirect } from './security';
+import { createAccountService } from './accounts';
+import type { MailPurpose } from './account-repo';
+import { issueSession } from './account-repo';
 
-export interface MagicLinkMailer { sendMagicLink(email: string, url: string): Promise<void> }
+export interface MagicLinkMailer {
+  sendMagicLink(email: string, url: string): Promise<void>;
+  sendAccountMail?(email: string, purpose: MailPurpose, url: string | null): Promise<void>;
+}
 export interface IdentityDeps { db: Database; mailer: MagicLinkMailer; appUrl: string; guestAccessEnabled?: boolean; now?: Clock }
 
 export function createIdentityService({ db, mailer, appUrl, guestAccessEnabled = false, now = systemClock }: IdentityDeps) {
   return {
-    async requestMagicLink(emailInput: string, requestKey: string) {
+    ...createAccountService({ db, mailer, appUrl, now }),
+    async requestMagicLink(emailInput: string, requestKey: string, next?: string) {
       const { email: rawEmail } = MagicLinkRequest.parse({ email: emailInput });
       const email = rawEmail.toLowerCase();
       if (email.endsWith('.invalid')) throw new AppError('VALIDATION', 400, 'Use a deliverable email address.');
@@ -24,7 +31,7 @@ export function createIdentityService({ db, mailer, appUrl, guestAccessEnabled =
         const result = await tx.query(`INSERT INTO users(email) VALUES($1)
           ON CONFLICT(email) DO UPDATE SET email=EXCLUDED.email RETURNING id,email,display_name,is_guest`, [email]);
         const user = toUser(result.rows[0]);
-        await tx.query('INSERT INTO auth_tokens(user_id,token_hash,expires_at) VALUES($1,$2,$3)', [user.id, hash, new Date(at.getTime() + 900_000)]);
+        await tx.query('INSERT INTO auth_tokens(user_id,token_hash,expires_at,meta) VALUES($1,$2,$3,$4)', [user.id, hash, new Date(at.getTime() + 900_000), JSON.stringify({next:safeRedirect(next)})]);
       });
       const url = new URL('/api/auth/verify', appUrl);
       url.searchParams.set('token', token);
@@ -35,24 +42,30 @@ export function createIdentityService({ db, mailer, appUrl, guestAccessEnabled =
       }
       return { accepted: true as const };
     },
-    async consumeMagicLink(token: string) {
+    async consumeMagicLink(token: string, existingToken: string | null = null) {
       const at = now();
-      const sessionToken = newToken();
-      const expiresAt = new Date(at.getTime() + 30 * 86_400_000);
-      const user = await db.transaction(async (tx) => {
+      return db.transaction(async (tx) => {
+        const candidate=await tx.query("SELECT user_id FROM auth_tokens WHERE token_hash=$1 AND purpose='magic_link'",[hashToken(token)]);
+        if(!candidate.rows[0]) throw new AppError('UNAUTHORIZED',401,'This sign-in link has expired or was already used.');
+        const account=await tx.query('SELECT email_verified_at FROM users WHERE id=$1 FOR UPDATE',[candidate.rows[0].user_id]);
+        if(!account.rows[0]) throw new AppError('UNAUTHORIZED',401,'This sign-in link has expired or was already used.');
         const result = await tx.query(`UPDATE auth_tokens SET consumed_at=$2
-          WHERE token_hash=$1 AND consumed_at IS NULL AND expires_at>$2 RETURNING user_id`, [hashToken(token), at]);
+          WHERE token_hash=$1 AND purpose='magic_link' AND consumed_at IS NULL AND expires_at>$2 RETURNING user_id,meta`, [hashToken(token), at]);
         if (!result.rows[0]) throw new AppError('UNAUTHORIZED', 401, 'This sign-in link has expired or was already used.');
         const { user_id } = z.object({ user_id: z.uuid() }).parse(result.rows[0]);
-        const users = await tx.query('SELECT id,email,display_name,is_guest FROM users WHERE id=$1', [user_id]);
-        await tx.query('INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,$3)', [user_id, hashToken(sessionToken), expiresAt]);
-        return toUser(users.rows[0]);
+        if(!account.rows[0].email_verified_at) {
+          await tx.query('UPDATE users SET password_hash=NULL WHERE id=$1',[user_id]);
+          await tx.query('UPDATE sessions SET revoked_at=$2 WHERE user_id=$1 AND revoked_at IS NULL',[user_id,at]);
+          await tx.query('UPDATE auth_tokens SET consumed_at=$2 WHERE user_id=$1 AND consumed_at IS NULL',[user_id,at]);
+        }
+        await tx.query('UPDATE users SET email_verified_at=COALESCE(email_verified_at,$2) WHERE id=$1', [user_id, at]);
+        const meta = z.object({ next: z.string().optional() }).parse(result.rows[0].meta);
+        return { ...await issueSession(tx, user_id, at, existingToken), next: safeRedirect(meta.next) };
       });
-      return { token: sessionToken, session: SessionView.parse({ user, expiresAt: expiresAt.toISOString() }) };
     },
     async getSession(token: string | null) {
       if (!token) return null;
-      const session = SessionView.parse(await findSession(db, hashToken(token), now()));
+      const session = SessionView.parse(await findSession(db, hashToken(token), now(), true));
       return session?.user.isGuest && !guestAccessEnabled ? null : session;
     },
     async createGuestSession(requestKey: string, existingToken: string | null = null) {

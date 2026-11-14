@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Database,SqlExecutor } from '@/modules/database';
 import { AppError,systemClock,type Clock } from '@/modules/shared';
 import type { SubmittedSnapshot } from '@/modules/simulation';
-import { findBySlug,findOwnedSlug,issue } from './repo';
+import { canIssue,findBySlug,findOwnedSlug,issue } from './repo';
 import { toPublicFull,toPublicLimited } from './projection';
 
 export interface CredentialsDeps {
@@ -14,12 +14,17 @@ export interface CredentialsDeps {
 export function createCredentialsService({db,loadSubmission,getReview,canFull,now=systemClock}:CredentialsDeps) {
   return {
     issueCertificate:(snapshot:SubmittedSnapshot)=>db.transaction(tx=>issue(tx,snapshot,now())),
-    issueCertificateWithExecutor:(tx:SqlExecutor,snapshot:SubmittedSnapshot)=>issue(tx,snapshot,now()),
-    async getOwnedSlug(caseId:string,userId:string):Promise<string> {
+    issueCertificateWithExecutor:async(tx:SqlExecutor,snapshot:SubmittedSnapshot)=>await canIssue(tx,snapshot.case.userId)?issue(tx,snapshot,now()):null,
+    async getOwnedSlug(caseId:string,userId:string):Promise<string|undefined> {
       if(!z.uuid().safeParse(caseId).success||!z.uuid().safeParse(userId).success) throw new AppError('NOT_FOUND',404,'Certificate not found.');
       const slug=await findOwnedSlug(db,caseId,userId);
-      if(!slug) throw new AppError('NOT_FOUND',404,'Certificate not found.');
-      return CertificateSlug.parse(slug);
+      if(slug) return CertificateSlug.parse(slug);
+      const owner=await db.query('SELECT id FROM cases WHERE id=$1 AND user_id=$2 AND status=$3',[caseId,userId,'evaluated']);
+      if(!owner.rows.length) throw new AppError('NOT_FOUND',404,'Certificate not found.');
+      if(!await canIssue(db,userId)) return undefined;
+      const snapshot=await loadSubmission(caseId);
+      if(!snapshot||snapshot.case.userId!==userId) throw new AppError('NOT_FOUND',404,'Certificate not found.');
+      return (await db.transaction(tx=>issue(tx,snapshot,now()))).slug;
     },
     async getBySlug(slug:string):Promise<CertificateResponse> {
       if(!CertificateSlug.safeParse(slug).success) throw new AppError('NOT_FOUND',404,'Certificate not found.');

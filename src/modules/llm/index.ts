@@ -31,7 +31,7 @@ export type EvaluatedMoves = z.infer<typeof EvaluatedMoves>;
 export interface LlmRequest { promptId: string; instructions: string; prompt: string; model: string; temperature: number; validationError?: string; signal: AbortSignal }
 export interface LlmProviderResult { text: string; model: string; tokensIn?: number; tokensOut?: number; finishReason?: string }
 export interface LlmProvider { complete(request: LlmRequest): Promise<LlmProviderResult> }
-export interface LlmCallRecord { caseId: string | null; promptId: string; promptVersion: string; model: string; attempt: number; status: 'success' | 'invalid_json' | 'invalid_schema' | 'provider_error' | 'timeout'; latencyMs: number; input: unknown; output: unknown; tokensIn: number | null; tokensOut: number | null }
+export interface LlmCallRecord { userId?: string | null; caseId: string | null; promptId: string; promptVersion: string; model: string; attempt: number; status: 'success' | 'invalid_json' | 'invalid_schema' | 'provider_error' | 'timeout'; latencyMs: number; input: unknown; output: unknown; tokensIn: number | null; tokensOut: number | null }
 export type LlmCallRecorder = (record: LlmCallRecord) => Promise<void>;
 
 export class MockProvider implements LlmProvider {
@@ -83,7 +83,7 @@ function containsRubric(value: unknown, seen = new WeakSet<object>()): boolean {
 }
 export function createLlmService({ provider, recordCall, promptsDir = join(process.cwd(), 'src', 'prompts'), now = () => new Date(), defaultModel, modelForPrompt, defaultTimeoutMs = 30_000 }: { provider: LlmProvider; recordCall: LlmCallRecorder; promptsDir?: string; now?: () => Date; defaultModel?: string; modelForPrompt?: (promptId: string) => string | undefined; defaultTimeoutMs?: number }) {
   return {
-    async run<T>(promptId: string, vars: Record<string, unknown>, schema: z.ZodType<T>, opts: { caseId?: string; timeoutMs?: number } = {}): Promise<{ data: T; meta: { model: string; promptVersion: string; latencyMs: number } }> {
+    async run<T>(promptId: string, vars: Record<string, unknown>, schema: z.ZodType<T>, opts: { caseId?: string; userId?: string; timeoutMs?: number } = {}): Promise<{ data: T; meta: { model: string; promptVersion: string; latencyMs: number } }> {
       if (!/^[a-z0-9]+(?:\.[a-z0-9]+)*$/.test(promptId)) throw new Error('Invalid prompt ID');
       if (promptId === 'persona.reply' && containsRubric(vars)) throw new Error('Persona requests must not contain a rubric');
       const files = await readdir(/*turbopackIgnore: true*/ promptsDir);
@@ -115,21 +115,21 @@ export function createLlmService({ provider, recordCall, promptsDir = join(proce
         try {
           response = await Promise.race([provider.complete({ promptId, instructions, prompt, model, temperature: metadata.temperature, validationError: feedback, signal: controller.signal }), new Promise<never>((_, reject) => controller.signal.addEventListener('abort', () => reject(new Error('LLM request timed out')), { once: true }))]);
         } catch {
-          await recordCall({ caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model, attempt, status: timedOut ? 'timeout' : 'provider_error', latencyMs: Math.max(0, now().getTime() - start), input: sanitize(vars), output: null, tokensIn: null, tokensOut: null });
+          await recordCall({ userId: opts.userId ?? null, caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model, attempt, status: timedOut ? 'timeout' : 'provider_error', latencyMs: Math.max(0, now().getTime() - start), input: sanitize(vars), output: null, tokensIn: null, tokensOut: null });
           throw new Error(timedOut ? 'LLM request timed out' : 'LLM provider failed');
         } finally { clearTimeout(timer); }
         if (response.finishReason !== undefined && response.finishReason !== 'stop') {
-          await recordCall({ caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model: response.model, attempt, status: 'provider_error', latencyMs: Math.max(0, now().getTime() - start), input: sanitize(vars), output: null, tokensIn: response.tokensIn ?? null, tokensOut: response.tokensOut ?? null });
+          await recordCall({ userId: opts.userId ?? null, caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model: response.model, attempt, status: 'provider_error', latencyMs: Math.max(0, now().getTime() - start), input: sanitize(vars), output: null, tokensIn: response.tokensIn ?? null, tokensOut: response.tokensOut ?? null });
           throw new Error('LLM response incomplete');
         }
         let parsed: unknown;
         try { parsed = JSON.parse(response.text); } catch {
-          await recordCall({ caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model: response.model, attempt, status: 'invalid_json', latencyMs: Math.max(0, now().getTime() - start), input: sanitize(vars), output: sanitize(response.text), tokensIn: response.tokensIn ?? null, tokensOut: response.tokensOut ?? null });
+          await recordCall({ userId: opts.userId ?? null, caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model: response.model, attempt, status: 'invalid_json', latencyMs: Math.max(0, now().getTime() - start), input: sanitize(vars), output: sanitize(response.text), tokensIn: response.tokensIn ?? null, tokensOut: response.tokensOut ?? null });
           feedback = 'Invalid JSON';
           continue;
         }
         const result = schema.safeParse(parsed);
-        await recordCall({ caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model: response.model, attempt, status: result.success ? 'success' : 'invalid_schema', latencyMs: Math.max(0, now().getTime() - start), input: sanitize(vars), output: sanitize(parsed), tokensIn: response.tokensIn ?? null, tokensOut: response.tokensOut ?? null });
+        await recordCall({ userId: opts.userId ?? null, caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model: response.model, attempt, status: result.success ? 'success' : 'invalid_schema', latencyMs: Math.max(0, now().getTime() - start), input: sanitize(vars), output: sanitize(parsed), tokensIn: response.tokensIn ?? null, tokensOut: response.tokensOut ?? null });
         if (result.success) return { data: result.data, meta: { model: response.model, promptVersion: metadata.version, latencyMs: Math.max(0, now().getTime() - started) } };
         feedback = result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ').slice(0, 2000);
       }
