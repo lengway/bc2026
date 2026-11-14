@@ -10,6 +10,7 @@ import { createTestDatabase } from '../tests/backend/db-helper';
 // Deliberate opt-in, separate disposable DB, no SMTP or Stripe network operations.
 // Reserves a conservative upper estimate BEFORE each paid call; failed calls are not refunded.
 const ledgerPath='.tmp/llm-live-spend.json',lockPath='.tmp/llm-live.lock';
+const testBudgetUsd=12,runBudgetUsd=1; // User budget: $15 total, with $3 reserved for the pitch.
 type Ledger={reservedUsd:number;reportedUsageUsd:number;calls:number};
 const rates:Record<string,{input:number;output:number}>={'gpt-6.1-sol':{input:2,output:10},'gpt-6.1-terra':{input:1,output:5}};
 let stage='configuration';
@@ -35,7 +36,7 @@ async function main() {
       // UTF-8 bytes upper-bound text tokens; 4096 extra covers message framing.
       const inputBound=Buffer.byteLength(request.instructions+request.prompt+(request.validationError??''),'utf8')+4096;
       const reserve=(inputBound*rate.input+8192*rate.output)/1_000_000;
-      if(ledger.reservedUsd+reserve>40||runReserve+reserve>2) throw new Error('Paid smoke budget reached.');
+      if(ledger.reservedUsd+reserve>testBudgetUsd||runReserve+reserve>runBudgetUsd) throw new Error('Paid smoke budget reached.');
       runReserve+=reserve;ledger.reservedUsd+=reserve;ledger.calls++;
       await writeFile(ledgerPath,JSON.stringify(ledger,null,2));
       console.info('LLM_CALL',request.promptId,request.model);
@@ -92,8 +93,16 @@ async function main() {
     await writeFile('.tmp/live-smoke-result.json',JSON.stringify(result,null,2));
     console.info('LIVE_SMOKE_PASSED',JSON.stringify({accuracy:result.accuracy,coverage:result.coverage,trapResult:result.trapResult,runEstimatedUsd:runReported,runReservedUsd:runReserve}));
   } finally {
-    await state?.cleanup();await lock.close();await unlink(lockPath);
-    console.info('LIVE_SPEND',JSON.stringify({runEstimatedUsd:runReported,runReservedUsd:runReserve,total:ledger,scope:'this local smoke script only; verify account-wide spend in OpenAI dashboard'}));
+    try {
+      if(state) {
+        // Keep sanitized evidence from this synthetic test before its disposable DB is removed.
+        const journal=await state.db.query('SELECT prompt_id,prompt_version,model,ok,error_code,latency_ms,tokens_in,tokens_out,input,output FROM llm_calls ORDER BY created_at,id');
+        await writeFile('.tmp/live-smoke-llm-journal.json',JSON.stringify({stage,recordedAt:new Date().toISOString(),calls:journal.rows},null,2));
+      }
+    } finally {
+      await state?.cleanup();await lock.close();await unlink(lockPath);
+      console.info('LIVE_SPEND',JSON.stringify({runEstimatedUsd:runReported,runReservedUsd:runReserve,total:ledger,scope:'this local smoke script only; verify account-wide spend in OpenAI dashboard'}));
+    }
   }
 }
 main().catch(()=>{console.error('LIVE_SMOKE_FAILED',stage,'see safe stage/status output; no credentials printed.');process.exitCode=1;});

@@ -8,7 +8,7 @@ import * as fixture from '../../src/mocks/fixtures';
 export async function reviewedCase(db:Database,options:{userId?:string;guest?:boolean;timezone?:string;submittedAt?:string;type?:'onboarding'|'daily'|'weekly'}={}) {
   const userId=options.userId??randomUUID(),caseId=randomUUID();
   const submittedAt=options.submittedAt??'2026-11-14T12:00:00.000Z';
-  await db.query(`INSERT INTO users(id,email,display_name,is_guest,timezone) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO NOTHING`,
+  await db.query(`INSERT INTO users(id,email,display_name,is_guest,timezone,email_verified_at) VALUES($1,$2,$3,$4,$5,CASE WHEN $4 THEN NULL ELSE now() END) ON CONFLICT(id) DO NOTHING`,
     [userId,`${userId}@example.com`,options.guest?'Demo Guest':'Jordan Reyes',options.guest??false,options.timezone??'UTC']);
   const view=CaseView.parse(fixture.caseView);
   const demo=await createCatalogService().getDemoCase('sales','sdr_outbound');

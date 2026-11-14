@@ -3,6 +3,11 @@ import { ApiError } from '@/contracts';
 import { AppError } from '@/modules/shared';
 
 export type ParamsContext={params:Promise<Record<string,string>>};
+export function assertJson(request:Request):void {
+  if(request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase()!=='application/json') {
+    throw new AppError('VALIDATION',415,'Content-Type must be application/json.');
+  }
+}
 export function json<T>(schema:z.ZodType<T>,data:unknown,status=200,headers?:HeadersInit):Response {
   const parsed=schema.safeParse(data);
   if(!parsed.success) throw new Error('Invalid server response');
@@ -39,6 +44,7 @@ export async function readBody(request:Request,maxBytes=65_536):Promise<string> 
   catch {throw new AppError('VALIDATION',400,'Request body must use valid UTF-8.');}
 }
 export async function body<T>(request:Request,schema:z.ZodType<T>,maxBytes?:number):Promise<T> {
+  assertJson(request);
   const text=await readBody(request,maxBytes);
   let value:unknown;
   try {value=text?JSON.parse(text):{};}

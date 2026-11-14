@@ -125,7 +125,7 @@ describe('wire boundaries', () => {
     const user = { id: fixture.caseView.id, email: 'jordan@relaygrid.example', displayName: 'Jordan Reyes' };
     const expiresAt = '2026-03-13T15:00:00.000Z';
     expect(SessionView.parse(null)).toBeNull();
-    expect(SessionView.parse({ user: { ...user, tokenHash: 'private' }, expiresAt, cookieToken: 'private' })).toEqual({ user: { ...user, isGuest: false }, expiresAt });
+    expect(SessionView.parse({ user: { ...user, tokenHash: 'private' }, expiresAt, cookieToken: 'private' })).toEqual({ user: { ...user, isGuest: false, emailVerified: false, hasPassword: false }, expiresAt });
   });
 
   it('rejects invalid enums, ranges and malformed SSE cursors', () => {

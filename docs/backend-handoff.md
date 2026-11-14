@@ -2,7 +2,7 @@
 
 The frontend remains owned by the teammate. Shared Zod schemas and inferred TypeScript types are in `src/contracts/index.ts`; realistic examples are in `src/mocks/fixtures`. The original product/route specification remains `docs/spec/CONTEXT.md`.
 
-Status: T0–T5 services and all specified HTTP routes are implemented. Production build and local HTTP startup have been checked. Live OpenAI passage, email delivery, Stripe delivery and VPS deployment remain separate checks; OpenAI currently returns credit_balance_exhausted.
+Status: T0–T5 services and all specified HTTP routes are implemented. Production build and local HTTP startup have been checked. The replacement OpenAI key passed one complete live service scenario on 2026-11-14 (seven successful requests, estimated $0.1128). Original case/rubric preparation took about91seconds and evaluation33seconds; keep pending/loading states and avoid tight retries. This is one synthetic service-level check, not full browser/production grading validation. Email, Stripe delivery and VPS deployment remain separate checks.
 
 ## Requests and retries
 
@@ -53,3 +53,7 @@ Auth uses `/api/auth/options`, `/guest`, `/magic-link`, `/verify`, `/session`, `
 The shared contract barrel retains design names `CaseDocKind`, `parseDocContent`, `CaseOutcome` and `TranscriptEntry`. Documents use the canonical backend formats: email recipients are arrays, timestamps are ISO, CRM has contact/stage/notes, notes use text, and table cells may be number/null. Optional table captions are preserved. Private scoring schemas have not been weakened to accommodate older gallery data.
 
 `pnpm test` includes both backend Node tests and frontend jsdom tests; focused commands are `pnpm test:backend` and `pnpm test:frontend`. The original design colors, fonts, global CSS, main layout and landing layout are preserved. Certificate text reflects recorded-simulation verification, and reduced-motion preferences hydrate without changing initial markup.
+
+## Account extension — 2026-11-14
+
+See [accounts backend handoff](accounts-backend-handoff.md) for the new password/verification/reset/settings API, migration 007, session guard fix, certificate gating, deletion, restricted VPS access and release checks. Frontend screens are unchanged.
