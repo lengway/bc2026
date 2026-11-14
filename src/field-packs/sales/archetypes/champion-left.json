@@ -6,5 +6,10 @@
   "difficulty": "advanced",
   "suggestedTwists": [
     "A stakeholder adds a constraint before the decision."
+  ],
+  "focus": [
+    "multi_threading",
+    "renewal",
+    "discovery"
   ]
 }

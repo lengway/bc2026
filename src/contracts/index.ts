@@ -21,3 +21,4 @@ export type { Event as EventData, EventsPage as EventsPageData } from './events'
 export type { MoveRequest as MoveInput, CopilotRequest as CopilotInput } from './api';
 export type { EditorBatch as EditorBatchData } from './telemetry';
 export { EvaluationOutcome as Outcome } from './evaluation';
+export * from './focus';

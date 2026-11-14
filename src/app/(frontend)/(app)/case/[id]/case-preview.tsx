@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useCase, useStartCase, useCreateCase } from "@/app/_hooks/case-hooks";
@@ -10,9 +10,7 @@ import { PreparingCase } from "@/app/_components/preparing-case";
 import { Button } from "@/ui/primitives/button";
 import { chatWorkspacePlugin } from "@/workspaces/chat/workspace";
 export function CasePreview({ id }: { id: string }) {
-  const [expired, setExpired] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const query = useCase(id, !expired);
+  const query = useCase(id, true);
   const start = useStartCase(id);
   const create = useCreateCase();
   const router = useRouter();
@@ -21,7 +19,6 @@ export function CasePreview({ id }: { id: string }) {
     requestedType === "daily" || requestedType === "weekly"
       ? requestedType
       : "onboarding";
-  const timeout = useCallback(() => setExpired(true), []);
   useEffect(() => {
     if (
       query.data?.status === "evaluating" ||
@@ -44,21 +41,14 @@ export function CasePreview({ id }: { id: string }) {
     return (
       <>
         <PreparingCase
-          key={attempt}
-          failed={expired || view.status === "failed"}
-          onTimeout={timeout}
+          failed={view.status === "failed"}
+          retrying={create.isPending}
           onRetry={() => {
             if (create.isPending) return;
-            if (view.status === "failed")
-              create.mutate(retryType, {
-                onSuccess: (r) =>
-                  router.replace(`/case/${r.caseId}?type=${retryType}`),
-              });
-            else {
-              setExpired(false);
-              setAttempt((n) => n + 1);
-              void query.refetch();
-            }
+            create.mutate(retryType, {
+              onSuccess: (r) =>
+                router.replace(`/case/${r.caseId}?type=${retryType}`),
+            });
           }}
         />
         {create.isError && <ErrorPanel error={create.error} />}

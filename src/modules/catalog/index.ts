@@ -5,8 +5,11 @@ import { CaseBrief, CaseDoc, CaseType, Field, PersonaPublic, WorkspaceType } fro
 import { PersonaHidden } from '@/contracts/case';
 import { Rubric } from '@/contracts/rubric';
 import { NonEmpty } from '@/contracts/primitives';
+import { FOCUS_AREA_IDS, focusAreasIn, type FocusArea } from '@/contracts/focus';
 
-export const Archetype = z.object({ id: NonEmpty, subfield: NonEmpty, title: NonEmpty, setup: NonEmpty, difficulty: z.enum(['beginner', 'intermediate', 'advanced']), suggestedTwists: z.array(NonEmpty) });
+export { FOCUS_AREAS, FOCUS_AREA_IDS, focusAreasIn, type FocusArea } from '@/contracts/focus';
+
+export const Archetype = z.object({ id: NonEmpty, subfield: NonEmpty, title: NonEmpty, setup: NonEmpty, difficulty: z.enum(['beginner', 'intermediate', 'advanced']), suggestedTwists: z.array(NonEmpty), focus: z.array(z.enum(FOCUS_AREA_IDS as [FocusArea, ...FocusArea[]])).default([]) });
 export type Archetype = z.infer<typeof Archetype>;
 const PersonaTemplate = z.object({ id: NonEmpty, role: NonEmpty, personality: NonEmpty, style: NonEmpty });
 const PackManifest = z.object({ field: Field, title: NonEmpty, subfields: z.array(NonEmpty).min(1), workspace: WorkspaceType, dimensions: z.array(NonEmpty).min(1), showTrustLive: z.boolean() });
@@ -38,13 +41,29 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
       const entries = await readdir(/*turbopackIgnore: true*/ packsDir, { withFileTypes: true });
       return entries.filter((entry) => entry.isDirectory() && Field.safeParse(entry.name).success).map((entry) => Field.parse(entry.name)).sort();
     },
-    async pickArchetype(profile: { field: Field; subfield: string }, history: readonly (string | { archetypeId: string })[]): Promise<Archetype> {
+    /**
+     * Prefers, in order: an archetype not used before, one that trains what the person asked
+     * to practice, one at their level, one in their subfield. Ties keep catalog order.
+     */
+    async pickArchetype(
+      profile: { field: Field; subfield: string; level?: string; intakeText?: string; pains?: readonly string[]; goals?: readonly string[] },
+      history: readonly (string | { archetypeId: string })[],
+    ): Promise<Archetype> {
       const pack = await getPack(profile.field);
-      const eligible = pack.archetypes.filter((item) => item.subfield === profile.subfield);
-      const options = eligible.length ? eligible : pack.archetypes;
-      if (!options.length) throw new Error('No archetypes available');
+      if (!pack.archetypes.length) throw new Error('No archetypes available');
       const used = new Set(history.map((item) => typeof item === 'string' ? item : item.archetypeId));
-      return options.find((item) => !used.has(item.id)) ?? options[0];
+      const wanted = focusAreasIn([profile.intakeText ?? '', ...(profile.pains ?? []), ...(profile.goals ?? [])].join('\n'));
+      const levels = ['beginner', 'intermediate', 'advanced'];
+      const levelIndex = profile.level ? levels.indexOf(profile.level) : -1;
+      const score = (item: Archetype) => {
+        const overlap = item.focus.filter((area) => wanted.has(area)).length;
+        const levelFit = levelIndex < 0 ? 0 : 2 - Math.abs(levels.indexOf(item.difficulty) - levelIndex);
+        const subfieldFit = item.subfield === profile.subfield ? 1 : 0;
+        return (used.has(item.id) ? 0 : 1000) + overlap * 30 + subfieldFit * 40 + levelFit * 5;
+      };
+      return pack.archetypes
+        .map((item, index) => ({ item, index, value: score(item) }))
+        .sort((a, b) => b.value - a.value || a.index - b.index)[0].item;
     },
     async getDemoCase(field: Field, subfield: string): Promise<DemoCase> {
       const pack = await getPack(field);
