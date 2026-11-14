@@ -38,6 +38,7 @@ it('runs corrected copilot use through immutable submission, evaluation, certifi
   const simulation=createSimulationService({...app,now});
   const auth=await app.identity.createGuestSession('simulation-integration');
   const userId=auth.session!.user.id;
+  const initialXp=new Map((await app.progress.getSkillPath(userId)).skills.map(({skill,xp})=>[skill,xp]));
   await app.identity.upsertProfileFromIntake(userId,{field:'sales',level:'beginner',text:'I am a new SDR.'});
   const {caseId}=await app.caseEngine.generateCase(userId,'onboarding');
   await createWorker({jobs:app.jobs,handlers:{'case.generate':app.caseEngine.handleGenerateJob,'case.evaluate':async()=>{throw new Error('Evaluation belongs to T4');}}}).runOnce();
@@ -107,7 +108,8 @@ it('runs corrected copilot use through immutable submission, evaluation, certifi
   expect(publicResult.status).toBe(200);
   expect(await publicResult.json()).toMatchObject({accuracy:90,isDemo:true});
   const path=await app.progress.getSkillPath(userId);
-  expect(path.skills.map(skill=>skill.xp)).toEqual([90,90]);
+  const newXp=path.skills.filter(({skill,xp})=>xp!==(initialXp.get(skill)??0));
+  expect(newXp.map(({skill,xp})=>[skill,xp-(initialXp.get(skill)??0)])).toEqual([['critical_ai_use',90],['discovery',90]]);
   expect(await evaluationWorker.runOnce()).toBe(false);
   expect((await app.progress.getSkillPath(userId)).skills).toEqual(path.skills);
 });

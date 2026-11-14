@@ -48,7 +48,7 @@ function historyValues(history: HistoryRow[], key: keyof HistoryRow): string[] {
   return [...new Set(values)];
 }
 
-function scoringGuide(rubric: Rubric): PublicScoringGuide {
+export function scoringGuide(rubric: Rubric): PublicScoringGuide {
   return PublicScoringGuide.parse({
     version: rubric.version,
     criteria: rubric.criteria.map(({ id }) => ({
