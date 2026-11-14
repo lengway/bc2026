@@ -8,9 +8,12 @@ CREATE TABLE skill_certificates (
   average_accuracy double precision NOT NULL CHECK (average_accuracy BETWEEN 70 AND 100),
   is_demo boolean NOT NULL DEFAULT false,
   is_seeded_demo boolean NOT NULL DEFAULT false,
-  superseded_by uuid REFERENCES skill_certificates(id) DEFERRABLE INITIALLY DEFERRED,
+  superseded_by uuid,
   UNIQUE (user_id, skill, level),
-  UNIQUE (id, user_id)
+  UNIQUE (id, user_id),
+  UNIQUE (id, user_id, skill),
+  FOREIGN KEY (superseded_by, user_id, skill) REFERENCES skill_certificates(id, user_id, skill)
+    DEFERRABLE INITIALLY DEFERRED
 );
 CREATE UNIQUE INDEX skill_certificates_current ON skill_certificates(user_id,skill) WHERE superseded_by IS NULL;
 
