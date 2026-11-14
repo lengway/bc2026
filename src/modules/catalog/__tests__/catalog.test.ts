@@ -71,3 +71,10 @@ it('targets the requested skill across the pack and diversifies the latest serie
   });
   expect(['price-objection', 'procurement']).toContain(picked.id);
 });
+
+it('prefers an archetype outside the counted series when its prior case is missing from history', async () => {
+  const catalog = createCatalogService();
+  const picked = await catalog.pickArchetype({ field: 'sales', subfield: 'account_executive' },
+    ['price-objection', 'procurement'], { skill: 'critical_ai_use', seriesArchetypeIds: ['competitor'] });
+  expect(['price-objection', 'procurement']).toContain(picked.id);
+});

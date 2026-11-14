@@ -4,7 +4,11 @@ import {
   LEVEL_MIN_ACCURACY,
   MIN_DISTINCT_ARCHETYPES,
 } from "@/contracts/skill-series";
-import { formatDate, formatSkill } from "@/ui/lib/format";
+import {
+  formatAverageAccuracy,
+  formatDate,
+  formatSkill,
+} from "@/ui/lib/format";
 import { Button } from "@/ui/primitives/button";
 
 function blockerCopy(code: string, series: SkillProgressSeries) {
@@ -14,7 +18,9 @@ function blockerCopy(code: string, series: SkillProgressSeries) {
     case "insufficient_archetypes":
       return `Practice at least ${MIN_DISTINCT_ARCHETYPES} different case scenarios.`;
     case "accuracy_below_threshold":
-      return `Reach at least ${LEVEL_MIN_ACCURACY[1]}% average accuracy across your qualifying cases.`;
+      return series.averageAccuracy === null
+        ? `You need ${LEVEL_MIN_ACCURACY[1]}% average accuracy.`
+        : `Average accuracy ${formatAverageAccuracy(series.averageAccuracy)}. You need ${LEVEL_MIN_ACCURACY[1]}%.`;
     case "left_case":
       return "Finish cases without the client leaving the conversation.";
     case "email_unverified":

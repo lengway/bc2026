@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { SkillCertificateResponse } from "@/contracts";
+import type { SkillCertificateResponse, TrapResult } from "@/contracts";
 import {
   FIELD_LABEL,
   formatDate,
@@ -9,6 +9,14 @@ import {
 } from "@/ui/lib/format";
 import { VerifiedMark } from "@/ui/certificate-card";
 import { MoveLabelBadge } from "@/ui/move-label-badge";
+import { TrustCurveChart } from "@/ui/trust-curve-chart";
+
+const TRAP_LABEL: Record<TrapResult, string> = {
+  caught: "Copilot trap caught",
+  missed: "Copilot trap missed",
+  not_presented: "Copilot trap not presented",
+  insufficient_evidence: "Copilot trap result unavailable",
+};
 
 export function SkillCertificateCard({
   certificate,
@@ -37,7 +45,7 @@ export function SkillCertificateCard({
               href={`/s/${certificate.supersededBy}`}
               className="text-sm underline underline-offset-4"
             >
-              Superseded · View latest certificate
+              Superseded · View newer certificate
             </Link>
           )}
         </div>
@@ -60,9 +68,18 @@ export function SkillCertificateCard({
             </time>
           </p>
         </div>
-        <p className="font-mono text-xl">
-          {formatAverageAccuracy(certificate.averageAccuracy)} average accuracy
-        </p>
+        <div className="space-y-2">
+          <p className="font-mono text-xl">
+            {formatAverageAccuracy(certificate.averageAccuracy)} average
+            accuracy
+          </p>
+          {certificate.aiDependencyAverage !== null && (
+            <p className="text-sm text-muted-foreground">
+              {formatAverageAccuracy(certificate.aiDependencyAverage)} average
+              Copilot text similarity
+            </p>
+          )}
+        </div>
       </div>
 
       <section className="space-y-4 px-6 py-6 sm:px-8">
@@ -76,6 +93,14 @@ export function SkillCertificateCard({
                   (entry) => entry.caseId === item.caseId,
                 )?.move
               : undefined;
+            const curve = full
+              ? certificate.trustCurves.find(
+                  (entry) => entry.caseId === item.caseId,
+                )?.points
+              : undefined;
+            const trap = certificate.trapResults.find(
+              (entry) => entry.caseId === item.caseId,
+            );
             return (
               <li key={item.caseId} className="space-y-3 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -87,6 +112,11 @@ export function SkillCertificateCard({
                         {formatDate(item.completedAt)}
                       </time>
                     </p>
+                    {trap && (
+                      <p className="text-xs text-muted-foreground">
+                        {TRAP_LABEL[trap.trapResult]}
+                      </p>
+                    )}
                   </div>
                   <span className="font-mono text-sm">
                     {item.accuracy === null ? "Unscored" : `${item.accuracy}%`}
@@ -103,6 +133,13 @@ export function SkillCertificateCard({
                     </blockquote>
                     <p className="text-muted-foreground">{move.why}</p>
                   </div>
+                )}
+                {!!curve?.length && (
+                  <TrustCurveChart
+                    curve={curve}
+                    moves={move ? [move] : []}
+                    heightClassName="h-24"
+                  />
                 )}
               </li>
             );

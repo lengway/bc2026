@@ -43,8 +43,8 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
       return entries.filter((entry) => entry.isDirectory() && Field.safeParse(entry.name).success).map((entry) => Field.parse(entry.name)).sort();
     },
     /**
-     * Prefers, in order: an archetype not used before, one that trains what the person asked
-     * to practice, one at their level, one in their subfield. Ties keep catalog order.
+     * For targeted practice, prefer an archetype outside the counted series. Within those
+     * candidates, prefer unused scenarios, intake focus, subfield, and level.
      */
     async pickArchetype(
       profile: { field: Field; subfield: string; level?: string; intakeText?: string; pains?: readonly string[]; goals?: readonly string[] },
@@ -52,9 +52,11 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
       { skill, seriesArchetypeIds = [] }: { skill?: SkillId; seriesArchetypeIds?: readonly string[] } = {},
     ): Promise<Archetype> {
       const pack = await getPack(profile.field);
-      const candidates = skill ? pack.archetypes.filter((item) => skillsForFocus(item.focus).includes(skill)) : pack.archetypes;
-      if (!candidates.length) throw new Error('No archetypes available');
+      const matching = skill ? pack.archetypes.filter((item) => skillsForFocus(item.focus).includes(skill)) : pack.archetypes;
+      if (!matching.length) throw new Error('No archetypes available');
       const recentSeries = new Set(seriesArchetypeIds);
+      const outsideSeries = matching.filter(({ id }) => !recentSeries.has(id));
+      const candidates = outsideSeries.length ? outsideSeries : matching;
       const used = new Set(history.map((item) => typeof item === 'string' ? item : item.archetypeId));
       const wanted = focusAreasIn([profile.intakeText ?? '', ...(profile.pains ?? []), ...(profile.goals ?? [])].join('\n'));
       const levels = ['beginner', 'intermediate', 'advanced'];
@@ -63,7 +65,7 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
         const overlap = item.focus.filter((area) => wanted.has(area)).length;
         const levelFit = levelIndex < 0 ? 0 : 2 - Math.abs(levels.indexOf(item.difficulty) - levelIndex);
         const subfieldFit = item.subfield === profile.subfield ? 1 : 0;
-        return (used.has(item.id) ? 0 : 1000) + (skill && !recentSeries.has(item.id) ? 200 : 0) + overlap * 30 + subfieldFit * 40 + levelFit * 5;
+        return (used.has(item.id) ? 0 : 1000) + overlap * 30 + subfieldFit * 40 + levelFit * 5;
       };
       return candidates
         .map((item, index) => ({ item, index, value: score(item) }))

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { ArrowRight } from "lucide-react";
 import { SkillCertificateCard } from "@/app/_components/skill-certificate-card";
 import { PublicShell } from "@/app/_components/product";
@@ -27,6 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SkillCertificatePage({ params }: Props) {
   const { slug } = await params;
+  await connection();
   const certificate = await getPublicSkillCertificate(slug);
   if (!certificate) notFound();
 
@@ -45,7 +47,7 @@ export default async function SkillCertificatePage({ params }: Props) {
         </p>
         <Button asChild>
           <Link href="/login?next=/onboarding">
-            Try a practice case
+            Try a case like this
             <ArrowRight aria-hidden="true" />
           </Link>
         </Button>

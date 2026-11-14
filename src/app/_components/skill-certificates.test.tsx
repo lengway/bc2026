@@ -76,6 +76,8 @@ describe("Skill series progress", () => {
         series={{
           ...series,
           certificate: { slug: certificate.slug, level: 1 },
+          averageAccuracy: 64,
+          blockers: [...series.blockers, "accuracy_below_threshold"],
         }}
         onPractice={() => {}}
       />,
@@ -85,6 +87,9 @@ describe("Skill series progress", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText("Practice at least 2 different case scenarios."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Average accuracy 64%. You need 70%."),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "View Level 1 certificate" }),
@@ -114,11 +119,15 @@ describe("Public skill certificate", () => {
             caseId,
             move: moves[index],
           })),
-          trustCurves: [],
+          trustCurves: results.map(({ caseId }, index) => ({
+            caseId,
+            points: [{ seq: moves[index].seq, trust: moves[index].trustAfter }],
+          })),
         }}
       />,
     );
     expect(screen.getAllByText("Key move")).toHaveLength(3);
+    expect(screen.getAllByText("Trust")).toHaveLength(3);
     expect(screen.getByText(moves[0].why)).toBeInTheDocument();
   });
 });

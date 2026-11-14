@@ -13,7 +13,7 @@ import { GeneratedCase, type LlmService } from '@/modules/llm';
 import { AppError, systemClock, type Clock } from '@/modules/shared';
 import {
   createPendingCase, failCase, findSeededTemplates, findUnusedTemplate, hasActiveSubscription, hasUsableDailyCase,
-  insertTemplate, lockAndReadProfile, publishCase, readCase, readGenerationLease, readHistory, reconcileFailedCases,
+  insertTemplate, lockAndReadProfile, publishCase, readCase, readGenerationLease, readHistory, readUsedArchetypes, reconcileFailedCases,
   type CaseRecord, type HistoryRow, type PoolTemplate, type Publication,
 } from './repo';
 
@@ -220,7 +220,10 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
             b.counted[0].completedAt.localeCompare(a.counted[0].completedAt))[0];
       if (selected) target = { skill: selected.skill, seriesArchetypeIds: selected.counted.map(({ archetypeId }) => archetypeId) };
     }
-    const archetype = await catalog.pickArchetype(profile, historyValues(history, 'archetypeId'), target);
+    const usedArchetypes = target
+      ? await readUsedArchetypes(db, record.userId, record.id)
+      : historyValues(history, 'archetypeId');
+    const archetype = await catalog.pickArchetype(profile, usedArchetypes, target);
     let publication: Publication | undefined;
     try {
       const scenario = await generateScenario(profile, record.type, record.seed, archetype, history, record.id);
