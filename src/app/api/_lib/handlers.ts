@@ -25,21 +25,21 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
     if(session&&!response.headers.has('Set-Cookie')) response.headers.set('Set-Cookie',sessionCookie(token(request)!,new Date(session.expiresAt),secure,app.now()));
     return response;
   }
-  async function optionalSession(request:Request) {
-    const session=await app.identity.getSession(token(request));
-    if(session) sessions.set(request,session);
-    return session;
-  }
   async function user(request:Request) {
-    const session=await optionalSession(request);
+    const session=await app.identity.getSession(token(request));
     if(!session) throw new AppError('UNAUTHORIZED',401,'Sign in to continue.');
+    sessions.set(request,session);
     return session.user;
   }
   const caseId=async(context:ParamsContext)=>CaseParams.parse(await context.params).id;
   return {
     ...createAccountApi(app,{csrf,respond,user,token,requestKey,secure}),
     authOptions:()=>guarded(async()=>json(z.object({guestAccessEnabled:z.boolean()}),{guestAccessEnabled:app.config.GUEST_ACCESS_ENABLED})),
-    session:(request:Request)=>respond(request,async()=>json(SessionView,await optionalSession(request))),
+    session:(request:Request)=>respond(request,async()=>{
+      const session=await app.identity.getSession(token(request));
+      if(session) sessions.set(request,session);
+      return json(SessionView,session);
+    }),
     magicLink:(request:Request)=>respond(request,async()=>{
       csrf(request);const input=await body(request,MagicLinkRequest);
       return json(MagicLinkResponse,await app.identity.requestMagicLink(input.email,requestKey(request),input.next),202);
@@ -113,10 +113,9 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
       const {slug}=CertificateParams.parse(await context.params);
       return json(CertificateResponse,await app.credentials.getBySlug(slug));
     }),
-    skillCertificate:(request:Request,context:ParamsContext)=>respond(request,async()=>{
+    skillCertificate:(_request:Request,context:ParamsContext)=>guarded(async()=>{
       const {slug}=SkillCertificateParams.parse(await context.params);
-      const session=await optionalSession(request);
-      return json(SkillCertificateResponse,await app.credentials.getSkillCertificateBySlug(slug,session?.user.id??null));
+      return json(SkillCertificateResponse,await app.credentials.getSkillCertificateBySlug(slug));
     }),
     path:(request:Request)=>respond(request,async()=>json(SkillPath,await app.progress.getSkillPath((await user(request)).id))),
     checkout:(request:Request)=>respond(request,async()=>{
