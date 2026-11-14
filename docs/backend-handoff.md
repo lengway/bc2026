@@ -2,7 +2,7 @@
 
 The frontend remains owned by the teammate. Shared Zod schemas and inferred TypeScript types are in `src/contracts/index.ts`; realistic examples are in `src/mocks/fixtures`. The original product/route specification remains `docs/spec/CONTEXT.md`.
 
-Status: T0–T5 services and all specified HTTP routes are implemented. Production build and local HTTP startup have been checked. Live OpenAI passage, email delivery, Stripe delivery and VPS deployment remain separate checks; OpenAI currently returns credit_balance_exhausted.
+Status: T0–T5 services and all specified HTTP routes are implemented. Production build and local HTTP startup have been checked. The replacement OpenAI key passed one complete live service scenario on 2026-11-14 (seven successful requests, estimated $0.1128). Original case/rubric preparation took about91seconds and evaluation33seconds; keep pending/loading states and avoid tight retries. This is one synthetic service-level check, not full browser/production grading validation. Email, Stripe delivery and VPS deployment remain separate checks.
 
 ## Requests and retries
 
