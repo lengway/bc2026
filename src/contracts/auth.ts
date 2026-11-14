@@ -22,6 +22,7 @@ export const SessionUser = z.object({
   id: Id,
   email: z.email(),
   displayName: NonEmpty.nullable(),
+  isGuest: z.boolean().default(false),
 });
 export type SessionUser = z.infer<typeof SessionUser>;
 

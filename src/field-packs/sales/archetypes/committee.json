@@ -1,0 +1,10 @@
+{
+  "id": "committee",
+  "subfield": "sdr_outbound",
+  "title": "Multi-threading a committee",
+  "setup": "A contact cannot decide alone and the evaluation group has competing priorities.",
+  "difficulty": "advanced",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

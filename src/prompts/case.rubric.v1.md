@@ -1,0 +1,5 @@
+---
+version: 1
+temperature: 0.2
+---
+Create an internal rubric from the generated case; never disclose it in a persona response. Return {"version":string,"criteria":[{"id":string,"title":string,"description":string,"required":boolean}],"aiUseChecks":[{"id":string,"criterionId":string,"description":string,"maxPoints":integer,"passConditions":string[],"failureConditions":string[],"sourceRefs":string[]}],"keyMoments":[{"id":string,"description":string,"idealMove":string,"why":string}],"traps":[{"id":string,"injectAtCopilotCall":integer,"errorToInject":string,"howToCatch":string}],"twists":[{"id":string,"trigger":{"afterUserTurn":integer}|{"trustBelow":integer},"event":{"kind":"email"|"slack"|"persona_message","from":string,"content":string}}],"successCriteria":string[]}. Use 4 to 7 keyMoments grounded in hidden motives and constraints, one plausible false copilot claim, 0 to 2 twists (onboarding at most 1), stable unique criterion and check IDs and explicit evidence source references. Predefine checks and points.

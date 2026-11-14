@@ -1,0 +1,10 @@
+{
+  "id": "procurement",
+  "subfield": "account_executive",
+  "title": "Procurement stall",
+  "setup": "An agreed purchase is stalled with uncertain timing.",
+  "difficulty": "intermediate",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

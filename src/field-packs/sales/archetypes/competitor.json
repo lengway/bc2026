@@ -1,0 +1,10 @@
+{
+  "id": "competitor",
+  "subfield": "account_executive",
+  "title": "Competitor undercut",
+  "setup": "A competitor offered a lower quote with a different scope.",
+  "difficulty": "advanced",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

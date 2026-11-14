@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
     "dotenv": "18.0.10",

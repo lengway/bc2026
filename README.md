@@ -4,7 +4,7 @@ Backend implementation for the BusinessCup 2026 Sales simulation. The product sp
 
 ## Current status
 
-Implementation is in progress, starting with T0 contracts and fixtures. See the [execution ledger](docs/superpowers/plans/2026-11-14-backend-progress.md) for verified stage results. No live deployment is claimed.
+T0 contracts and T1 infrastructure are implemented; case generation, simulation, evaluation and API wiring follow in T2–T5. See the [execution ledger](docs/superpowers/plans/2026-11-14-backend-progress.md) for verified stage results. No live deployment is claimed.
 
 The frontend is developed separately by a teammate. This branch owns backend modules, API routes, contracts, fixture data, PostgreSQL migrations, worker and deployment configuration. It does not implement frontend screens.
 
@@ -25,7 +25,9 @@ pnpm typecheck
 pnpm lint
 ```
 
-Run/deploy and integration-test instructions will be completed with their corresponding implementation stages.
+`pnpm db:migrate` applies SQL migrations using `DATABASE_URL`. Tests require `TEST_DATABASE_URL` in the environment or ignored `.env.test.local`; that account needs permission to create disposable databases. Tests create and drop only randomly named `bc_test_*` databases, never the database named in your connection string. Tests fail explicitly when PostgreSQL is unavailable.
+
+See [VPS deployment and backup instructions](deploy/README.md). Docker Compose starts migration, web, worker, PostgreSQL and Caddy. OpenAI/SMTP/Stripe integrations need real local configuration; mocks verify service behavior only. Set `GUEST_ACCESS_ENABLED=true` to enable the approved jury flow; details and frontend additions are in the [guest-access addendum](docs/superpowers/specs/2026-11-14-guest-access-design.md).
 
 ## Architecture
 

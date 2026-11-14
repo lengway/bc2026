@@ -1,0 +1,10 @@
+{
+  "id": "vendor",
+  "subfield": "sdr_outbound",
+  "title": "Existing vendor",
+  "setup": "A prospect already uses a competing vendor and has limited time.",
+  "difficulty": "intermediate",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

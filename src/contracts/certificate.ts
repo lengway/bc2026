@@ -23,6 +23,7 @@ export const CertificateLimited = z.object({
   headline: NonEmpty,
   verified: z.literal(true),
   verificationScope: z.literal('recorded_simulation'),
+  isDemo: z.boolean().default(false),
   assistance: AssistanceProfile,
   aiUseSkillSummary: AiUseSkillSummary,
   scoringSummary: ScoringSummary,

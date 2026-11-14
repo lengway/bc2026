@@ -1,0 +1,18 @@
+{
+  "field": "sales",
+  "title": "Sales",
+  "subfields": [
+    "sdr_outbound",
+    "account_executive",
+    "account_management"
+  ],
+  "workspace": "chat",
+  "dimensions": [
+    "discovery",
+    "objection_handling",
+    "value_articulation",
+    "critical_ai_use",
+    "closing"
+  ],
+  "showTrustLive": true
+}
