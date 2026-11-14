@@ -18,7 +18,11 @@ const STAGES = [
 const SLOW_AFTER_SEC = 150;
 
 type WarmUpOption = { text: string; label: MoveLabel; why: string };
-type WarmUp = { from: string; message: string; options: [WarmUpOption, WarmUpOption] };
+type WarmUp = {
+  from: string;
+  message: string;
+  options: [WarmUpOption, WarmUpOption];
+};
 
 const WARM_UPS: WarmUp[] = [
   {
@@ -39,7 +43,8 @@ const WARM_UPS: WarmUp[] = [
   },
   {
     from: "Copilot",
-    message: "Their contract renews on the 30th, so you could offer the early-renewal rate.",
+    message:
+      "Their contract renews on the 30th, so you could offer the early-renewal rate.",
     options: [
       {
         text: "Since you renew on the 30th, I can apply our early-renewal rate.",
@@ -77,8 +82,16 @@ function WarmUpCard() {
   const [score, setScore] = useState(0);
   const done = index >= WARM_UPS.length;
   const item = WARM_UPS[Math.min(index, WARM_UPS.length - 1)];
-  const rank: Record<MoveLabel, number> = { brilliant: 5, best: 4, good: 3, inaccuracy: 2, mistake: 1, blunder: 0 };
-  const strongest = rank[item.options[0].label] >= rank[item.options[1].label] ? 0 : 1;
+  const rank: Record<MoveLabel, number> = {
+    brilliant: 5,
+    best: 4,
+    good: 3,
+    inaccuracy: 2,
+    mistake: 1,
+    blunder: 0,
+  };
+  const strongest =
+    rank[item.options[0].label] >= rank[item.options[1].label] ? 0 : 1;
 
   function choose(i: number) {
     if (picked !== null) return;
@@ -87,13 +100,18 @@ function WarmUpCard() {
   }
 
   return (
-    <section aria-labelledby="warmup-title" className="rounded-xl border bg-card p-6 sm:p-8">
+    <section
+      aria-labelledby="warmup-title"
+      className="rounded-xl border bg-card p-6 sm:p-8"
+    >
       <div className="mb-5 flex items-baseline justify-between gap-4">
         <h2 id="warmup-title" className="text-base font-medium">
           While you wait: which reply is stronger?
         </h2>
         <span className="font-mono text-xs text-muted-foreground tabular-nums">
-          {done ? `${score}/${WARM_UPS.length}` : `${index + 1}/${WARM_UPS.length}`}
+          {done
+            ? `${score}/${WARM_UPS.length}`
+            : `${index + 1}/${WARM_UPS.length}`}
         </span>
       </div>
 
@@ -108,8 +126,9 @@ function WarmUpCard() {
             className="grid gap-4"
           >
             <p className="text-sm leading-relaxed">
-              You picked the stronger reply {score} of {WARM_UPS.length} times. In your case every
-              message you send gets a label like these, with the reason and a better move.
+              You picked the stronger reply {score} of {WARM_UPS.length} times.
+              In your case every message you send gets a label like these, with
+              the reason and a better move.
             </p>
             <Button
               variant="outline"
@@ -164,8 +183,14 @@ function WarmUpCard() {
                         transition={{ duration: 0.2, ease: "easeOut" }}
                         className="grid gap-1.5 overflow-hidden"
                       >
-                        <MoveLabelBadge label={option.label} size="sm" className="justify-self-start" />
-                        <span className="text-xs leading-relaxed text-muted-foreground">{option.why}</span>
+                        <MoveLabelBadge
+                          label={option.label}
+                          size="sm"
+                          className="justify-self-start"
+                        />
+                        <span className="text-xs leading-relaxed text-muted-foreground">
+                          {option.why}
+                        </span>
                       </motion.span>
                     )}
                   </button>
@@ -204,22 +229,32 @@ export function PreparingCase({
   const [started] = useState(Date.now);
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    const timer = setInterval(
+      () => setSeconds(Math.floor((Date.now() - started) / 1000)),
+      1000,
+    );
     return () => clearInterval(timer);
   }, [started]);
 
-  const activeIndex = STAGES.reduce((current, stage, i) => (seconds >= stage.at ? i : current), 0);
+  const activeIndex = STAGES.reduce(
+    (current, stage, i) => (seconds >= stage.at ? i : current),
+    0,
+  );
   const slow = seconds >= SLOW_AFTER_SEC;
 
   if (failed)
     return (
       <main className="mx-auto grid w-full max-w-lg gap-5 px-4 py-16">
         <div className="rounded-xl border bg-card p-6 sm:p-8">
-          <p className="mb-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">Your next case</p>
-          <h1 className="text-2xl font-medium tracking-tight">We could not prepare this case</h1>
+          <p className="mb-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            Your next case
+          </p>
+          <h1 className="text-2xl font-medium tracking-tight">
+            We could not prepare this case
+          </h1>
           <p className="mb-6 mt-3 text-sm leading-relaxed text-muted-foreground">
-            Something went wrong on our side. No practice time has been used. Try again, and we will
-            write a new case for you.
+            Something went wrong on our side. No practice time has been used.
+            Try again, and we will write a new case for you.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button onClick={onRetry} disabled={retrying}>
@@ -237,24 +272,39 @@ export function PreparingCase({
     <main className="mx-auto grid w-full max-w-4xl items-start gap-6 px-4 py-10 sm:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <div className="rounded-xl border bg-card p-6 sm:p-8">
         <div className="mb-3 flex items-baseline justify-between gap-4">
-          <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Your next case</p>
-          <span className="font-mono text-xs text-muted-foreground tabular-nums" aria-hidden="true">
+          <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            Your next case
+          </p>
+          <span
+            className="font-mono text-xs text-muted-foreground tabular-nums"
+            aria-hidden="true"
+          >
             {formatClock(seconds)}
           </span>
         </div>
-        <h1 className="text-2xl font-medium tracking-tight">Preparing your case</h1>
+        <h1 className="text-2xl font-medium tracking-tight">
+          Preparing your case
+        </h1>
         <p className="mb-7 mt-3 text-sm leading-relaxed text-muted-foreground">
-          We are writing a case for your profile. This usually takes one to two minutes. The timer
-          has not started.
+          We are writing a case for your profile. This usually takes one to two
+          minutes. The timer has not started.
         </p>
         <StepChecklist
           steps={STAGES.map((stage, i) => ({
             id: String(i),
             label: stage.label,
-            status: i < activeIndex ? "done" : i === activeIndex ? "active" : "pending",
+            status:
+              i < activeIndex
+                ? "done"
+                : i === activeIndex
+                  ? "active"
+                  : "pending",
           }))}
         />
-        <div className="mt-6 h-1 overflow-hidden rounded-sm bg-muted" aria-hidden="true">
+        <div
+          className="mt-6 h-1 overflow-hidden rounded-sm bg-muted"
+          aria-hidden="true"
+        >
           <motion.div
             className="h-full rounded-sm bg-ink"
             initial={{ width: "4%" }}
@@ -262,7 +312,10 @@ export function PreparingCase({
             transition={{ duration: 1, ease: "linear" }}
           />
         </div>
-        <p role="status" className="mt-4 text-xs leading-relaxed text-muted-foreground">
+        <p
+          role="status"
+          className="mt-4 text-xs leading-relaxed text-muted-foreground"
+        >
           {slow
             ? "This is taking longer than usual. We are still working on it, and the page will open the brief as soon as it is ready."
             : "The page opens the brief as soon as the case is ready. You can stay here."}
