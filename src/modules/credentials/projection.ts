@@ -1,11 +1,12 @@
-import { AiUseSkillSummary,CertificateFull,CertificateLimited,CertificateTranscriptEvent,PublicEvaluation,ScoringSummary,type ReviewResponse } from '@/contracts';
+import { AiUseSkillSummary,CertificateFull,CertificateLimited,CertificateTranscriptEvent,PublicEvaluation,ScoringSummary,type ReviewResponse,type CaseRecordLimited } from '@/contracts';
 import type { SubmittedSnapshot } from '@/modules/simulation';
 import type { CertificateRecord } from './repo';
 
 export interface CertificateProjection {
   certificate:CertificateRecord;holderName:string;snapshot:SubmittedSnapshot;review:ReviewResponse;
+  skillCertificate?:CaseRecordLimited['skillCertificate'];
 }
-export function toPublicLimited({certificate,holderName,snapshot,review}:CertificateProjection):CertificateLimited {
+export function toPublicLimited({certificate,holderName,snapshot,review,skillCertificate}:CertificateProjection):CertificateLimited {
   if(certificate.caseId!==snapshot.case.id||certificate.userId!==snapshot.case.userId||review.evaluation.caseId!==snapshot.case.id) {
     throw new Error('Certificate, snapshot and evaluation do not match');
   }
@@ -14,7 +15,7 @@ export function toPublicLimited({certificate,holderName,snapshot,review}:Certifi
     issuedAt:certificate.issuedAt,caseTitle:snapshot.case.brief.title,accuracy:review.evaluation.accuracy,
     outcome:review.evaluation.outcome,headline:`${snapshot.case.isDemo?'Demo: ':''}${certificate.skill} simulation — ${review.evaluation.outcome}`,
     verified:true,verificationScope:'recorded_simulation',isDemo:snapshot.case.isDemo,
-    assistance:review.evaluation.assistance,aiUseSkillSummary:AiUseSkillSummary.parse(review.evaluation.aiUseSkill),
+    skillCertificate,assistance:review.evaluation.assistance,aiUseSkillSummary:AiUseSkillSummary.parse(review.evaluation.aiUseSkill),
     scoringSummary:ScoringSummary.parse(review.evaluation.scoreAudit),
   });
 }

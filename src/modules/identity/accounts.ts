@@ -9,7 +9,7 @@ import { hashToken } from './security';
 import { hashPassword, verifyPassword } from './password';
 import { AccountRow, accountSession, authorizeSensitive, consumeAccountToken, eraseAccount, issueMailToken, issueSession, userColumns, type MailPurpose } from './account-repo';
 
-export function createAccountService({ db, mailer, appUrl, now = systemClock }: IdentityDeps) {
+export function createAccountService({ db, mailer, appUrl, now = systemClock, onEmailVerified }: IdentityDeps) {
   const accepted = () => ({ accepted: true as const });
   async function deliver(email: string, purpose: MailPurpose, token: string | null) {
     const url = token ? new URL(purpose === 'reset_password' ? '/reset-password' : '/verify-email', appUrl) : null;
@@ -79,6 +79,7 @@ export function createAccountService({ db, mailer, appUrl, now = systemClock }: 
           if (typeof proof.meta.passwordHash !== 'string' || !proof.meta.passwordHash.startsWith('$argon2id$') || typeof proof.meta.displayName !== 'string') throw new AppError('UNAUTHORIZED',401,'This link is no longer valid.');
           await tx.query('UPDATE users SET email_verified_at=$2,password_hash=$3,display_name=$4 WHERE id=$1', [proof.account.id, at, proof.meta.passwordHash, proof.meta.displayName]);
         }
+        if (!proof.account.email_verified_at) await onEmailVerified?.(tx, proof.account.id);
         await invalidateOtherSessions(proof.account.id, null, at, tx);
         return { ok: true as const, ...await issueSession(tx, proof.account.id, at) };
       });
@@ -105,6 +106,7 @@ export function createAccountService({ db, mailer, appUrl, now = systemClock }: 
         if (proof.meta.email !== proof.account.email) throw new AppError('UNAUTHORIZED', 401, 'This link is no longer valid.');
         const session = existingToken ? (await tx.query('SELECT id FROM sessions WHERE user_id=$1 AND token_hash=$2 AND revoked_at IS NULL AND expires_at>$3', [proof.account.id, hashToken(existingToken), at])).rows[0] : null;
         await tx.query('UPDATE users SET password_hash=$2,email_verified_at=COALESCE(email_verified_at,$3) WHERE id=$1', [proof.account.id, passwordHash, at]);
+        if (!proof.account.email_verified_at) await onEmailVerified?.(tx, proof.account.id);
         await invalidateOtherSessions(proof.account.id, typeof session?.id === 'string' ? session.id : null, at, tx);
       });
       return { ok: true as const };

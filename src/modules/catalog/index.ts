@@ -5,7 +5,8 @@ import { CaseBrief, CaseDoc, CaseType, Field, PersonaPublic, WorkspaceType } fro
 import { PersonaHidden } from '@/contracts/case';
 import { Rubric } from '@/contracts/rubric';
 import { NonEmpty } from '@/contracts/primitives';
-import { FOCUS_AREA_IDS, focusAreasIn, type FocusArea } from '@/contracts/focus';
+import type { SkillId } from '@/contracts/skill-series';
+import { FOCUS_AREA_IDS, focusAreasIn, skillsForFocus, type FocusArea } from '@/contracts/focus';
 
 export { FOCUS_AREAS, FOCUS_AREA_IDS, focusAreasIn, type FocusArea } from '@/contracts/focus';
 
@@ -48,9 +49,12 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
     async pickArchetype(
       profile: { field: Field; subfield: string; level?: string; intakeText?: string; pains?: readonly string[]; goals?: readonly string[] },
       history: readonly (string | { archetypeId: string })[],
+      { skill, seriesArchetypeIds = [] }: { skill?: SkillId; seriesArchetypeIds?: readonly string[] } = {},
     ): Promise<Archetype> {
       const pack = await getPack(profile.field);
-      if (!pack.archetypes.length) throw new Error('No archetypes available');
+      const candidates = skill ? pack.archetypes.filter((item) => skillsForFocus(item.focus).includes(skill)) : pack.archetypes;
+      if (!candidates.length) throw new Error('No archetypes available');
+      const recentSeries = new Set(seriesArchetypeIds);
       const used = new Set(history.map((item) => typeof item === 'string' ? item : item.archetypeId));
       const wanted = focusAreasIn([profile.intakeText ?? '', ...(profile.pains ?? []), ...(profile.goals ?? [])].join('\n'));
       const levels = ['beginner', 'intermediate', 'advanced'];
@@ -59,9 +63,9 @@ export function createCatalogService({ packsDir = join(process.cwd(), 'src', 'fi
         const overlap = item.focus.filter((area) => wanted.has(area)).length;
         const levelFit = levelIndex < 0 ? 0 : 2 - Math.abs(levels.indexOf(item.difficulty) - levelIndex);
         const subfieldFit = item.subfield === profile.subfield ? 1 : 0;
-        return (used.has(item.id) ? 0 : 1000) + overlap * 30 + subfieldFit * 40 + levelFit * 5;
+        return (used.has(item.id) ? 0 : 1000) + (skill && !recentSeries.has(item.id) ? 200 : 0) + overlap * 30 + subfieldFit * 40 + levelFit * 5;
       };
-      return pack.archetypes
+      return candidates
         .map((item, index) => ({ item, index, value: score(item) }))
         .sort((a, b) => b.value - a.value || a.index - b.index)[0].item;
     },

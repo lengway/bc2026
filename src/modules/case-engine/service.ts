@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import {
-  CaseParams, CaseResponse, CaseType, Field, GenerateCaseResponse, Level, MOVE_LABEL_POINTS, Profile, PublicScoringGuide,
+  CaseParams, CaseResponse, CASES_REQUIRED, CaseType, Field, GenerateCaseResponse, Level, MOVE_LABEL_POINTS, Profile, PublicScoringGuide, SkillId,
 } from '@/contracts';
 import { Rubric } from '@/contracts/rubric';
 import type { Archetype, CatalogService } from '@/modules/catalog';
+import { currentCertificates } from '@/modules/credentials';
 import type { Database, SqlExecutor } from '@/modules/database';
+import { readSkillSeries } from '@/modules/skill-series';
 import { consumeRateLimit } from '@/modules/identity';
 import type { Job, JobsService } from '@/modules/jobs';
 import { GeneratedCase, type LlmService } from '@/modules/llm';
@@ -104,9 +106,12 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     return type === 'daily' && !await hasUsableDailyCase(tx, userId, new Date(instant.getTime() - weeklyWindowMs));
   }
 
-  async function generateCase(userId: string, type: CaseType): Promise<GenerateCaseResponse> {
+  async function generateCase(userId: string, type: CaseType, { skill }: { skill?: SkillId } = {}): Promise<GenerateCaseResponse> {
     const request = CaseType.safeParse(type);
     if (!request.success) throw new AppError('VALIDATION', 400, 'Invalid case type.');
+    if (skill !== undefined && (request.data !== 'daily' || !SkillId.safeParse(skill).success)) {
+      throw new AppError('VALIDATION', 400, 'A skill can only be selected for a daily case.');
+    }
     return db.transaction(async (tx) => {
       const profile = await lockAndReadProfile(tx, userId);
       const instant = now();
@@ -119,7 +124,7 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
         await publishCase(tx, caseId, materialize(pool, request.data, false, pool.id), instant);
       } else {
         await jobs.enqueueWithExecutor(tx, {
-          caseId, kind: 'case.generate', dedupeKey: `case.generate:${caseId}`, payload: { profile },
+          caseId, kind: 'case.generate', dedupeKey: `case.generate:${caseId}`, payload: { profile, ...(skill && { skill }) },
         });
       }
       return { caseId, status: 'generating' };
@@ -201,13 +206,27 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
       throw new Error('Case generation profile does not match its queued case');
     }
     const history = await readHistory(db, record.userId, record.id);
-    const archetype = await catalog.pickArchetype(profile, historyValues(history, 'archetypeId'));
+    const requested = job.payload.skill === undefined ? undefined : SkillId.parse(job.payload.skill);
+    let target: { skill: SkillId; seriesArchetypeIds: string[] } | undefined;
+    if (record.type === 'daily' && profile.field === 'sales') {
+      const series = await readSkillSeries(db, catalog, record.userId, now());
+      const certificates = requested ? [] : await currentCertificates(db, record.userId);
+      const priority = (counted: number) => counted === CASES_REQUIRED ? 0 : counted;
+      const selected = requested
+        ? series.find(({ skill }) => skill === requested)
+        : series.filter(({ counted, level, skill }) => counted.length > 0 && level === null &&
+            !certificates.some((item) => item.skill === skill))
+          .sort((a, b) => priority(b.counted.length) - priority(a.counted.length) ||
+            b.counted[0].completedAt.localeCompare(a.counted[0].completedAt))[0];
+      if (selected) target = { skill: selected.skill, seriesArchetypeIds: selected.counted.map(({ archetypeId }) => archetypeId) };
+    }
+    const archetype = await catalog.pickArchetype(profile, historyValues(history, 'archetypeId'), target);
     let publication: Publication | undefined;
     try {
       const scenario = await generateScenario(profile, record.type, record.seed, archetype, history, record.id);
       publication = materialize({ ...scenario, workspace: record.workspace }, record.type, false);
     } catch {
-      if (record.type === 'onboarding' || demoMode) {
+      if (record.type === 'onboarding' || (demoMode && !requested)) {
         const demo = await catalog.getDemoCase(record.field, record.subfield);
         publication = materialize({
           workspace: demo.case.workspace, model: 'demo', promptVersion: demo.rubric.version, seed: record.seed,

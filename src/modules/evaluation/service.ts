@@ -46,6 +46,8 @@ export function createEvaluationService({ db, llm, simulation, jobs, now = syste
     };
     const review = assessSubmission(prepared, scored.data, scored.meta);
     return db.transaction(async (tx) => {
+      // Account removal and all evaluations for the same account acquire the owner lock first.
+      await tx.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [snapshot.case.userId]);
       if (!await jobs.completeWithExecutor(tx, lease.jobId, lease.owner, lease.token)) throw new Error('Evaluation lease lost');
       await publishReview(tx, review, now());
       await onEvaluated?.(tx, snapshot, review.evaluation, review.moves);

@@ -1,18 +1,76 @@
-import { CertificateSlug,type CertificateResponse,type ReviewResponse } from '@/contracts';
+import {
+  CASES_REQUIRED, CertificateSlug, SkillCertificateFull, SkillCertificateLimited, SkillCertificateSlug,
+  type CertificateResponse, type ReviewResponse, type SkillCertificateResponse,
+} from '@/contracts';
+import { createCatalogService, type CatalogService } from '@/modules/catalog';
+import { readSkillSeries } from '@/modules/skill-series';
 import { z } from 'zod';
 import type { Database,SqlExecutor } from '@/modules/database';
 import { AppError,systemClock,type Clock } from '@/modules/shared';
 import type { SubmittedSnapshot } from '@/modules/simulation';
 import { canIssue,findBySlug,findOwnedSlug,issue } from './repo';
 import { toPublicFull,toPublicLimited } from './projection';
+import { currentCertificates, findCaseSkillCertificate, findSkillCertificate, issueSkillCertificate, skillCertificateMembers } from './skill-repo';
 
 export interface CredentialsDeps {
   db:Database;loadSubmission:(caseId:string)=>Promise<SubmittedSnapshot|null>;
   getReview:(caseId:string,userId:string)=>Promise<ReviewResponse>;
-  canFull:(ownerId:string)=>Promise<boolean>;now?:Clock;
+  canFull:(ownerId:string)=>Promise<boolean>;now?:Clock;catalog?:CatalogService;
 }
-export function createCredentialsService({db,loadSubmission,getReview,canFull,now=systemClock}:CredentialsDeps) {
+export function createCredentialsService({db,loadSubmission,getReview,canFull,now=systemClock,catalog=createCatalogService()}:CredentialsDeps) {
+  async function issueSkillCertificatesWithExecutor(tx: SqlExecutor, userId: string) {
+    // Serialize issuance with evaluation, confirmation and account deletion for this user.
+    const { rows } = await tx.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [userId]);
+    if (!rows.length || !await canIssue(tx, userId)) return [];
+    const at = now();
+    const series = await readSkillSeries(tx, catalog, userId, at);
+    const previous = new Map((await currentCertificates(tx, userId)).map((item) => [item.skill, item]));
+    const issued = [];
+    for (const entry of series) {
+      const existing = previous.get(entry.skill);
+      if (entry.level && entry.averageAccuracy !== null && (!existing || entry.level > existing.level)) {
+        issued.push(await issueSkillCertificate(tx, {
+          userId, skill: entry.skill, level: entry.level, counted: entry.counted, averageAccuracy: entry.averageAccuracy,
+          at, previousId: existing?.id,
+        }));
+      }
+    }
+    return issued;
+  }
+
   return {
+    issueSkillCertificatesWithExecutor,
+    async getSkillCertificateBySlug(slug: string): Promise<SkillCertificateResponse> {
+      if (!SkillCertificateSlug.safeParse(slug).success) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
+      const certificate = await findSkillCertificate(db, slug);
+      if (!certificate) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
+      const members = await skillCertificateMembers(db, certificate.id);
+      if (members.length !== CASES_REQUIRED) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
+      const dependencies = members.flatMap(({ aiDependency }) => aiDependency === null ? [] : [aiDependency]);
+      const limited = SkillCertificateLimited.parse({
+        ...certificate, holderName: certificate.isGuest ? 'Demo Guest' : certificate.holderName || 'Skills participant',
+        field: 'sales', issuedAt: certificate.issuedAt.toISOString(), verified: true, verificationScope: 'recorded_simulation',
+        isDemo: certificate.isDemo || certificate.isGuest, cases: members,
+        aiDependencyAverage: dependencies.length ? dependencies.reduce((sum, value) => sum + value, 0) / dependencies.length : null,
+        trapResults: members.map(({ caseId, trapResult }) => ({ caseId, trapResult })),
+      });
+      if (!(certificate.isGuest && certificate.isSeededDemo) && !await canFull(certificate.userId)) return limited;
+      const reviews = await Promise.all(members.map(async ({ caseId }) => {
+        const review = await getReview(caseId, certificate.userId);
+        if (review.evaluation.caseId !== caseId) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
+        return review;
+      }));
+      const keyMoves = reviews.flatMap(({ evaluation, moves }) => {
+        const move = evaluation.topMoves[0] ?? moves.find((item) => item.assessmentStatus === 'assessed');
+        return move ? [{ caseId: evaluation.caseId, move }] : [];
+      });
+      if (keyMoves.length !== CASES_REQUIRED) return limited;
+      return SkillCertificateFull.parse({
+        ...limited,
+        keyMoves,
+        trustCurves: reviews.map(({ evaluation }) => ({ caseId: evaluation.caseId, points: evaluation.trustCurve })),
+      });
+    },
     issueCertificate:(snapshot:SubmittedSnapshot)=>db.transaction(tx=>issue(tx,snapshot,now())),
     issueCertificateWithExecutor:async(tx:SqlExecutor,snapshot:SubmittedSnapshot)=>await canIssue(tx,snapshot.case.userId)?issue(tx,snapshot,now()):null,
     async getOwnedSlug(caseId:string,userId:string):Promise<string|undefined> {
@@ -34,7 +92,8 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
       if(!snapshot||snapshot.case.userId!==found.certificate.userId) throw new AppError('NOT_FOUND',404,'Certificate not found.');
       const review=await getReview(found.certificate.caseId,found.certificate.userId);
       const holderName=snapshot.case.isGuest?'Demo Guest':found.holderName??'Skills participant';
-      const input={certificate:found.certificate,holderName,snapshot,review};
+      const skillCertificate=await findCaseSkillCertificate(db, found.certificate.caseId);
+      const input={certificate:found.certificate,holderName,snapshot,review,skillCertificate};
       return await canFull(found.certificate.userId)?toPublicFull(input):toPublicLimited(input);
     },
   };

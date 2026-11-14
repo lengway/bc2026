@@ -1,13 +1,16 @@
 import { z } from 'zod';
-import { CaseView,SkillPath,type Evaluation } from '@/contracts';
+import { CASES_REQUIRED, CaseView, SkillPath, WINDOW_DAYS, type Evaluation } from '@/contracts';
+import { createCatalogService, type CatalogService } from '@/modules/catalog';
+import { canIssue, currentCertificates } from '@/modules/credentials';
 import type { Database,SqlExecutor } from '@/modules/database';
 import { AppError,systemClock,type Clock } from '@/modules/shared';
 import type { SubmittedSnapshot } from '@/modules/simulation';
 import { award,HistoryRows,SkillRows,StreakRow,timezoneFor,type CaseReader } from './repo';
 import { dayNumber,levelForXp,localDate } from './math';
+import { readSkillSeries } from '@/modules/skill-series';
 
-export interface ProgressDeps {db:Database;getCaseForUser:CaseReader;loadSubmission:(caseId:string)=>Promise<SubmittedSnapshot|null>;now?:Clock}
-export function createProgressService({db,getCaseForUser,loadSubmission,now=systemClock}:ProgressDeps) {
+export interface ProgressDeps {db:Database;getCaseForUser:CaseReader;loadSubmission:(caseId:string)=>Promise<SubmittedSnapshot|null>;now?:Clock;catalog?:CatalogService}
+export function createProgressService({db,getCaseForUser,loadSubmission,now=systemClock,catalog=createCatalogService()}:ProgressDeps) {
   async function getTodayCases(userId:string) {
     const timezone=await timezoneFor(db,userId),today=localDate(now(),timezone);
     const weekday=new Date(`${today}T00:00:00Z`).getUTCDay();
@@ -35,18 +38,27 @@ export function createProgressService({db,getCaseForUser,loadSubmission,now=syst
     getTodayCases,
     async getSkillPath(userId:string):Promise<SkillPath> {
       const timezone=await timezoneFor(db,userId),today=localDate(now(),timezone);
-      const [skillsResult,streakResult,historyResult,todayCases]=await Promise.all([
+      const [skillsResult,streakResult,historyResult,todayCases,assessments,certificates,verified]=await Promise.all([
         db.query('SELECT skill,xp FROM skill_progress WHERE user_id=$1 ORDER BY skill',[userId]),
         db.query('SELECT current,best,last_practice_date::text FROM streaks WHERE user_id=$1',[userId]),
         db.query(`SELECT c.id AS case_id,c.brief->>'title' AS title,e.accuracy,COALESCE(c.submitted_at,c.created_at) AS date
           FROM cases c LEFT JOIN evaluations e ON e.case_id=c.id WHERE c.user_id=$1 AND c.status='evaluated'
           ORDER BY date DESC,c.id DESC LIMIT 50`,[userId]),
         getTodayCases(userId),
+        readSkillSeries(db,catalog,userId,now()),
+        currentCertificates(db,userId),
+        canIssue(db,userId),
       ]);
       const stored=streakResult.rows[0]?StreakRow.parse(streakResult.rows[0]):{current:0,best:0,last_practice_date:null};
       const current=stored.last_practice_date&&dayNumber(today)-dayNumber(stored.last_practice_date)<=1?stored.current:0;
       return SkillPath.parse({
         skills:SkillRows.parse(skillsResult.rows).map(skill=>({...skill,...levelForXp(skill.xp)})),
+        series: assessments.map(({ skill, counted, averageAccuracy, level, blockers }) => ({
+          skill, casesCounted: counted, required: CASES_REQUIRED, windowDays: WINDOW_DAYS,
+          averageAccuracy, eligible: level !== null && verified,
+          blockers: verified ? blockers : [...blockers, 'email_unverified'],
+          certificate: verified ? certificates.find((item) => item.skill === skill) : undefined,
+        })),
         streak:{current,best:stored.best},today:todayCases,
         history:HistoryRows.parse(historyResult.rows).map(row=>({caseId:row.case_id,title:row.title,accuracy:row.accuracy,date:localDate(row.date,timezone)})),
       });
