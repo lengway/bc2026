@@ -145,7 +145,7 @@ function SectionHeading({
 
 /** Marketing landing page. Server-renderable: only links, no callbacks. */
 export function LandingScreen({
-  productName = "[PRODUCT]",
+  productName = "Gambit",
   hrefs,
   preview,
   sampleCertificate,

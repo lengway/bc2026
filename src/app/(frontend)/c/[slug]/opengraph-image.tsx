@@ -35,7 +35,7 @@ export default async function Image({
           color: "#1b2a5c",
         }}
       >
-        <span>WORK PRACTICE</span>
+        <span>GAMBIT</span>
         <span>RECORDED SIMULATION</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>

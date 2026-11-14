@@ -102,7 +102,7 @@ function Fact({
  */
 export function CertificateCard({
   certificate,
-  issuer = "[PRODUCT]",
+  issuer = "Gambit",
   verifyUrl,
   titleAs: Title = "h2",
   onShare,

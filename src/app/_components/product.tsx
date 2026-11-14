@@ -75,7 +75,7 @@ export function ProductHeader({
             strokeWidth={1.5}
             className="size-5 text-ink"
           />
-          Work practice
+          Gambit
         </Link>
         <nav
           aria-label="Main navigation"

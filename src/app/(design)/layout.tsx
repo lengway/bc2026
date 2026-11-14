@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/ui/primitives/tooltip";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "[PRODUCT]",
+  title: "Gambit",
   description:
     "Work a real case, get a move-by-move review, and share a certificate an employer can verify.",
 };

@@ -7,7 +7,7 @@ import { mocksEnabled } from "@/app/_lib/environment";
 import "@/app/globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://127.0.0.1:3000"),
-  title: { default: "Work practice", template: "%s · Work practice" },
+  title: { default: "Gambit", template: "%s · Gambit" },
   description:
     "Practice realistic work conversations. Review your decisions and share a recorded simulation.",
 };

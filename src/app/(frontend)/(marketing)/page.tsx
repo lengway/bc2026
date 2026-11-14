@@ -9,7 +9,7 @@ import {
 export default function HomePage() {
   return (
     <LandingScreen
-      productName="Work practice"
+      productName="Gambit"
       hrefs={{
         start: "/login?next=/onboarding",
         signIn: "/login",

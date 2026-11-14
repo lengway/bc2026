@@ -19,6 +19,7 @@ The user authorized finishing the full frontend on main’s Claude design on 202
 
 ## Architecture and decisions
 
+- Product name, approved by the user on 2026-11-14: **Gambit**. The name is applied to the landing, app navigation, certificate issuer, page titles, OG image and designer previews. It replaces the temporary Work practice name. Scrim was a shortlisted alternative; Gambit is the final choice.
 - One public schema source in `src/contracts`; provisional duplicate schemas now re-export it. Private rubric stays outside the public barrel. Designer fixtures/gallery also use the updated contract.
 - Product routes live under `src/app/(frontend)`; design galleries use the independent `(design)` layout. Both use Ledger. Temporary F1 styles are removed.
 - Real API remains same-origin with HttpOnly server sessions and native SSE. Mocks require `NEXT_PUBLIC_API_MOCKS=1`. No Supabase or browser auth token.

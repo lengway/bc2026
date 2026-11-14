@@ -1,6 +1,6 @@
-# Work practice · frontend
+# Gambit · frontend
 
-Frontend F1–F6 for [lengway/bc2026](https://github.com/lengway/bc2026), on `fe/frontend`. The product uses the team’s Ledger design system. The working product name is Work practice. Updated requirements are in `docs/reference`.
+Frontend F1–F6 for [lengway/bc2026](https://github.com/lengway/bc2026), on `fe/frontend`. The product uses the team’s Ledger design system. The product name is **Gambit**, selected by the user on 2026-11-14. Updated requirements are in `docs/reference`.
 
 ## Run
 

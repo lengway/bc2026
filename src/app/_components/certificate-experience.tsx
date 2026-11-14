@@ -51,7 +51,7 @@ export function CertificateExperience({
         )}
         <CertificateCard
           certificate={certificate}
-          issuer="Work practice"
+          issuer="Gambit"
           titleAs="h1"
           onViewFullReview={
             full ? () => setShowReview((value) => !value) : undefined
