@@ -31,6 +31,7 @@ type PricingTableProps = {
   currentPlan?: PlanId | null;
   /** Disables the Pro action while checkout is being created. */
   pending?: boolean;
+  titleAs?: "h2" | "h3";
   className?: string;
 };
 
@@ -69,6 +70,7 @@ export function PricingTable({
   planHrefs,
   currentPlan = null,
   pending = false,
+  titleAs: Title = "h3",
   className,
 }: PricingTableProps) {
   const yearlySaving = PRO_PRICE.monthly * 12 - PRO_PRICE.yearly;
@@ -111,7 +113,7 @@ export function PricingTable({
           className="flex flex-col gap-6 rounded-xl border bg-card p-6"
         >
           <header className="flex flex-col gap-3">
-            <h3 className="m-0 text-base font-medium">Free</h3>
+            <Title className="m-0 text-base font-medium">Free</Title>
             <p className="m-0 font-mono text-display-sm leading-none font-medium tracking-tight tabular-nums">
               $0
             </p>
@@ -142,7 +144,7 @@ export function PricingTable({
           className="flex flex-col gap-6 rounded-xl border border-ink bg-card p-6"
         >
           <header className="flex flex-col gap-3">
-            <h3 className="m-0 text-base font-medium">Pro</h3>
+            <Title className="m-0 text-base font-medium">Pro</Title>
             <p className="m-0 flex items-baseline gap-2">
               <span className="font-mono text-display-sm leading-none font-medium tracking-tight tabular-nums">
                 ${PRO_PRICE[billing]}

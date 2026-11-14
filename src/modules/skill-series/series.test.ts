@@ -11,6 +11,7 @@ const make = (caseId: string, overrides: Partial<SeriesCase> = {}): SeriesCase =
   difficulty: 'beginner',
   isDemo: false,
   isSeededDemo: false,
+  skillAssessment: { score: 80, status: 'met' },
   ...overrides,
 });
 const beginner = make('001');
@@ -29,6 +30,13 @@ describe('skill series qualification', () => {
       .toMatchObject({ level: null, averageAccuracy: 69 });
     expect(assessSeries([make('004', { outcome: 'left' }), beginner, intermediate, advanced]).blockers)
       .toContain('left_case');
+  });
+
+  it('requires a grounded target-skill score on every counted case', () => {
+    expect(assessSeries([beginner, { ...intermediate, skillAssessment: undefined }, advanced]))
+      .toMatchObject({ level: null, blockers: ['skill_evidence_missing'] });
+    expect(assessSeries([beginner, { ...intermediate, skillAssessment: { score: 65, status: 'partially_met' } }, advanced]))
+      .toMatchObject({ level: null, blockers: ['skill_score_below_threshold'] });
   });
 
   it('requires at least one case of the appropriate difficulty for each higher level', () => {

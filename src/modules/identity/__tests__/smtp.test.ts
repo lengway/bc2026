@@ -1,18 +1,59 @@
-import { afterEach, expect, it, vi } from 'vitest';
-import nodemailer from 'nodemailer';
-import { createSmtpMailer } from '../smtp';
-afterEach(()=>{vi.restoreAllMocks();});
-it('uses Gambit and a parsed sender address, links with expiry, and no secrets in generic notices',async()=>{
-  const sendMail=vi.fn().mockResolvedValue({});
-  vi.spyOn(nodemailer,'createTransport').mockReturnValue({sendMail} as unknown as ReturnType<typeof nodemailer.createTransport>);
-  const mailer=createSmtpMailer({host:'unused',port:587,secure:false,from:'Old Brand <mail@example.com>'});
-  await mailer.sendMagicLink('member@example.com','https://gambit.example/api/auth/verify?token=test-proof');
-  await mailer.sendAccountMail!('member@example.com','verify_email','https://gambit.example/verify-email?token=test-proof');
-  await mailer.sendAccountMail!('member@example.com','reset_password','https://gambit.example/reset-password?token=test-proof');
-  await mailer.sendAccountMail!('unknown@example.com','reset_password',null);
-  for(const [mail] of sendMail.mock.calls) expect(mail.from).toEqual({name:'Gambit',address:'mail@example.com'});
-  expect(sendMail.mock.calls[0][0].text).toContain('15 minutes');
-  expect(sendMail.mock.calls[1][0].text).toContain('24 hours');
-  expect(sendMail.mock.calls[2][0].text).toContain('30 minutes');
-  expect(sendMail.mock.calls[3][0].text).not.toContain('token=');
+import { expect, it, vi } from "vitest";
+import nodemailer, { type SendMailOptions } from "nodemailer";
+import { createSmtpMailer } from "../smtp";
+
+function captureMail() {
+  const sendMail = vi.fn<(message: SendMailOptions) => Promise<void>>().mockResolvedValue();
+  vi.spyOn(nodemailer, "createTransport").mockReturnValue({
+    sendMail,
+  } as unknown as ReturnType<typeof nodemailer.createTransport>);
+  return {
+    mailer: createSmtpMailer({
+      host: "unused",
+      port: 587,
+      secure: false,
+      from: "Old Brand <mail@example.com>",
+    }),
+    sendMail,
+  };
+}
+
+it.each([
+  ["magic_link", "/api/auth/verify", "Your Gambit sign-in link", "Sign in to Gambit", "15 minutes"],
+  ["verify_email", "/verify-email", "Gambit: Confirm your email", "Confirm your email", "24 hours"],
+  ["change_email", "/verify-email", "Gambit: Confirm your new email", "Confirm your new email", "24 hours"],
+  ["reset_password", "/reset-password", "Gambit: Reset your password", "Reset your password", "30 minutes"],
+] as const)("sends the %s action and fallback in both formats", async (purpose, path, subject, action, expiry) => {
+  const { mailer, sendMail } = captureMail();
+  const email = "member@example.com";
+  const url = `https://gambit.example${path}?token=test-proof&next=%2Freview`;
+
+  if (purpose === "magic_link") await mailer.sendMagicLink(email, url);
+  else await mailer.sendAccountMail!(email, purpose, url);
+
+  expect(sendMail).toHaveBeenCalledTimes(1);
+  const message = sendMail.mock.calls[0][0];
+  expect(message).toMatchObject({ from: { name: "Gambit", address: "mail@example.com" }, to: email, subject });
+  expect(message.text).toContain(action);
+  expect(message.text).toContain(url);
+  expect(message.text).toContain(expiry);
+  expect(message.html).toContain(action);
+  expect(message.html).toContain(expiry);
+  expect(message.html).toContain(`href="${url.replaceAll("&", "&amp;")}"`);
+  expect(message.html).toContain(`>${url.replaceAll("&", "&amp;")}</a>`);
+});
+
+it.each([
+  ["verify_email", "Gambit: Confirm your email"],
+  ["reset_password", "Gambit: Reset your password"],
+] as const)("keeps the generic %s notice free of action links", async (purpose, subject) => {
+  const { mailer, sendMail } = captureMail();
+  await mailer.sendAccountMail!("member@example.com", purpose, null);
+  const message = sendMail.mock.calls[0][0];
+  expect(message.subject).toBe(subject);
+  expect(message.text).toContain("If you already have an account");
+  expect(message.text).not.toContain("token=");
+  expect(message.html).toContain("If you already have an account");
+  expect(message.html).not.toContain("href=");
+  expect(message.html).not.toContain("token=");
 });

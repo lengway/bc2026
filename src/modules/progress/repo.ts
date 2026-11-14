@@ -38,7 +38,7 @@ export async function award(tx:SqlExecutor,snapshot:SubmittedSnapshot,input:Eval
   const inserted=await tx.query(`INSERT INTO practice_completions(case_id,user_id,practice_date,counts_as_practice,created_at)
     VALUES($1,$2,$3,$4,$5) ON CONFLICT(case_id) DO NOTHING RETURNING case_id`,[snapshot.case.id,snapshot.case.userId,date,practiced,now]);
   if(!inserted.rowCount) return;
-  if(evaluation.accuracy!==null) {
+  if(snapshot.case.type!=='prep'&&evaluation.accuracy!==null) {
     const xp=Math.round(evaluation.accuracy*(snapshot.case.type==='weekly'?3:1));
     for(const skill of new Set(evaluation.skills.map(item=>item.skill))) {
       const awardRow=await tx.query(`INSERT INTO progress_awards(case_id,user_id,skill,xp,created_at) VALUES($1,$2,$3,$4,$5)

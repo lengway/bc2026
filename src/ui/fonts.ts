@@ -1,28 +1,11 @@
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
 
-/** Interface text. */
-const geistSans = Geist({
+const geist = localFont({
+  src: "./fonts/geist-latin.woff2",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  weight: "100 900",
+  display: "swap",
 });
 
-/** Numbers, IDs, timers — always with `tabular-nums`. */
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-/** Display only: landing headline and the certificate. */
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-});
-
-/** Put this on <html> so `font-sans`, `font-mono` and `font-serif` resolve. */
-export const fontVariables = [
-  geistSans.variable,
-  geistMono.variable,
-  instrumentSerif.variable,
-].join(" ");
+/** Apply on the root element so all typography tokens can use Geist. */
+export const fontVariables = geist.variable;

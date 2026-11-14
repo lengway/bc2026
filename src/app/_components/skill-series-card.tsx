@@ -3,6 +3,7 @@ import type { SkillId, SkillProgressSeries } from "@/contracts";
 import {
   LEVEL_MIN_ACCURACY,
   MIN_DISTINCT_ARCHETYPES,
+  MIN_CASE_SKILL_SCORE,
 } from "@/contracts/skill-series";
 import {
   formatAverageAccuracy,
@@ -21,6 +22,10 @@ function blockerCopy(code: string, series: SkillProgressSeries) {
       return series.averageAccuracy === null
         ? `You need ${LEVEL_MIN_ACCURACY[1]}% average accuracy.`
         : `Average accuracy ${formatAverageAccuracy(series.averageAccuracy)}. You need ${LEVEL_MIN_ACCURACY[1]}%.`;
+    case "skill_evidence_missing":
+      return `In your next case, demonstrate ${formatSkill(series.skill).toLowerCase()} in a submitted move so the review can score it.`;
+    case "skill_score_below_threshold":
+      return `Reach ${MIN_CASE_SKILL_SCORE}% in ${formatSkill(series.skill).toLowerCase()} on each counted case. Open your review to see what to improve.`;
     case "left_case":
       return "Finish cases without the client leaving the conversation.";
     case "email_unverified":
@@ -72,9 +77,16 @@ export function SkillSeriesCard({
                   {formatDate(item.completedAt)}
                 </time>
               </div>
-              <span className="shrink-0 font-mono">
-                {item.accuracy === null ? "Unscored" : `${item.accuracy}%`}
-              </span>
+              <div className="space-y-1 text-right">
+                <p className="shrink-0 font-mono">
+                  {item.accuracy === null ? "Unscored" : `${item.accuracy}%`}
+                </p>
+                {item.skillAssessment && (
+                  <p className="text-xs text-muted-foreground">
+                    {item.skillAssessment.score}% in {name}
+                  </p>
+                )}
+              </div>
             </li>
           ))}
         </ul>

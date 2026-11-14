@@ -14,8 +14,9 @@
 @theme inline {
   /* Type */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
-  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  /* Keep typography utilities available for existing components. */
+  --font-mono: var(--font-sans);
+  --font-serif: var(--font-sans);
   --font-heading: var(--font-sans);
 
   /* Scale 12/14/16/20/24 map to text-xs/sm/base/xl/2xl. Display sizes: */

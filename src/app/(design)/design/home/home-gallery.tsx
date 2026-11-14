@@ -175,6 +175,7 @@ export function HomeGallery() {
           name="Maya Chen"
           hour={8}
           subfield="account_management"
+          freeDailyRemaining={1}
           plan={state === "Certificate earned" ? "pro" : "free"}
           onStart={({ type, skill }) =>
             setRequest(`Prepare ${type}${skill ? ` · ${skill}` : ""}`)

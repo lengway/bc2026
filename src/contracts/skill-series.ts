@@ -5,6 +5,7 @@ import { Id, NonEmpty, Percent, Timestamp } from './primitives';
 export const CASES_REQUIRED = 3;
 export const WINDOW_DAYS = 30;
 export const MIN_DISTINCT_ARCHETYPES = 2;
+export const MIN_CASE_SKILL_SCORE = 70;
 export const LEVEL_MIN_ACCURACY = { 1: 70, 2: 80, 3: 88 } as const;
 export const LEVEL_MIN_DIFFICULTY = { 1: 'beginner', 2: 'intermediate', 3: 'advanced' } as const;
 
@@ -17,6 +18,12 @@ export type SkillCertificateLevel = z.infer<typeof SkillCertificateLevel>;
 
 export const AveragePercent = z.number().min(0).max(100);
 
+export const CaseSkillAssessment = z.object({
+  score: Percent,
+  status: z.enum(['met', 'partially_met', 'not_met']),
+});
+export type CaseSkillAssessment = z.infer<typeof CaseSkillAssessment>;
+
 export const CaseRef = z.object({
   caseId: Id,
   title: NonEmpty,
@@ -24,5 +31,6 @@ export const CaseRef = z.object({
   accuracy: Percent.nullable(),
   outcome: EvaluationOutcome,
   completedAt: Timestamp,
+  skillAssessment: CaseSkillAssessment.optional(),
 });
 export type CaseRef = z.infer<typeof CaseRef>;

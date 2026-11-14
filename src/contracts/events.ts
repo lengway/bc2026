@@ -11,6 +11,8 @@ export const PublicEventMeta = z.object({
   typingMs: NonNegativeInt.optional(),
   trustAfter: Percent.optional(),
   documentIds: z.array(NonEmpty).optional(),
+  kind: z.enum(['email', 'slack', 'persona_message']).optional(),
+  from: NonEmpty.optional(),
 });
 export type PublicEventMeta = z.infer<typeof PublicEventMeta>;
 

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
-  CaseParams, CaseResponse, CASES_REQUIRED, CaseType, Field, GenerateCaseResponse, Level, MOVE_LABEL_POINTS, Profile, PublicScoringGuide, SkillId,
+  CaseParams, CaseResponse, CASES_REQUIRED, CaseType, Field, GenerateCaseResponse, Level, MOVE_LABEL_POINTS, Profile, PublicScoringGuide, SalesCallPrep, SkillId,
 } from '@/contracts';
 import { Rubric } from '@/contracts/rubric';
 import type { Archetype, CatalogService } from '@/modules/catalog';
@@ -12,12 +12,13 @@ import type { Job, JobsService } from '@/modules/jobs';
 import { GeneratedCase, type LlmService } from '@/modules/llm';
 import { AppError, systemClock, type Clock } from '@/modules/shared';
 import {
-  createPendingCase, failCase, findSeededTemplates, findUnusedTemplate, hasActiveSubscription, hasUsableDailyCase,
-  insertTemplate, lockAndReadProfile, publishCase, readCase, readGenerationLease, readHistory, readUsedArchetypes, reconcileFailedCases,
+  createPendingCase, failCase, findSeededTemplates, findUnusedTemplate, hasActiveSubscription, hasUsableFreeCase, clearFinishedPrepInputs,
+  insertTemplate, lockAndReadProfile, publishCase, readCase, readGenerationLease, readHistory, readRecoverablePrep, readUsedArchetypes, reconcileFailedCases,
   type CaseRecord, type HistoryRow, type PoolTemplate, type Publication,
 } from './repo';
+import { pressureScenario } from './pressure-case';
 
-const timeLimits = { onboarding: 480, daily: 600, weekly: 2_400 } satisfies Record<CaseType, number>;
+const timeLimits = { onboarding: 480, daily: 600, weekly: 2_400, prep: 600 } satisfies Record<CaseType, number>;
 const weeklyWindowMs = 7 * 86_400_000;
 const accuracyFormula = 'round(100 × pointsSum / maxPoints), with maxPoints = 100 × scoredMoveCount. No scored moves means no accuracy score.';
 const aiUseFormula = 'round(100 × earnedPoints / assessedMaxPoints). No assessed checks means no AI-use score.';
@@ -103,14 +104,18 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
   async function entitled(userId: string, type: CaseType, tx: SqlExecutor, instant: Date) {
     if (canStart) return canStart(userId, type, tx);
     if (type === 'onboarding' || await hasActiveSubscription(tx, userId, instant)) return true;
-    return type === 'daily' && !await hasUsableDailyCase(tx, userId, new Date(instant.getTime() - weeklyWindowMs));
+    return (type === 'daily' || type === 'prep') && !await hasUsableFreeCase(tx, userId, new Date(instant.getTime() - weeklyWindowMs));
   }
 
-  async function generateCase(userId: string, type: CaseType, { skill }: { skill?: SkillId } = {}): Promise<GenerateCaseResponse> {
+  async function generateCase(userId: string, type: CaseType, { skill, prep }: { skill?: SkillId; prep?: SalesCallPrep } = {}): Promise<GenerateCaseResponse> {
     const request = CaseType.safeParse(type);
     if (!request.success) throw new AppError('VALIDATION', 400, 'Invalid case type.');
     if (skill !== undefined && (request.data !== 'daily' || !SkillId.safeParse(skill).success)) {
       throw new AppError('VALIDATION', 400, 'A skill can only be selected for a daily case.');
+    }
+    const details = prep === undefined ? undefined : SalesCallPrep.safeParse(prep);
+    if ((type === 'prep') !== (details !== undefined) || details?.success === false) {
+      throw new AppError('VALIDATION', 400, 'Provide all three sales call details for preparation cases only.');
     }
     return db.transaction(async (tx) => {
       const profile = await lockAndReadProfile(tx, userId);
@@ -118,13 +123,16 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
       if (profile.field !== 'sales') throw new AppError('VALIDATION', 400, 'Practice cases are currently available in Sales.');
       if (!await entitled(userId, request.data, tx, instant)) throw new AppError('PAYWALL', 403, 'This case requires an available plan entitlement.');
       await consumeRateLimit(tx, `case:generate:${userId}`, 10, 3_600_000, instant);
+      const generationProfile = details?.success
+        ? { ...profile, intakeText: '', years: null, pains: [], goals: [] }
+        : profile;
       const pool = request.data === 'onboarding' ? await findUnusedTemplate(tx, profile) : null;
       const caseId = await createPendingCase(tx, profile, request.data, 'chat', pool?.seed ?? randomUUID(), instant);
       if (pool) {
         await publishCase(tx, caseId, materialize(pool, request.data, false, pool.id), instant);
       } else {
         await jobs.enqueueWithExecutor(tx, {
-          caseId, kind: 'case.generate', dedupeKey: `case.generate:${caseId}`, payload: { profile, ...(skill && { skill }) },
+          caseId, kind: 'case.generate', dedupeKey: `case.generate:${caseId}`, payload: { profile: generationProfile, ...(skill && { skill }), ...(details?.success && { prep: details.data }) },
         });
       }
       return { caseId, status: 'generating' };
@@ -140,7 +148,7 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     const record = await getCaseRecord(caseId, { userId });
     if (!record) throw new AppError('NOT_FOUND', 404, 'Case not found.');
     if (record.status === 'generating' || record.status === 'failed') {
-      return { id: record.id, status: record.status };
+      return { id: record.id, status: record.status, ...(record.type === 'prep' && { type: record.type }) };
     }
     return CaseResponse.parse({
       id: record.id,
@@ -157,8 +165,25 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     });
   }
 
+  async function getRecoverablePrep(userId: string) {
+    return readRecoverablePrep(db, userId, new Date(now().getTime() - weeklyWindowMs));
+  }
+
+  async function generatePressureCase(userId: string): Promise<GenerateCaseResponse> {
+    return db.transaction(async (tx) => {
+      const profile = await lockAndReadProfile(tx, userId);
+      const instant = now();
+      if (profile.field !== 'sales') throw new AppError('VALIDATION', 400, 'Pressure cases are currently available in Sales.');
+      if (!await entitled(userId, 'onboarding', tx, instant)) throw new AppError('PAYWALL', 403, 'This case requires an available plan entitlement.');
+      await consumeRateLimit(tx, `case:generate:${userId}`, 10, 3_600_000, instant);
+      const caseId = await createPendingCase(tx, profile, 'onboarding', 'chat', pressureScenario.seed, instant);
+      await publishCase(tx, caseId, materialize({ ...pressureScenario, workspace: 'chat' }, 'onboarding', false), instant);
+      return { caseId, status: 'generating' };
+    });
+  }
+
   async function generateScenario(
-    profile: ScenarioProfile, type: CaseType, seed: string, archetype: Archetype, history: HistoryRow[], caseId?: string,
+    profile: ScenarioProfile, type: CaseType, seed: string, archetype: Archetype, history: HistoryRow[], caseId?: string, prep?: SalesCallPrep,
   ): Promise<Scenario> {
     const avoid = {
       names: historyValues(history, 'name'),
@@ -177,9 +202,10 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
       field: profile.field, subfield: profile.subfield, level: profile.level, intakeText: profile.intakeText,
       years: profile.years, pains: profile.pains, goals: profile.goals,
     };
+    const options = { caseId, omitContentFromLogs: prep !== undefined };
     const result = await llm.run('case.generate', {
-      profile: scenarioProfile, archetype, seed, avoid, type, timeLimitSec: timeLimits[type],
-    }, Generation, { caseId });
+      profile: scenarioProfile, archetype, seed, avoid, type, timeLimitSec: timeLimits[type], ...(prep && { prep }),
+    }, Generation, options);
     const generated = { ...result.data, brief: { ...result.data.brief, timeLimitSec: timeLimits[type] } };
     const documentIds = new Set(generated.docs.map((doc) => doc.id));
     const sourceIds = new Set([...documentIds, ...generated.personas.map((persona) => persona.public.id)]);
@@ -190,7 +216,7 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
       rubric.aiUseChecks.every((check) => check.sourceRefs.every((id) => sourceIds.has(id))) &&
       rubric.twists.every((twist) => twist.documentIds.every((id) => documentIds.has(id)))
     ), 'Use Sales dimension IDs and existing source IDs. Twist documentIds must refer to case documents. Onboarding allows at most one twist.');
-    const rubric = (await llm.run('case.rubric', { case: generated, archetype, type, dimensions: [...identifiers] }, rubricSchema, { caseId })).data;
+    const rubric = (await llm.run('case.rubric', { case: generated, archetype, type, dimensions: [...identifiers] }, rubricSchema, options)).data;
     return { generated, rubric, archetypeId: archetype.id, model: result.meta.model, promptVersion: result.meta.promptVersion, seed };
   }
 
@@ -205,6 +231,7 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     if (profile.userId !== record.userId || profile.field !== record.field || profile.subfield !== record.subfield || profile.level !== record.level) {
       throw new Error('Case generation profile does not match its queued case');
     }
+    const prep = record.type === 'prep' ? SalesCallPrep.parse(job.payload.prep) : undefined;
     const history = await readHistory(db, record.userId, record.id);
     const requested = job.payload.skill === undefined ? undefined : SkillId.parse(job.payload.skill);
     let target: { skill: SkillId; seriesArchetypeIds: string[] } | undefined;
@@ -226,10 +253,10 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     const archetype = await catalog.pickArchetype(profile, usedArchetypes, target);
     let publication: Publication | undefined;
     try {
-      const scenario = await generateScenario(profile, record.type, record.seed, archetype, history, record.id);
+      const scenario = await generateScenario(profile, record.type, record.seed, archetype, history, record.id, prep);
       publication = materialize({ ...scenario, workspace: record.workspace }, record.type, false);
     } catch {
-      if (record.type === 'onboarding' || (demoMode && !requested)) {
+      if (record.type === 'onboarding' || (demoMode && !requested && record.type !== 'prep')) {
         const demo = await catalog.getDemoCase(record.field, record.subfield);
         publication = materialize({
           workspace: demo.case.workspace, model: 'demo', promptVersion: demo.rubric.version, seed: record.seed,
@@ -240,6 +267,7 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     }
     await db.transaction(async (tx) => {
       if (!await jobs.completeWithExecutor(tx, lease.jobId, lease.owner, lease.token)) throw new Error('Case generation lease lost');
+      if (prep) await clearFinishedPrepInputs(tx, record.id);
       if (publication) await publishCase(tx, record.id, publication, now());
       else await failCase(tx, record.id);
     });
@@ -275,7 +303,7 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
   }
 
   return {
-    generateCase, getCaseForUser, getCaseRecord, handleGenerateJob, seedOnboardingPool,
+    generateCase, generatePressureCase, getCaseForUser, getCaseRecord, getRecoverablePrep, handleGenerateJob, seedOnboardingPool,
     reconcileFailedGenerations: () => reconcileFailedCases(db),
   };
 }

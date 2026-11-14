@@ -85,22 +85,14 @@ export function Dashboard() {
     if (profile.data) create.prepare(input);
     else router.push("/onboarding");
   }
-  function startFromHistory() {
-    if (daily) router.push(daily.href);
-    else start({ type: "daily" });
-  }
 
   return (
     <DashboardScreen
       path={path.data}
       history={history.data.items}
-      recentCases={
-        <RecentCases
-          cases={history.data.items.slice(0, 5)}
-          onStart={startFromHistory}
-        />
-      }
+      recentCases={<RecentCases cases={history.data.items.slice(0, 5)} />}
       plan={billing.data.plan}
+      freeDailyRemaining={billing.data.freeDailyRemaining}
       name={session.data?.user.displayName ?? null}
       hour={hour}
       subfield={profile.data?.subfield ?? null}

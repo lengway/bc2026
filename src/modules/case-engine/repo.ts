@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  CaseBrief, CaseDoc, CaseType, Field, Level, PersonaOutcome, PersonaPublic, Profile, PublicScoringGuide, WorkspaceType,
+  CaseBrief, CaseDoc, CaseType, Field, Level, PersonaOutcome, PersonaPublic, Profile, PublicScoringGuide, RecoverablePrep, WorkspaceType,
 } from '@/contracts';
 import { PersonaHidden } from '@/contracts/case';
 import { Rubric } from '@/contracts/rubric';
@@ -51,6 +51,21 @@ export async function readCase(db: SqlExecutor, caseId: string, userId?: string)
   return rows[0] ? CaseRecord.parse(rows[0]) : null;
 }
 
+/** Returns only the public ID and route status for this owner's recent, nonfailed prep. */
+export async function readRecoverablePrep(db: SqlExecutor, userId: string, since: Date) {
+  const { rows } = await db.query(`SELECT c.id,
+      CASE WHEN c.status='submitted' THEN 'evaluating'
+      ELSE c.status END AS status
+    FROM cases c
+    WHERE c.user_id=$1 AND c.type='prep' AND c.created_at>$2
+      AND c.status IN ('generating','ready','in_progress','submitted','evaluated')
+      AND NOT (c.status='generating' AND EXISTS (
+        SELECT FROM jobs j WHERE j.case_id=c.id AND j.kind='case.generate' AND j.status='failed'
+      ))
+    ORDER BY c.created_at DESC,c.id LIMIT 1`, [userId, since]);
+  return rows[0] ? RecoverablePrep.parse(rows[0]) : null;
+}
+
 const ProfileRow = Profile.extend({ updatedAt: DateValue });
 
 export async function lockAndReadProfile(tx: SqlExecutor, userId: string): Promise<Profile> {
@@ -62,8 +77,8 @@ export async function lockAndReadProfile(tx: SqlExecutor, userId: string): Promi
   return ProfileRow.parse(rows[0]);
 }
 
-export async function hasUsableDailyCase(tx: SqlExecutor, userId: string, since: Date): Promise<boolean> {
-  const { rows } = await tx.query(`SELECT id FROM cases c WHERE user_id=$1 AND type='daily'
+export async function hasUsableFreeCase(tx: SqlExecutor, userId: string, since: Date): Promise<boolean> {
+  const { rows } = await tx.query(`SELECT id FROM cases c WHERE user_id=$1 AND type IN ('daily','prep')
     AND created_at>$2 AND (c.started_at IS NOT NULL OR c.submitted_at IS NOT NULL OR (c.status<>'failed' AND NOT EXISTS (
       SELECT FROM jobs j WHERE j.case_id=c.id AND j.kind='case.generate' AND j.status='failed'
     ))) LIMIT 1`, [userId, since]);
@@ -90,7 +105,7 @@ const HistoryRow = z.object({
 export async function readHistory(db: SqlExecutor, userId: string, caseId: string) {
   const { rows } = await db.query(`SELECT c.archetype_id AS "archetypeId",c.brief->>'title' AS title,
     p.public->>'name' AS name,p.public->>'company' AS company
-    FROM (SELECT id,archetype_id,brief,created_at FROM cases WHERE user_id=$1 AND id<>$2
+    FROM (SELECT id,archetype_id,brief,created_at FROM cases WHERE user_id=$1 AND id<>$2 AND type<>'prep'
       AND status IN ('ready','in_progress','submitted','evaluated') ORDER BY created_at DESC,id LIMIT 50) c
     LEFT JOIN personas p ON p.case_id=c.id ORDER BY c.created_at DESC,c.id,p.id`, [userId, caseId]);
   return z.array(HistoryRow).parse(rows);
@@ -99,7 +114,7 @@ export type HistoryRow = z.infer<typeof HistoryRow>;
 
 export async function readUsedArchetypes(db: SqlExecutor, userId: string, caseId: string): Promise<string[]> {
   const { rows } = await db.query(`SELECT DISTINCT archetype_id FROM cases
-    WHERE user_id=$1 AND id<>$2 AND status IN ('ready','in_progress','submitted','evaluated')
+    WHERE user_id=$1 AND id<>$2 AND type<>'prep' AND status IN ('ready','in_progress','submitted','evaluated')
       AND archetype_id IS NOT NULL`, [userId, caseId]);
   return rows.map((row) => z.string().parse(row.archetype_id));
 }
@@ -174,14 +189,24 @@ export async function readGenerationLease(db: SqlExecutor, jobId: string, caseId
   return rows[0] ? z.object({ status: z.enum(['running', 'completed']) }).parse(rows[0]).status : null;
 }
 
+export async function clearFinishedPrepInputs(tx: SqlExecutor, caseId: string) {
+  await tx.query(`UPDATE jobs SET payload=payload-'prep' WHERE kind='case.generate'
+    AND status='completed' AND payload ? 'prep' AND case_id=$1`, [caseId]);
+}
+
 export async function failCase(tx: SqlExecutor, caseId: string) {
   const result = await tx.query("UPDATE cases SET status='failed' WHERE id=$1 AND status='generating'", [caseId]);
   if (result.rowCount !== 1) throw new Error('Case is no longer awaiting generation');
 }
 
 export async function reconcileFailedCases(db: SqlExecutor) {
-  const result = await db.query(`UPDATE cases c SET status='failed' WHERE c.status='generating' AND EXISTS (
-    SELECT FROM jobs j WHERE j.case_id=c.id AND j.kind='case.generate' AND j.status='failed'
-  )`);
+  const result = await db.query(`WITH failed_cases AS (
+    UPDATE cases c SET status='failed' WHERE c.status='generating' AND EXISTS (
+      SELECT FROM jobs j WHERE j.case_id=c.id AND j.kind='case.generate' AND j.status='failed'
+    ) RETURNING id,type
+  ), cleared AS (
+    UPDATE jobs SET payload=payload-'prep' FROM failed_cases f
+    WHERE jobs.case_id=f.id AND f.type='prep' AND jobs.kind='case.generate' AND jobs.status='failed'
+  ) SELECT id FROM failed_cases`);
   return result.rowCount ?? 0;
 }

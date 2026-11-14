@@ -1,5 +1,10 @@
 import Link from "next/link";
-import type { SkillCertificateResponse, TrapResult } from "@/contracts";
+import {
+  MIN_CASE_SKILL_SCORE,
+  type CaseSkillAssessment,
+  type SkillCertificateResponse,
+  type TrapResult,
+} from "@/contracts";
 import {
   FIELD_LABEL,
   formatDate,
@@ -18,6 +23,12 @@ const TRAP_LABEL: Record<TrapResult, string> = {
   insufficient_evidence: "Copilot trap result unavailable",
 };
 
+const COVERAGE_LABEL: Record<CaseSkillAssessment["status"], string> = {
+  met: "Rubric criterion met",
+  partially_met: "Rubric criterion partially met",
+  not_met: "Rubric criterion not met",
+};
+
 export function SkillCertificateCard({
   certificate,
   titleAs: Title = "h1",
@@ -27,6 +38,13 @@ export function SkillCertificateCard({
 }) {
   const ResultsTitle = Title === "h1" ? "h2" : Title === "h2" ? "h3" : "h4";
   const full = "keyMoves" in certificate;
+  const skill = formatSkill(certificate.skill);
+  const hasSkillEvidence = certificate.cases.every(
+    ({ skillAssessment }) =>
+      skillAssessment &&
+      skillAssessment.score >= MIN_CASE_SKILL_SCORE &&
+      skillAssessment.status !== "not_met",
+  );
   return (
     <article className="overflow-hidden rounded-xl border bg-card text-card-foreground shadow-card">
       <header className="space-y-4 border-b px-6 py-6 sm:px-8">
@@ -61,7 +79,7 @@ export function SkillCertificateCard({
             {certificate.holderName}
           </p>
           <p>
-            {formatSkill(certificate.skill)} · Level {certificate.level} ·{" "}
+            {skill} · Level {certificate.level} ·{" "}
             {FIELD_LABEL[certificate.field]}
           </p>
           <p className="text-sm text-muted-foreground">
@@ -87,8 +105,15 @@ export function SkillCertificateCard({
 
       <section className="space-y-4 px-6 py-6 sm:px-8">
         <ResultsTitle className="text-sm font-medium">
-          Qualifying case results
+          {hasSkillEvidence
+            ? "Skill evidence across three cases"
+            : "Recorded case results"}
         </ResultsTitle>
+        {!hasSkillEvidence && (
+          <p className="text-sm text-muted-foreground">
+            This certificate uses the earlier case-series requirements.
+          </p>
+        )}
         <ol className="divide-y">
           {certificate.cases.map((item) => {
             const move = full
@@ -121,9 +146,26 @@ export function SkillCertificateCard({
                       </p>
                     )}
                   </div>
-                  <span className="font-mono text-sm">
-                    {item.accuracy === null ? "Unscored" : `${item.accuracy}%`}
-                  </span>
+                  <div className="space-y-1 text-sm sm:text-right">
+                    {item.skillAssessment && (
+                      <>
+                        <p className="font-medium">
+                          {item.skillAssessment.score}% {skill}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {COVERAGE_LABEL[item.skillAssessment.status]}
+                        </p>
+                      </>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-mono">
+                        {item.accuracy === null
+                          ? "Unscored"
+                          : `${item.accuracy}%`}
+                      </span>{" "}
+                      case accuracy
+                    </p>
+                  </div>
                 </div>
                 {move && (
                   <div className="space-y-2 rounded-md border bg-surface p-3 text-sm">

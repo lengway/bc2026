@@ -15,13 +15,14 @@ export async function canIssue(db:SqlExecutor,userId:string):Promise<boolean> {
   return result.rows.length>0;
 }
 export async function findOwnedSlug(db:SqlExecutor,caseId:string,userId:string):Promise<{slug:string;revokedAt:Date|null}|null> {
-  const result=await db.query('SELECT c.slug,c.revoked_at AS "revokedAt" FROM certificates c JOIN cases k ON k.id=c.case_id AND k.user_id=c.user_id JOIN users u ON u.id=c.user_id WHERE c.case_id=$1 AND c.user_id=$2 AND k.status=$3 AND (u.email_verified_at IS NOT NULL OR u.is_guest=true)',[caseId,userId,'evaluated']);
+  const result=await db.query(`SELECT c.slug,c.revoked_at AS "revokedAt" FROM certificates c JOIN cases k ON k.id=c.case_id AND k.user_id=c.user_id JOIN users u ON u.id=c.user_id WHERE c.case_id=$1 AND c.user_id=$2 AND k.status=$3 AND k.type<>'prep' AND (u.email_verified_at IS NOT NULL OR u.is_guest=true)`,[caseId,userId,'evaluated']);
   return result.rows[0]?z.object({slug:z.string(),revokedAt:z.coerce.date().nullable()}).parse(result.rows[0]):null;
 }
 export async function issue(tx:SqlExecutor,snapshot:SubmittedSnapshot,now:Date):Promise<CertificateRecord> {
   if(!await canIssue(tx,snapshot.case.userId)) throw new AppError('FORBIDDEN',403,'Confirm your email before publishing a certificate.');
-  const ownership=z.object({user_id:z.uuid(),status:z.string()}).parse((await tx.query('SELECT user_id,status FROM cases WHERE id=$1',[snapshot.case.id])).rows[0]);
+  const ownership=z.object({user_id:z.uuid(),status:z.string(),type:z.string()}).parse((await tx.query('SELECT user_id,status,type FROM cases WHERE id=$1',[snapshot.case.id])).rows[0]);
   if(ownership.user_id!==snapshot.case.userId||ownership.status!=='evaluated') throw new AppError('VALIDATION',409,'Only an evaluated case can issue a certificate.');
+  if(ownership.type==='prep') throw new AppError('FORBIDDEN',403,'Sales call preparation is private.');
   for(let attempt=0;attempt<5;attempt++) {
     const slug=randomBytes(8).toString('base64url').slice(0,10);
     const result=await tx.query(`INSERT INTO certificates(case_id,user_id,slug,skill,issued_at) VALUES($1,$2,$3,$4,$5)

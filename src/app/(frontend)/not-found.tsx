@@ -10,10 +10,10 @@ export default function NotFound() {
           We could not find that page
         </h1>
         <p className="text-muted-foreground">
-          Check the link or return to your practice.
+          Check the link or return to Gambit’s home page.
         </p>
         <Button asChild>
-          <Link href="/dashboard">Back to practice</Link>
+          <Link href="/">Back to home</Link>
         </Button>
       </main>
     </PublicShell>

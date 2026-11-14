@@ -14,6 +14,7 @@ import { createLlmService,OpenAIProvider,type LlmProvider } from '@/modules/llm'
 import type { ServerConfig } from '@/modules/config';
 import { systemClock, type Clock } from '@/modules/shared';
 import { createLlmCallRecorder } from './llm-recorder';
+import { createRetakeService } from '@/modules/retake';
 
 export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;provider?:LlmProvider;mailer?:MagicLinkMailer;billingProvider?:BillingProvider;now?:Clock}={}) {
   const db=overrides.db??createDatabase(config.DATABASE_URL);
@@ -22,7 +23,7 @@ export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;pr
   const llm=createLlmService({
     provider:overrides.provider??new OpenAIProvider({apiKey:config.OPENAI_API_KEY}),
     recordCall:createLlmCallRecorder(db),defaultModel:config.LLM_MODEL,defaultTimeoutMs:config.LLM_TIMEOUT_MS,now,
-    modelForPrompt:(id)=>id==='eval.moves'?(config.LLM_MODEL_EVALUATION||undefined):(['intake.parse','persona.reply','copilot.reply','director.twist'].includes(id)?(config.LLM_MODEL_DIALOGUE||undefined):undefined),
+    modelForPrompt:(id)=>id==='eval.moves'?(config.LLM_MODEL_EVALUATION||undefined):(['intake.parse','persona.reply','copilot.reply','director.twist','practice.feedback'].includes(id)?(config.LLM_MODEL_DIALOGUE||undefined):undefined),
   });
   const mailer=overrides.mailer??createSmtpMailer({host:config.SMTP_HOST,port:config.SMTP_PORT,secure:config.SMTP_SECURE,user:config.SMTP_USER,password:config.SMTP_PASSWORD,from:config.SMTP_FROM});
   const jobs=createJobsService({db,now});
@@ -45,6 +46,7 @@ export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;pr
       seedGuest,onEmailVerified:credentials.issueSkillCertificatesWithExecutor}),
     ...createProfileService({db,llm,catalog,now}),
   };
-  return {config,db,identity,catalog,llm,jobs,events,caseEngine,simulation,evaluation,credentials,progress,billing,now};
+  const retake = createRetakeService({db,llm,billing,now});
+  return {retake,config,db,identity,catalog,llm,jobs,events,caseEngine,simulation,evaluation,credentials,progress,billing,now};
 }
 export type CoreRuntime=ReturnType<typeof createCoreRuntime>;

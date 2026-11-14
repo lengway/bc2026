@@ -3,8 +3,9 @@ import {
   BillingSummary,DisablePublicLinkRequest,CaseParams,CaseResponse,CertificateParams,CertificateResponse,CheckoutRequest,CheckoutResponse,CopilotRequest,CopilotResponse,
   EditorBatch,EditorBatchAck,EventsPage,EventsQuery,GenerateCaseRequest,GenerateCaseResponse,IntakeRequest,LogoutResponse,
   MagicLinkRequest,MagicLinkResponse,MagicLinkVerifyQuery,MoveRequest,MoveResponse,Profile,ReviewResponse,SessionView,
-  SkillCertificateParams,SkillCertificateResponse,SkillPath,StartCaseResponse,StripeWebhookResponse,SubmitCaseResponse,
+  RecoverablePrepResponse,SkillCertificateParams,SkillCertificateResponse,SkillPath,StartCaseResponse,StripeWebhookResponse,SubmitCaseResponse,
 } from '@/contracts';
+import { RetakeParams, RetakeRequest, RetakeStatus } from '@/contracts/retake';
 import { assertOrigin,readSessionCookie,sessionCookie } from '@/modules/identity';
 import type { CoreRuntime } from '@/modules/runtime';
 import { AppError } from '@/modules/shared';
@@ -70,7 +71,11 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
     }),
     generateCase:(request:Request)=>respond(request,async()=>{
       csrf(request);const owner=await user(request);const input=await body(request,GenerateCaseRequest);
-      return json(GenerateCaseResponse,await app.caseEngine.generateCase(owner.id,input.type,{skill:input.skill}),202);
+      return json(GenerateCaseResponse,await app.caseEngine.generateCase(owner.id,input.type,{skill:input.skill,prep:input.prep}),202);
+    }),
+    pressureCase:(request:Request)=>respond(request,async()=>{
+      csrf(request);await body(request,Empty);const owner=await user(request);
+      return json(GenerateCaseResponse,await app.caseEngine.generatePressureCase(owner.id),202);
     }),
     getCase:(request:Request,context:ParamsContext)=>respond(request,async()=>{
       const owner=await user(request);return json(CaseResponse,await app.caseEngine.getCaseForUser(await caseId(context),owner.id));
@@ -112,6 +117,15 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
       const {slug: caseRecordSlug,disabled}=await app.credentials.getOwnedLink(id,owner.id);
       return json(ReviewResponse,{...review,caseRecordSlug,certificateSlug:caseRecordSlug,caseRecordLinkDisabled:disabled||undefined});
     }),
+    retakeStatus:(request:Request,context:ParamsContext)=>respond(request,async()=>{
+      const owner=await user(request),{id,eventId}=RetakeParams.parse(await context.params);
+      return json(RetakeStatus,await app.retake.status(owner.id,id,eventId));
+    }),
+    retakeSubmit:(request:Request,context:ParamsContext)=>respond(request,async()=>{
+      csrf(request);const owner=await user(request),{id,eventId}=RetakeParams.parse(await context.params);
+      const input=await body(request,RetakeRequest);
+      return json(RetakeStatus,await app.retake.submit(owner.id,id,eventId,input.text));
+    }),
     certificate:(_request:Request,context:ParamsContext)=>guarded(async()=>{
       const {slug}=CertificateParams.parse(await context.params);
       return json(CertificateResponse,await app.credentials.getBySlug(slug));
@@ -121,6 +135,7 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
       return json(SkillCertificateResponse,await app.credentials.getSkillCertificateBySlug(slug));
     }),
     path:(request:Request)=>respond(request,async()=>json(SkillPath,await app.progress.getSkillPath((await user(request)).id))),
+    recoverablePrep:(request:Request)=>respond(request,async()=>json(RecoverablePrepResponse,await app.caseEngine.getRecoverablePrep((await user(request)).id))),
     disablePublicLink:(request:Request)=>respond(request,async()=>{
       csrf(request);const owner=await user(request);const input=await body(request,DisablePublicLinkRequest);
       return json(LogoutResponse,await app.credentials.disablePublicLink(owner.id,input.kind,input.slug));

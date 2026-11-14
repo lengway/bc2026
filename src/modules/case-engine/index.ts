@@ -3,3 +3,4 @@ export type { CaseEngineDeps, CaseEngineService } from './service';
 export type { CaseRecord, StoredPersona } from './repo';
 export { publishCase } from './repo';
 export { scoringGuide } from './service';
+export { resolvePressureOutcome } from './pressure-case';

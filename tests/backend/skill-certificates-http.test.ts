@@ -162,6 +162,9 @@ it('keeps a Free holder’s shared certificate Limited even for a Pro visitor', 
     const payload = await response.json();
     expect(SkillCertificateResponse.parse(payload)).toMatchObject({
       slug: skillSlug, holderName: 'Jordan Reyes', skill: 'discovery', averageAccuracy: 75,
+      cases: caseIds.slice().reverse().map((caseId) => ({
+        caseId, skillAssessment: { score: 80, status: 'partially_met' },
+      })),
     });
     expect(payload).not.toHaveProperty('keyMoves');
     expect(payload).not.toHaveProperty('trustCurves');

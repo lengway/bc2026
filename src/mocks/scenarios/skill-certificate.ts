@@ -33,7 +33,10 @@ export const sampleSkillCertificate = SkillCertificateLimited.parse({
   skill: "objection_handling",
   field: "sales",
   level: 2,
-  cases,
+  cases: cases.map((item, index) => ({
+    ...item,
+    skillAssessment: { score: [80, 90, 95][index], status: "met" },
+  })),
   averageAccuracy: 86,
   aiDependencyAverage: 12,
   trapResults: cases.map(({ caseId }) => ({ caseId, trapResult: "caught" })),

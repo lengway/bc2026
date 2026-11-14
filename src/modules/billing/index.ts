@@ -3,10 +3,10 @@ import type { BillingSummary } from '@/contracts';
 import type { Database, SqlExecutor } from '@/modules/database';
 import { AppError, systemClock, type Clock } from '@/modules/shared';
 import { BillingEvent, BillingSubscription, type BillingProvider } from './provider';
-import { bindSubscription, eventProcessed, getBinding, getCheckout, getUser, hasRecentDaily, rememberEvent, saveCheckout, saveSubscription } from './repo';
+import { bindSubscription, eventProcessed, getBinding, getCheckout, getUser, hasRecentFreeCase, rememberEvent, saveCheckout, saveSubscription } from './repo';
 
 export { createStripeProvider, type BillingProvider, type BillingEvent, type BillingSubscription } from './provider';
-export const BillingAction = z.enum(['start_case:onboarding','start_case:daily','start_case:weekly','full_certificate']);
+export const BillingAction = z.enum(['start_case:onboarding','start_case:daily','start_case:weekly','start_case:prep','full_certificate','practice_retake']);
 export type BillingAction = z.infer<typeof BillingAction>;
 export type BillingPlan = 'monthly' | 'yearly';
 export interface BillingDeps { db: Database; provider: BillingProvider; appUrl: string; monthlyPriceId?: string; yearlyPriceId?: string; now?: Clock }
@@ -15,7 +15,7 @@ const availableError = () => new AppError('VALIDATION',503,'Billing is temporari
 
 export function createBillingService({ db, provider, appUrl, monthlyPriceId, yearlyPriceId, now = systemClock }: BillingDeps) {
   const freeQuotaUsed = (executor: SqlExecutor, userId: string, at: Date) =>
-    hasRecentDaily(executor,userId,new Date(at.getTime() - 7 * 86400000));
+    hasRecentFreeCase(executor,userId,new Date(at.getTime() - 7 * 86400000));
   async function summary(userId: string): Promise<BillingSummary> {
     const user = await getUser(db,userId), at = now();
     const pro = isPro(user,at);
@@ -41,7 +41,7 @@ export function createBillingService({ db, provider, appUrl, monthlyPriceId, yea
     const instant = now();
     if (action === 'start_case:onboarding') return true;
     if (isPro(user,instant)) return true;
-    if (action !== 'start_case:daily') return false;
+    if (action !== 'start_case:daily' && action !== 'start_case:prep') return false;
     return !await freeQuotaUsed(executor,userId,instant);
   }
   async function checkout(userId: string, plan: BillingPlan): Promise<{ url: string }> {

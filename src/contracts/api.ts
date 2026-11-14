@@ -34,9 +34,18 @@ export type CertificateParams = CaseRecordParams;
 export const SkillCertificateParams = z.strictObject({ slug: SkillCertificateSlug });
 export type SkillCertificateParams = z.infer<typeof SkillCertificateParams>;
 
-export const GenerateCaseRequest = z.strictObject({ type: CaseType, skill: SkillId.optional() })
+export const SALES_CALL_PREP_DETAIL_LIMIT = 240;
+const PrepDetail = z.string().max(SALES_CALL_PREP_DETAIL_LIMIT).trim().min(1);
+export const SalesCallPrep = z.strictObject({ offering: PrepDetail, buyer: PrepDetail, objection: PrepDetail });
+export type SalesCallPrep = z.infer<typeof SalesCallPrep>;
+
+export const GenerateCaseRequest = z.strictObject({
+  type: CaseType, skill: SkillId.optional(), prep: SalesCallPrep.optional(),
+})
   .refine(({ type, skill }) => skill === undefined || type === 'daily', {
     path: ['skill'], message: 'Only daily cases accept a target skill',
+  }).refine(({ type, prep }) => (type === 'prep') === (prep !== undefined), {
+    path: ['prep'], message: 'Sales call details are required for preparation cases only',
   });
 export type GenerateCaseRequest = z.infer<typeof GenerateCaseRequest>;
 

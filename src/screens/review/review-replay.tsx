@@ -65,7 +65,7 @@ export function ReviewReplay({
       className="flex min-w-0 flex-col rounded-xl border bg-card"
     >
       <header className="flex items-center justify-between gap-3 border-b px-5 py-4">
-        <h2 className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+        <h2 className="text-xs font-semibold text-muted-foreground">
           Conversation
         </h2>
         <span className="text-xs text-muted-foreground">

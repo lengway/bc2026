@@ -197,7 +197,10 @@ export function createMockHandlers({
         hasPublicLink: true,
         revokedAt: null,
       };
-      return { history, certificate };
+      return {
+        history,
+        certificate: item.view.type === "prep" ? null : certificate,
+      };
     });
   }
   return [
@@ -234,8 +237,8 @@ export function createMockHandlers({
           ? activityCertificates
           : {
               skills: [],
-              caseRecords: ownerActivity().map(
-                ({ certificate }) => certificate,
+              caseRecords: ownerActivity().flatMap(({ certificate }) =>
+                certificate ? [certificate] : [],
               ),
             },
     }),
@@ -269,6 +272,16 @@ export function createMockHandlers({
       setSession(false);
       return HttpResponse.json({ ok: true });
     }),
+    http.get("*/api/me/prep", () => {
+      const item = [...cases.values()]
+        .reverse()
+        .find((entry) => entry.view.type === "prep");
+      if (!item) return HttpResponse.json(null);
+      return HttpResponse.json({
+        id: item.view.id,
+        status: Date.now() < item.readyAt ? "generating" : item.view.status,
+      });
+    }),
     http.post("*/api/cases", async ({ request }) => {
       const input = GenerateCaseRequest.safeParse(await request.json());
       if (!input.success) return error("VALIDATION", "Choose a case type.");
@@ -290,7 +303,11 @@ export function createMockHandlers({
       if (!item) return error("NOT_FOUND", "We couldn't find this case.", 404);
       return HttpResponse.json(
         Date.now() < item.readyAt
-          ? { id: item.view.id, status: "generating" }
+          ? {
+              id: item.view.id,
+              status: "generating",
+              ...(item.view.type === "prep" && { type: "prep" }),
+            }
           : item.view,
       );
     }),
@@ -555,13 +572,25 @@ export function createMockHandlers({
         ),
       );
     }),
+    http.get("*/api/cases/:id/review/retake/:eventId", ({ params }) => {
+      const item = getCase(String(params.id));
+      if (!item) return error("NOT_FOUND", "We couldn't find this case.", 404);
+      return HttpResponse.json({
+        status: "upgrade",
+        remaining: 0,
+        nextAvailableAt: null,
+        result: null,
+      });
+    }),
     http.get("*/api/certificates/:slug", ({ params }) => {
       const slug = String(params.slug);
       if (slug === previewCertificate.slug)
         return HttpResponse.json(previewCertificate);
       getCase(PREVIEW_CASE_ID);
       const match = [...cases.values()].find(
-        (record) => previewCertificateSlug(record.view.id) === slug,
+        (record) =>
+          record.view.type !== "prep" &&
+          previewCertificateSlug(record.view.id) === slug,
       );
       const item = match && getCase(match.view.id);
       if (!item || item.view.status !== "evaluated")

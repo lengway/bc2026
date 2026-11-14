@@ -4,6 +4,7 @@ import { ArrowUpRight, Plus } from "lucide-react";
 import {
   LEVEL_MIN_ACCURACY,
   MIN_DISTINCT_ARCHETYPES,
+  MIN_CASE_SKILL_SCORE,
   type SkillId,
   type SkillProgressSeries,
 } from "@/contracts";
@@ -29,6 +30,10 @@ function blockerMessage(code: string, series: SkillProgressSeries) {
       return series.averageAccuracy === null
         ? `Reach ${minimum}% average accuracy.`
         : `Raise average accuracy from ${formatAverageAccuracy(series.averageAccuracy)} to at least ${minimum}%.`;
+    case "skill_evidence_missing":
+      return `In your next case, demonstrate ${formatSkill(series.skill).toLowerCase()} in a submitted move so the review can score it.`;
+    case "skill_score_below_threshold":
+      return `Reach ${MIN_CASE_SKILL_SCORE}% in ${formatSkill(series.skill).toLowerCase()} on each counted case. Open your review to see what to improve.`;
     case "left_case":
       return "Complete the series without the client leaving any case.";
     case "email_unverified":
@@ -135,8 +140,13 @@ export function SkillDetailScreen({
                     {formatDate(item.completedAt)}
                   </time>
                   <span className="font-mono tabular-nums">
-                    {item.accuracy === null ? "Unscored" : `${item.accuracy}%`}
+                    {item.accuracy === null ? "Unscored" : `${item.accuracy}% Accuracy`}
                   </span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {item.skillAssessment
+                    ? `${item.skillAssessment.score}% in ${formatSkill(series.skill)}`
+                    : "Skill evidence unavailable"}
                 </span>
               </Link>
             </li>
@@ -159,8 +169,9 @@ export function SkillDetailScreen({
           <p className="text-muted-foreground">
             Your last {series.required} scored cases within {series.windowDays}{" "}
             days must include {MIN_DISTINCT_ARCHETYPES} different scenarios,
-            average {LEVEL_MIN_ACCURACY[1]}% or higher, and have no client
-            walkouts.
+            average {LEVEL_MIN_ACCURACY[1]}% case Accuracy or higher, and have no
+            client walkouts. Each case must show rubric evidence for the skill
+            and score at least {MIN_CASE_SKILL_SCORE}% in it.
           </p>
         </div>
         {blockers.length > 0 && (

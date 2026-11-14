@@ -232,8 +232,8 @@ export function useCreateCase() {
   const client = useQueryClient();
   return useMutation({
     mutationKey: createCaseMutationKey,
-    mutationFn: ({ type, skill }: GenerateCaseRequest) =>
-      api.createCase(type, skill),
+    mutationFn: ({ type, skill, prep }: GenerateCaseRequest) =>
+      api.createCase(type, skill, prep),
     retry: false,
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ["skill-path"] });

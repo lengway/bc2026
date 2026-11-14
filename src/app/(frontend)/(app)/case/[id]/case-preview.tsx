@@ -48,8 +48,13 @@ export function CasePreview({ id }: { id: string }) {
       <>
         <PreparingCase
           failed={view.status === "failed"}
+          salesCallPrep={view.type === "prep"}
           retrying={create.isPending}
           onRetry={() => {
+            if (view.type === "prep") {
+              router.push("/prepare");
+              return;
+            }
             if (create.isPending) return;
             create.mutate(
               { type: retryType, skill },

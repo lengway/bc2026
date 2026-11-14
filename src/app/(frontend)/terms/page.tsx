@@ -1,6 +1,9 @@
+import { publicMetadata } from "@/app/_lib/seo";
 import Link from "next/link";
 import { GambitLogo } from "@/ui/brand";
 import { Surface } from "@/app/_components/product";
+
+export const metadata = publicMetadata("/terms");
 
 export default function TermsPage() {
   return (

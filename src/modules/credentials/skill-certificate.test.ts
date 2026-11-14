@@ -20,7 +20,10 @@ function fixture({ catchUp = false } = {}) {
     now,
     canFull: async () => pro,
     loadSubmission: async (caseId) => samples.get(caseId)?.snapshot ?? null,
-    getReview: async (caseId) => samples.get(caseId)!.review,
+    getReview: async (caseId) => {
+      const { review, snapshot } = samples.get(caseId)!;
+      return { ...review, transcript: snapshot.events.filter((event) => event.isPublic) };
+    },
   });
   const progress = createProgressService({
     db: state.db,
@@ -77,7 +80,9 @@ describe('skill certificate integration', () => {
     const limited = await demo.service.getSkillCertificateBySlug(certificate.slug);
     expect(limited).toMatchObject({
       level: 1, supersededBy: null, averageAccuracy: 75,
-      cases: [{ caseId: second.caseId }, { caseId: third.caseId }, { caseId: first.caseId }],
+      cases: [second, third, first].map(({ caseId }) => ({
+        caseId, skillAssessment: { score: 80, status: 'partially_met' },
+      })),
     });
     expect(limited).not.toHaveProperty('keyMoves');
     const legacy = await demo.service.issueCertificate(third.snapshot);
@@ -86,7 +91,10 @@ describe('skill certificate integration', () => {
     demo.enablePro();
     const full = await demo.service.getSkillCertificateBySlug(certificate.slug);
     expect(full).toHaveProperty('trustCurves', expect.arrayContaining([{ caseId: second.caseId, points: second.review.evaluation.trustCurve }]));
-    expect(full).toHaveProperty('keyMoves', expect.arrayContaining([expect.objectContaining({ caseId: first.caseId })]));
+    expect(full).toHaveProperty('keyMoves', expect.arrayContaining([{
+      caseId: first.caseId,
+      move: expect.objectContaining({ eventId: first.review.moves.find((move) => move.rubricRef === 'discovery')!.eventId }),
+    }]));
 
     await demo.add('committee', { owner, ageDays: 0, accuracy: 57 });
     expect(await demo.discovery(owner)).toMatchObject({ averageAccuracy: 69, blockers: ['accuracy_below_threshold'],
@@ -94,6 +102,21 @@ describe('skill certificate integration', () => {
     expect(await demo.issue(owner)).toEqual([]);
     await demo.add('vendor', { owner, ageDays: 0.1, accuracy: 100, outcome: 'left' });
     expect((await demo.discovery(owner)).blockers).toContain('left_case');
+  });
+
+  it('continues serving a legacy certificate with incomplete skill evidence', async () => {
+    const demo = fixture();
+    const first = await demo.add('cold-discovery');
+    const owner = first.userId;
+    await demo.add('vendor', { owner });
+    await demo.add('committee', { owner });
+    const certificate = (await demo.issue(owner)).find(({ skill }) => skill === 'discovery')!;
+    await state.db.query("UPDATE evaluations SET skills='[]' WHERE case_id=$1", [first.caseId]);
+    expect(await demo.discovery(owner)).toMatchObject({ eligible: false, blockers: ['skill_evidence_missing'] });
+    const saved = await demo.service.getSkillCertificateBySlug(certificate.slug);
+    expect(saved).toMatchObject({ verified: true, level: certificate.level });
+    expect(saved.cases.find(({ caseId }) => caseId === first.caseId)?.skillAssessment).toBeUndefined();
+    expect(await demo.issue(owner)).toEqual([]);
   });
 
   it('does not reissue a revoked skill certificate or link to it from a public case record', async () => {

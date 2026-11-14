@@ -44,8 +44,9 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
     }
     const existing = await findOwnedSlug(db, caseId, userId);
     if (existing) return existing.revokedAt ? { disabled: true } : { slug: CertificateSlug.parse(existing.slug), disabled: false };
-    const owner = await db.query('SELECT id FROM cases WHERE id=$1 AND user_id=$2 AND status=$3', [caseId, userId, 'evaluated']);
+    const owner = await db.query('SELECT type FROM cases WHERE id=$1 AND user_id=$2 AND status=$3', [caseId, userId, 'evaluated']);
     if (!owner.rows.length) throw new AppError('NOT_FOUND', 404, 'Case record not found.');
+    if (owner.rows[0].type === 'prep') return { disabled: true };
     if (!await canIssue(db, userId)) return { disabled: false };
     const snapshot = await loadSubmission(caseId);
     if (!snapshot || snapshot.case.userId !== userId) throw new AppError('NOT_FOUND', 404, 'Case record not found.');
@@ -66,7 +67,7 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
       if (!SkillCertificateSlug.safeParse(slug).success) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
       const certificate = await findSkillCertificate(db, slug);
       if (!certificate) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
-      const members = await skillCertificateMembers(db, certificate.id);
+      const members = await skillCertificateMembers(db, certificate.id, certificate.skill);
       if (members.length !== CASES_REQUIRED) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
       const dependencies = members.flatMap(({ aiDependency }) => aiDependency === null ? [] : [aiDependency]);
       const limited = SkillCertificateLimited.parse({
@@ -82,8 +83,13 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
         if (review.evaluation.caseId !== caseId) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
         return review;
       }));
-      const keyMoves = reviews.flatMap(({ evaluation, moves }) => {
-        const move = evaluation.topMoves[0] ?? moves.find((item) => item.assessmentStatus === 'assessed');
+      const keyMoves = reviews.flatMap(({ evaluation, moves, transcript }) => {
+        const publicEvents = new Set(transcript.map(({ id }) => id));
+        const assessed = moves.filter((move) => move.assessmentStatus === 'assessed' && publicEvents.has(move.eventId));
+        const byScore = assessed.sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+        const skillMove = byScore.find(({ rubricRef }) => rubricRef === certificate.skill);
+        const top = evaluation.topMoves.find(({ eventId }) => publicEvents.has(eventId));
+        const move = skillMove ?? top ?? byScore[0];
         return move ? [{ caseId: evaluation.caseId, move }] : [];
       });
       if (keyMoves.length !== CASES_REQUIRED) return limited;
@@ -94,7 +100,7 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
       });
     },
     issueCertificate:(snapshot:SubmittedSnapshot)=>db.transaction(tx=>issue(tx,snapshot,now())),
-    issueCertificateWithExecutor:async(tx:SqlExecutor,snapshot:SubmittedSnapshot)=>await canIssue(tx,snapshot.case.userId)?issue(tx,snapshot,now()):null,
+    issueCertificateWithExecutor:async(tx:SqlExecutor,snapshot:SubmittedSnapshot)=>snapshot.case.type !== 'prep' && await canIssue(tx,snapshot.case.userId)?issue(tx,snapshot,now()):null,
     getOwnedLink,
     async getOwnedSlug(caseId:string,userId:string):Promise<string|undefined> {
       return (await getOwnedLink(caseId,userId)).slug;
@@ -104,7 +110,7 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
       const found=await findBySlug(db,slug);
       if(!found) throw new AppError('NOT_FOUND',404,'Certificate not found.');
       const snapshot=await loadSubmission(found.certificate.caseId);
-      if(!snapshot||snapshot.case.userId!==found.certificate.userId) throw new AppError('NOT_FOUND',404,'Certificate not found.');
+      if(!snapshot||snapshot.case.type==='prep'||snapshot.case.userId!==found.certificate.userId) throw new AppError('NOT_FOUND',404,'Certificate not found.');
       const review=await getReview(found.certificate.caseId,found.certificate.userId);
       const holderName=snapshot.case.isGuest?'Demo Guest':found.holderName??'Skills participant';
       const skillCertificate=await findCaseSkillCertificate(db, found.certificate.caseId);

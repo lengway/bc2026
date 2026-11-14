@@ -220,11 +220,13 @@ export function PreparingCase({
   failed,
   onRetry,
   retrying = false,
+  salesCallPrep = false,
 }: {
   /** Only when the server reports the generation failed. Slowness is never a failure. */
   failed?: boolean;
   onRetry: () => void;
   retrying?: boolean;
+  salesCallPrep?: boolean;
 }) {
   const [started] = useState(Date.now);
   const [seconds, setSeconds] = useState(0);
@@ -254,11 +256,17 @@ export function PreparingCase({
           </h1>
           <p className="mb-6 mt-3 text-sm leading-relaxed text-muted-foreground">
             Something went wrong on our side. No practice time has been used.
-            Try again, and we will write a new case for you.
+            {salesCallPrep
+              ? " Return to preparation to enter your call details again."
+              : " Try again, and we will write a new case for you."}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button onClick={onRetry} disabled={retrying}>
-              {retrying ? "Starting again…" : "Prepare a new case"}
+              {salesCallPrep
+                ? "Back to call preparation"
+                : retrying
+                  ? "Starting again…"
+                  : "Prepare a new case"}
             </Button>
             <Button asChild variant="outline">
               <Link href="/dashboard">Back to practice</Link>
@@ -286,13 +294,18 @@ export function PreparingCase({
           Preparing your case
         </h1>
         <p className="mb-7 mt-3 text-sm leading-relaxed text-muted-foreground">
-          We are writing a case for your profile. This usually takes one to two
-          minutes. The timer has not started.
+          {salesCallPrep
+            ? "We’re writing a scenario around your buyer and their likely objection."
+            : "We are writing a case for your profile."}{" "}
+          This usually takes one to two minutes. The timer has not started.
         </p>
         <StepChecklist
           steps={STAGES.map((stage, i) => ({
             id: String(i),
-            label: stage.label,
+            label:
+              salesCallPrep && i === 0
+                ? "Building the sales call scenario"
+                : stage.label,
             status:
               i < activeIndex
                 ? "done"

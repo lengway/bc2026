@@ -2,6 +2,7 @@ import { ClientData } from "@/app/_components/providers";
 import { CertificateSlug } from "@/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { mocksEnabled } from "@/app/_lib/environment";
 import { getPublicCertificate } from "@/app/_lib/public-certificate";
 import {
@@ -32,6 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 export default async function CertificatePage({ params }: Props) {
   const { slug } = await params;
+  await connection();
   const certificate = await getPublicCertificate(slug);
   if (certificate)
     return (
