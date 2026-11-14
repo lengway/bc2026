@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:migrate": "tsx scripts/migrate.ts"
+    "db:migrate": "tsx scripts/migrate.ts",
+    "seed:onboarding": "tsx scripts/seed-onboarding.ts"
   },
   "dependencies": {
     "dotenv": "18.0.10",

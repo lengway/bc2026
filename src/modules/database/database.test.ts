@@ -11,6 +11,7 @@ describe('PostgreSQL schema and transactions', () => {
   afterAll(async () => { await fixture?.cleanup(); });
 
   it('applies migrations once and creates private infrastructure tables', async () => {
+    const before = await fixture.db.query('SELECT name,checksum FROM schema_migrations ORDER BY name');
     await migrate(fixture.db);
     const result = await fixture.db.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
     expect(result.rows.map((row) => row.table_name)).toEqual(expect.arrayContaining([
@@ -19,7 +20,8 @@ describe('PostgreSQL schema and transactions', () => {
       'move_reviews', 'evaluations', 'certificates', 'skill_progress', 'progress_awards', 'streaks',
       'llm_calls', 'jobs', 'rate_limits', 'billing_webhook_events',
     ]));
-    expect((await fixture.db.query('SELECT count(*)::int AS count FROM schema_migrations')).rows[0].count).toBe(1);
+    expect((await fixture.db.query('SELECT name,checksum FROM schema_migrations ORDER BY name')).rows).toEqual(before.rows);
+    expect(before.rows.map(row=>row.name)).toContain('001_initial.sql');
   });
 
   it('rolls back all writes when a transaction fails', async () => {

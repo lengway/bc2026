@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, unlink, rmdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -7,7 +7,7 @@ import { CopilotReply, createLlmService, DirectorTwist, EvaluatedMoves, Generate
 import { createCatalogService } from '@/modules/catalog';
 
 const dirs: string[] = [];
-afterEach(async () => { await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))); });
+afterEach(async () => { await Promise.all(dirs.splice(0).map(async (dir) => { await unlink(join(dir,'test.v1.md')); await rmdir(dir); })); });
 
 async function template() {
   const dir = await mkdtemp(join(tmpdir(), 'bc-prompts-'));
@@ -17,7 +17,7 @@ async function template() {
 }
 
 describe('LLM service', () => {
-  it('retries invalid JSON with validation feedback and records each attempt without content', async () => {
+  it('retries invalid JSON with validation feedback and records each attempt with redacted secrets', async () => {
     const records: LlmCallRecord[] = [];
     const requests: { prompt: string; validationError?: string }[] = [];
     const provider: LlmProvider = { async complete(request) {

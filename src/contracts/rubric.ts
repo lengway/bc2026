@@ -19,6 +19,7 @@ export type RubricAiUseCheck = z.infer<typeof RubricAiUseCheck>;
 
 export const RubricTwist = z.object({
   id: NonEmpty,
+  documentIds: z.array(NonEmpty).default([]),
   trigger: z.union([
     z.strictObject({ afterUserTurn: PositiveInt }),
     z.strictObject({ trustBelow: Percent }),
