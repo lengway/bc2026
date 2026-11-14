@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -49,6 +50,7 @@ export function Providers({ children }: { children: ReactNode }) {
     }),
   );
   return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
     <QueryClientProvider client={client}>
       <PreviewContext.Provider value={preview}>
         {mocksEnabled && <PreviewBootstrap onStateChange={setPreview} />}
@@ -91,6 +93,7 @@ export function Providers({ children }: { children: ReactNode }) {
         </Dialog.Root>
       </PreviewContext.Provider>
     </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 export function ClientData({ children }: { children: ReactNode }) {

@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, LayoutDashboard, Route } from "lucide-react";
+import { GambitLogo } from "@/ui/brand";
+import { ThemeToggle } from "@/ui/theme-toggle";
+import { ArrowRight, LayoutDashboard, Route } from "lucide-react";
 import { Button } from "@/ui/primitives/button";
 import { cn } from "@/ui/lib/utils";
 import type { ReactNode } from "react";
@@ -68,19 +70,16 @@ export function ProductHeader({
       <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
         <Link
           href={name ? "/dashboard" : "/"}
-          className="inline-flex min-h-11 items-center gap-2.5 text-lg font-semibold tracking-tight"
+          aria-label="Gambit home"
+          className="inline-flex min-h-11 items-center"
         >
-          <BookOpen
-            aria-hidden="true"
-            strokeWidth={1.5}
-            className="size-5 text-ink"
-          />
-          Gambit
+          <GambitLogo />
         </Link>
         <nav
           aria-label="Main navigation"
           className="flex items-center gap-1 sm:gap-3"
         >
+          <ThemeToggle />
           {name ? (
             <>
               <Button asChild variant="ghost" size="sm">
