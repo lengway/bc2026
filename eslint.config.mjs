@@ -27,7 +27,7 @@ export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
   { rules: { '@next/next/no-html-link-for-pages': 'off' } },
-  globalIgnores(['.next/**', 'dist/**', 'coverage/**', '.tmp/**', '.superpowers/**', 'next-env.d.ts']),
+  globalIgnores(['.next/**', 'out/**', 'build/**', 'dist/**', 'coverage/**', '.tmp/**', '.superpowers/**', 'next-env.d.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     plugins: { architecture: { rules: { 'module-boundary': moduleBoundary } } },

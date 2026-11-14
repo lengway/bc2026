@@ -4,7 +4,7 @@
 
 - Execution authorized 2026-11-14. T0–T5 backend implemented and reviewed; remaining work is live integration/configuration.
 - Specifications verified unchanged: CONTEXT SHA256 b5b1f4a8841ec1162acaac3d7eeea996428fbdd4004300fd61330df9c49ae1f1; backend prompt SHA256 119289e00d5ff8dc463073fccd928092ae352b5071d31c0eb10920ce1320c54e.
-- Remote lengway/bc2026 is empty and private; local be/backend contains documentation commit 00d87ec. User owns all pushes/PRs.
+- Remote was empty at implementation start. It now contains independently initialized main/design (96918f2), fe/frontend (024be78), and published be/backend (0918643). User owns all pushes/PRs; local history integration authorized on 2026-11-14.
 - User supplied the OpenAI key in ignored .env. Read-only model listing succeeds for gpt-6.1-sol/terra; generation returns 429 credit_balance_exhausted. SMTP host/from remain unset locally. VPS/SMTP/Stripe live delivery is not verified.
 - Node/pnpm available; PostgreSQL installation found; Docker not found in PATH. Use an isolated local PostgreSQL cluster for integration checks when possible.
 - Shared root build/package configuration is required for the backend-only starter. Frontend implementation remains untouched.
@@ -37,4 +37,12 @@ Model/budget decision: user selected a $50 total envelope, $40 tests/preparation
 
 Final local verification: pnpm test159/159; pnpm lint exit0; pnpm typecheck exit0; pnpm build exit0 with all21 routes and no dynamic-filesystem tracing warnings. The local HTTP server/worker used only a disposable DB and fake external configuration and have been stopped. Local T5 is preserved on be/backend; user owns push/PR. The isolated PostgreSQL test cluster is stopped at handoff and can be restarted via pg_ctl with .tmp/postgres-test and port53650.
 
-Next steps: after funded API access run pnpm test:live with LLM_LIVE=1, inspect real generated/rubric/review quality, configure SMTP/test Stripe and VPS, integrate teammate frontend using docs/backend-handoff.md, then live deploy/smoke. Docker is unavailable here, so Compose/HTTPS not executed. User continues to own push/PR. The original spec documents were not rewritten.
+Next steps: user pushes the completed history merge and opens the PR; after funded API access run pnpm test:live with LLM_LIVE=1, inspect real generated/rubric/review quality, configure SMTP/test Stripe and VPS, integrate the separate fe/frontend flow using docs/backend-handoff.md, then live deploy/smoke. Docker is unavailable here, so Compose/HTTPS not executed. User continues to own push/PR. The original spec documents were not rewritten.
+
+## Main/backend history integration
+
+Authorized by the user after GitHub refused a PR between unrelated histories. Backup ref: backup/be-backend-before-main-20261114 at0918643. Merge source: origin/main96918f2. Scope is main/design integration, not the separate fe/frontend branch. Resolve shared contracts without weakening evidence/privacy invariants; preserve visual design with only schema-compatibility bindings and fixtures. Root owns Git/config/contracts/backend verification; Terra owns UI compatibility and regressions. Final tests/build/HTTP evidence will be recorded before the local merge commit.
+
+Verification complete on merged tree: pnpm test208/208 across33files (159backend +49frontend), pnpm lint/typecheck/build exit0. Four static design/home routes and21API routes build together. Both npm lock root dependencies and frozen pnpm install verified. API HTTP smoke against real disposable PostgreSQL verifies cookies/CSRF/ownership/logout and worker startup, with no external provider calls. Browser smoke in headless Chrome covers /, /design, /design/landing, /design/review at1440px and390px with normal/reduced-motion preferences, checks review buttons, zero page/console/resource errors and no horizontal overflow. Captures/logs remain ignored under .tmp.
+
+Astra review identified two integration errors, fixed and independently rechecked: insufficient-evidence moves were displayed as Good; certificate text overstated authorship and ignored demo state. Browser verification additionally reproduced reduced-motion hydration mismatch and confirmed its fix via a stable server snapshot. Focused hydration regression fails on previous code and passes now. Backend modules, API, migrations, worker, prompts and field packs are unchanged from0918643. Original spec SHA256 values remain unchanged. Untracked docs/research is deliberately excluded. No paid provider calls, push or PR performed during integration.

@@ -1,4 +1,4 @@
-# Skills Simulation — backend
+# Skills Simulation
 
 Backend implementation for the BusinessCup 2026 Sales simulation. The product specification is in [CONTEXT.md](docs/spec/CONTEXT.md); backend tasks are in [PROMPT_BACKEND.md](docs/spec/PROMPT_BACKEND.md).
 
@@ -6,7 +6,7 @@ Backend implementation for the BusinessCup 2026 Sales simulation. The product sp
 
 T0–T5 backend code is implemented: contracts, auth/guest access, generation, simulation, evidence-based review, certificates, progress, Stripe test billing, HTTP/SSE and worker. See the [execution ledger](docs/superpowers/plans/2026-11-14-backend-progress.md) for verification and remaining external checks. No live deployment is claimed.
 
-The frontend is developed separately by a teammate. This branch owns backend modules, API routes, contracts, fixture data, PostgreSQL migrations, worker and deployment configuration. It does not implement frontend screens.
+This branch combines the backend with the teammate's landing, design gallery and review components from `main`. Their layouts and styling are retained; bindings and gallery fixtures use the shared backend contracts. The full product flow on `fe/frontend` is a separate branch and has not been merged here. See [DESIGN_HANDOFF.md](DESIGN_HANDOFF.md) for the design surface and [backend-handoff.md](docs/backend-handoff.md) for the API.
 
 ## Local preparation
 
@@ -21,6 +21,8 @@ Set the local environment using `.env.example`. `LLM_MODEL=gpt-6.1-sol` handles 
 
 ```sh
 pnpm test
+pnpm test:backend
+pnpm test:frontend
 pnpm typecheck
 pnpm lint
 pnpm build
@@ -28,7 +30,9 @@ pnpm build
 
 `pnpm db:migrate` applies SQL migrations using `DATABASE_URL`. Tests require `TEST_DATABASE_URL` in the environment or ignored `.env.test.local`; that account needs permission to create disposable databases. Tests create and drop only randomly named `bc_test_*` databases, never the database named in your connection string. Tests fail explicitly when PostgreSQL is unavailable.
 
-Run `pnpm dev` and `pnpm worker` in separate terminals after migrating. For a production build use `pnpm build` then `pnpm start`, keeping the worker running separately. This branch serves API routes only; the teammate supplies screens. Frontend integration details are in [backend-handoff.md](docs/backend-handoff.md).
+`pnpm test` runs both projects: server tests in Node.js and UI tests in jsdom with the design branch's React setup. The focused commands run each project separately. pnpm is the CI/VPS package manager; `package-lock.json` is also synchronized for teammates using npm. Keep both lockfiles synchronized when changing dependencies.
+
+Run `pnpm dev` and `pnpm worker` in separate terminals after migrating. For a production build use `pnpm build` then `pnpm start`, keeping the worker running separately. `/`, `/design`, `/design/landing` and `/design/review` serve the existing design work. Cache Components is disabled because the backend route handlers explicitly use request-time execution; the design's Tailwind/Turbopack configuration is preserved.
 
 Paid checks are opt-in: `LLM_LIVE=1 pnpm test:live` (PowerShell: set `$env:LLM_LIVE='1'`, then run the command). It uses a disposable PostgreSQL database and real OpenAI, with email/payment network calls disabled. The runner reserves a conservative cost estimate before each request, stops at $2 per run or $40 cumulative reserved in ignored `.tmp/llm-live-spend.json`, and serializes runs through a lock. Do not delete that ledger to bypass the limit. This is a local smoke-runner guard, not an account-wide or production spending limit. Keep $10 of the approved $50 for the pitch. Verify actual usage in the provider dashboard, especially after requests with no reported usage.
 

@@ -28,11 +28,12 @@ The user chose `GUEST_ACCESS_ENABLED` on the server instead of an admin screen. 
 
 `SessionView.user.isGuest` identifies guest sessions. The display name is `Demo Guest`; sessions expire after 24 hours. Disabling the server flag closes guest access, including existing guest sessions. Guest results carry `CertificateLimited.isDemo` (also present on full certificates). Show that demo designation; `verified` continues to mean only a recorded simulation. Guest checkout is unavailable; paid access uses an email account.
 
-No frontend implementation was modified for these changes. The entry control and demo indicator are frontend work.
+The `main` design components are now merged and `CertificateCard` displays the demo designation. Guest entry and the full product flow remain work for the separate `fe/frontend` integration.
 
 ## Scores and certificates
 
 - Render null scores as unavailable, alongside coverage and limitations. Do not convert null to zero.
+- A move with `assessmentStatus: insufficient_evidence` is unassessed even if its legacy `label` is `good`. Render a neutral state instead of a positive grade; current design components handle this.
 - Label points are fixed; the server returns evidence and the arithmetic behind accuracy. AI-use skill and observed assistance are separate from accuracy.
 - `aiDependency` is a legacy text-similarity field. It does not mean an AI probability or proven authorship.
 - Certificate depth depends on the case owner's subscription. Detect the full shape using the `evaluation` property; the limited shape intentionally excludes transcript and move reviews.
@@ -44,3 +45,11 @@ No frontend implementation was modified for these changes. The entry control and
 Run the web app and worker against the same migrated PostgreSQL database. Use the same origin for frontend/API, matching `APP_URL`; a frontend on another port needs a same-origin development proxy, not direct cross-origin cookie calls. No backend secret belongs in a `NEXT_PUBLIC_*` variable.
 
 Auth uses `/api/auth/options`, `/guest`, `/magic-link`, `/verify`, `/session`, `/logout`. Free quota denial is HTTP 403 with `error.code=PAYWALL`; rate limits use HTTP 429; pending operations/reviews use 409. Distinguish these codes rather than showing every response as a network error. Do not tight-loop retry LLM failures. Final grades/certificates require the evaluation worker; an HTTP submit alone does not compute them.
+
+## History integration handoff — 2026-11-14
+
+`be/backend` now incorporates `main`'s design commit `96918f2` through a normal two-parent merge. Backend module/API/database/prompt/worker implementation is unchanged from `0918643`. The independent `fe/frontend` branch is not merged: its owner should integrate this branch's shared contracts and adapters when connecting the full flow.
+
+The shared contract barrel retains design names `CaseDocKind`, `parseDocContent`, `CaseOutcome` and `TranscriptEntry`. Documents use the canonical backend formats: email recipients are arrays, timestamps are ISO, CRM has contact/stage/notes, notes use text, and table cells may be number/null. Optional table captions are preserved. Private scoring schemas have not been weakened to accommodate older gallery data.
+
+`pnpm test` includes both backend Node tests and frontend jsdom tests; focused commands are `pnpm test:backend` and `pnpm test:frontend`. The original design colors, fonts, global CSS, main layout and landing layout are preserved. Certificate text reflects recorded-simulation verification, and reduced-motion preferences hydrate without changing initial markup.

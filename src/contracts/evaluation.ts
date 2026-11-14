@@ -31,6 +31,10 @@ export type MoveReview = z.infer<typeof MoveReview>;
 export const EvaluationOutcome = z.enum(['won', 'lost', 'left', 'incomplete']);
 export type EvaluationOutcome = z.infer<typeof EvaluationOutcome>;
 
+// Preserve the design layer's outcome import while sharing the canonical schema.
+export const CaseOutcome = EvaluationOutcome;
+export type CaseOutcome = EvaluationOutcome;
+
 export const PublicEvaluation = z.object({
   caseId: Id,
   accuracy: Percent.nullable(),

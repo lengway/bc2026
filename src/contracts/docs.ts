@@ -28,6 +28,7 @@ export const SlackThreadContent = z.object({
 export type SlackThreadContent = z.infer<typeof SlackThreadContent>;
 
 export const TableContent = z.object({
+  caption: z.string().nullable().optional(),
   columns: z.array(NonEmpty).min(1),
   rows: z.array(z.array(z.union([z.string(), z.number(), z.null()]))),
 }).refine(({ columns, rows }) => rows.every((row) => row.length === columns.length), {
@@ -53,3 +54,18 @@ export const CaseDoc = z.discriminatedUnion('kind', [
   DocBase.extend({ kind: z.literal('note'), content: NoteContent }),
 ]);
 export type CaseDoc = z.infer<typeof CaseDoc>;
+
+export const CaseDocKind = z.enum(['email_thread', 'crm_record', 'slack_thread', 'table', 'note']);
+export type CaseDocKind = z.infer<typeof CaseDocKind>;
+
+export type ParsedDocContent = {
+  [K in CaseDocKind]: Pick<Extract<CaseDoc, { kind: K }>, 'kind' | 'content'>;
+}[CaseDocKind];
+
+/** Validate the same content shape used by generated cases before rendering it. */
+export function parseDocContent(doc: Pick<CaseDoc, 'kind' | 'content'>): ParsedDocContent | null {
+  const result = CaseDoc.safeParse({ id: 'content-preview', title: 'Content preview', arrivesAtTurn: null, ...doc });
+  if (!result.success) return null;
+  const { kind, content } = result.data;
+  return { kind, content } as ParsedDocContent;
+}

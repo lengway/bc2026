@@ -1,0 +1,264 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens — direction "Ledger".
+ * Every color in the product comes from this file. Components use the
+ * Tailwind classes generated below (bg-surface, text-label-blunder, …),
+ * never raw hex values.
+ */
+
+@theme inline {
+  /* Type */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-heading: var(--font-sans);
+
+  /* Scale 12/14/16/20/24 map to text-xs/sm/base/xl/2xl. Display sizes: */
+  --text-display-sm: 2rem;
+  --text-display-sm--line-height: 1.15;
+  --text-display: 3rem;
+  --text-display--line-height: 1.08;
+  --text-display-lg: 4rem;
+  --text-display-lg--line-height: 1.04;
+
+  /* Shape: 4–10px, never pills */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 10px;
+  --radius-3xl: 10px;
+  --radius-4xl: 10px;
+
+  /* Elevation: borders separate cards, shadows only lift overlays */
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.04);
+  --shadow-raised: 0 1px 2px rgb(24 24 27 / 0.04), 0 16px 40px -16px rgb(24 24 27 / 0.14);
+
+  /* Motion: 150–250ms, ease-out */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-typing-dot: typing-dot 1.2s var(--ease-out) infinite;
+  --animate-spin-slow: spin 1.4s linear infinite;
+
+  /* shadcn semantic colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Product colors */
+  --color-surface: var(--surface);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-hover: var(--ink-hover);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-border: var(--ink-border);
+
+  /* Move labels: text color + soft background, always paired with a glyph */
+  --color-label-brilliant: var(--label-brilliant);
+  --color-label-brilliant-soft: var(--label-brilliant-soft);
+  --color-label-best: var(--label-best);
+  --color-label-best-soft: var(--label-best-soft);
+  --color-label-good: var(--label-good);
+  --color-label-good-soft: var(--label-good-soft);
+  --color-label-inaccuracy: var(--label-inaccuracy);
+  --color-label-inaccuracy-soft: var(--label-inaccuracy-soft);
+  --color-label-mistake: var(--label-mistake);
+  --color-label-mistake-soft: var(--label-mistake-soft);
+  --color-label-blunder: var(--label-blunder);
+  --color-label-blunder-soft: var(--label-blunder-soft);
+}
+
+:root {
+  /* Neutrals: cool zinc */
+  --background: #ffffff;
+  --surface: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #52525b;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --input: #d4d4d8;
+
+  /* The one accent: ink navy */
+  --ink: #1b2a5c;
+  --ink-hover: #111b40;
+  --ink-soft: #f3f5fb;
+  --ink-border: #cdd3e8;
+  --primary: var(--ink);
+  --primary-foreground: #ffffff;
+  --accent: var(--ink-soft);
+  --accent-foreground: var(--ink);
+  --ring: var(--ink);
+
+  --destructive: #b42318;
+
+  /* Move labels — each text color is AA (4.5:1+) on white and on its soft tint */
+  --label-brilliant: #0d6b64;
+  --label-brilliant-soft: #e3f2f0;
+  --label-best: #166534;
+  --label-best-soft: #e5f2e9;
+  --label-good: #4b6358;
+  --label-good-soft: #edf1ee;
+  --label-inaccuracy: #8a5a00;
+  --label-inaccuracy-soft: #faf0d7;
+  --label-mistake: #a8430a;
+  --label-mistake-soft: #fbebdd;
+  --label-blunder: #b42318;
+  --label-blunder-soft: #fbe9e7;
+
+  --chart-1: #1b2a5c;
+  --chart-2: #52525b;
+  --chart-3: #0d6b64;
+  --chart-4: #8a5a00;
+  --chart-5: #b42318;
+
+  --radius: 0.5rem;
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* Dark theme: opt-in for the workspace (focused work). Light is the default. */
+.dark {
+  --background: #0c0d10;
+  --surface: #131418;
+  --foreground: #f4f4f5;
+  --card: #16171c;
+  --card-foreground: #f4f4f5;
+  --popover: #16171c;
+  --popover-foreground: #f4f4f5;
+  --secondary: #1f2026;
+  --secondary-foreground: #f4f4f5;
+  --muted: #1f2026;
+  --muted-foreground: #a1a1aa;
+  --border: #26272e;
+  --border-strong: #34353d;
+  --input: #34353d;
+
+  --ink: #aab6ee;
+  --ink-hover: #c3ccf4;
+  --ink-soft: #1a2038;
+  --ink-border: #2c3663;
+  --primary: var(--ink);
+  --primary-foreground: #0e1430;
+  --accent: var(--ink-soft);
+  --accent-foreground: var(--ink);
+  --ring: var(--ink);
+
+  --destructive: #f58a80;
+
+  --label-brilliant: #5ecfc4;
+  --label-brilliant-soft: #12302e;
+  --label-best: #6ccb8b;
+  --label-best-soft: #142d1d;
+  --label-good: #a3b8ad;
+  --label-good-soft: #1f2623;
+  --label-inaccuracy: #e5b454;
+  --label-inaccuracy-soft: #33280f;
+  --label-mistake: #f0935a;
+  --label-mistake-soft: #361f11;
+  --label-blunder: #f58a80;
+  --label-blunder-soft: #3a1815;
+
+  --chart-1: #aab6ee;
+  --chart-2: #a1a1aa;
+  --chart-3: #5ecfc4;
+  --chart-4: #e5b454;
+  --chart-5: #f58a80;
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: #0e1430;
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  ::selection {
+    background: var(--ink-border);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -40,6 +40,9 @@ export const CertificateTranscriptEvent = Event.pick({
 });
 export type CertificateTranscriptEvent = z.infer<typeof CertificateTranscriptEvent>;
 
+export const TranscriptEntry = CertificateTranscriptEvent;
+export type TranscriptEntry = CertificateTranscriptEvent;
+
 export const CertificateFull = CertificateLimited.extend({
   evaluation: PublicEvaluation,
   moves: z.array(MoveReview),

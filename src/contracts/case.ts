@@ -3,7 +3,7 @@ import { CaseDoc } from './docs';
 import { Id, NonEmpty, Percent, PositiveInt, Timestamp } from './primitives';
 import { PublicScoringGuide } from './scoring';
 
-export { CaseDoc } from './docs';
+export { CaseDoc, CaseDocKind } from './docs';
 export { Level } from './primitives';
 
 export const Field = z.enum(['sales', 'project_management', 'software']);
