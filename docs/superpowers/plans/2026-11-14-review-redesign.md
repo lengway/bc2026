@@ -41,7 +41,7 @@
 
 - [x] Run lint, typecheck, full Vitest with isolated PostgreSQL, production build with mocks disabled, formatting and E2E.
 - [x] Review the complete diff for transcript privacy, empty/null states, keyboard focus, scroll behavior, narrow screens and bounded repair cost.
-- [ ] Update progress/remaining external checks, push branch and open PR to main with exact verification evidence.
+- [x] Update progress/remaining external checks, push branch and open PR to main with exact verification evidence.
 - [ ] Verify the actual deployed Marisol case only after access/rollout is available; state that limitation honestly if blocked.
 
 ## Progress
@@ -54,3 +54,5 @@
 - `pnpm lint`, `pnpm typecheck`, and all 321 Vitest tests passed with isolated local PostgreSQL. Production build with mocks disabled and format check pass. Browser suite: 10 scenarios passed in the full rerun; after updating the new onboarding preview expectation, the remaining onboarding scenario and new theme/mobile scenario passed in a targeted run (12 distinct passing scenarios). Formatting-only changes to files newly integrated from main restore the repository-wide format gate.
 - SSH `deploy` is a restricted command interface, accepting only `deploy`, `status`, `logs`, `follow`, `restart`, `history` (`logs` requires a service such as `web` or `worker`). Do not send shell commands or guess users: fail2ban is enabled. The first root password login succeeded; two subsequent logins (the last explicitly requested by the user) were rejected, so attempts stopped. No deployment, restart, production score changes or paid model calls occurred.
 - Remaining external acceptance: run v3 on the recorded input with a real provider and verify the deployed review after a coordinated rollout. Do not overwrite already issued evaluations/certificates to satisfy that check.
+
+- Delivery: draft PR [#6](https://github.com/lengway/bc2026/pull/6), head implementation `cc4c55a`; draft status is intentional pending actual-provider/deployed acceptance. Root password retry explicitly requested by the user was also rejected. No further credential guesses.

@@ -53,7 +53,7 @@ Frontend F1–F6 and the shared-contract integration are on the delivery branch.
 
 ## Review redesign — 2026-11-14
 
-- Branch `fix/review-redesign`, based on main `9e4462f`; the user explicitly authorized all three review items including backend scoring. The current frontend uses the new brand and supports both light and dark themes.
+- Draft PR [#6](https://github.com/lengway/bc2026/pull/6), branch `fix/review-redesign`, based on main `9e4462f`; the user explicitly authorized all three review items including backend scoring. The current frontend uses the new brand and supports both light and dark themes.
 - Actual recorded Marisol/Prairie Bend failure reproduced: v2 withheld four substantive actions because they repeated permitted Copilot advice. Evidence and rubric IDs were present and valid. Prompt v3 grades action content independently of assistance, while the shared semantic validator uses bounded repair for invalid assessed proposals.
 - Review now replays the public conversation with synchronized arrows, keyboard, move list and trust curve; mobile has inline detail and a focus-safe All moves Sheet. Technical diagnostics are hidden. Copilot Enter sends, Shift+Enter adds a line, IME and pending/empty input are guarded.
 - Verification: lint/typecheck and 321 Vitest tests pass with isolated PostgreSQL; production build with mocks disabled, formatting, 12 distinct browser scenarios, and Axe checks in light/dark desktop/mobile pass. The final two browser scenarios were verified in a targeted rerun after updating onboarding expectations. Screenshots were inspected.
