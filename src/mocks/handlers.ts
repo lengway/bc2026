@@ -10,6 +10,8 @@ import {
   PublicEvent,
   EditorBatch,
   EditorBatchAck,
+  Outcome,
+  CertificateLimited,
 } from "@/app/_lib/contracts";
 import {
   makeCase,
@@ -26,6 +28,7 @@ const StoredCase = z.object({
   evaluatedAt: z.number().optional(),
   events: z.array(PublicEvent),
   trust: z.number(),
+  outcome: Outcome.nullable().default(null),
   moves: z.record(z.string(), MoveResponse),
   copilot: z.record(z.string(), CopilotResponse),
 });
@@ -57,6 +60,8 @@ export function createMockHandlers({
   browserOrigin?: string;
 } = {}) {
   const cases = new Map<string, StoredCaseData>();
+  // Raw editing data stays in RAM, never session/local storage. Reloading loses coverage.
+  const editing = new Map<string, z.infer<typeof EditorBatch>[]>();
   const batches = new Map<string, z.infer<typeof EditorBatchAck>>();
   const draftCases = new Map<string, string>();
   const editorIds = new Set<string>();
@@ -95,7 +100,15 @@ export function createMockHandlers({
     view: z.infer<typeof CaseView>,
     readyAt = 0,
   ): StoredCaseData {
-    return { view, readyAt, events: [], trust: 40, moves: {}, copilot: {} };
+    return {
+      view,
+      readyAt,
+      events: [],
+      trust: 40,
+      outcome: null,
+      moves: {},
+      copilot: {},
+    };
   }
   function getCase(id: string) {
     if (!cases.size && persist)
@@ -118,6 +131,7 @@ export function createMockHandlers({
   function canWrite(item: StoredCaseData) {
     return (
       item.view.status === "in_progress" &&
+      !item.outcome &&
       (!item.view.startedAt ||
         Date.now() <
           Date.parse(item.view.startedAt) + item.view.brief.timeLimitSec * 1000)
@@ -209,8 +223,8 @@ export function createMockHandlers({
         field: input.data.field,
         level: input.data.level,
         subfield: "account_management",
-        years: 3,
-        pains: ["Renewal conversations"],
+        years: Number(input.data.text.match(/(\d+)\s*years?/i)?.[1] ?? 0),
+        pains: input.data.text.trim() ? [input.data.text.trim()] : [],
         goals: ["Understand customer needs"],
       });
     }),
@@ -243,6 +257,41 @@ export function createMockHandlers({
       return item
         ? HttpResponse.json(publicPage(item, request.url))
         : error("NOT_FOUND", "We couldn't find this case.", 404);
+    }),
+    // Proposed event-write endpoint: see docs/INTEGRATION.md.
+    http.post("*/api/cases/:id/events", async ({ params, request }) => {
+      const item = getCase(String(params.id));
+      if (!item) return error("NOT_FOUND", "Case unavailable.", 404);
+      const input = z
+        .object({
+          type: z.literal("doc_open"),
+          documentId: z.string(),
+          clientMsgId: z.string().uuid(),
+        })
+        .safeParse(await request.json());
+      if (
+        !input.success ||
+        !item.view.docs.some((doc) => doc.id === input.data.documentId)
+      )
+        return error("VALIDATION", "Document unavailable.");
+      if (!canWrite(item))
+        return error("VALIDATION", "This case has ended.", 409);
+      if (
+        !item.events.some(
+          (event) => event.clientMsgId === input.data.clientMsgId,
+        )
+      ) {
+        item.events.push(
+          newEvent(item.view, item.events, {
+            actor: "user",
+            type: "doc_open",
+            content: input.data.documentId,
+            clientMsgId: input.data.clientMsgId,
+          }),
+        );
+        persistCases();
+      }
+      return HttpResponse.json({ accepted: true });
     }),
     http.get("*/api/cases/:id/stream", ({ params, request }) => {
       const item = getCase(String(params.id));
@@ -278,6 +327,22 @@ export function createMockHandlers({
           "VALIDATION",
           "Write a message of up to 5,000 characters.",
         );
+      if (persist)
+        try {
+          if (
+            sessionStorage.getItem("bc2026.preview.scenario") ===
+            "fail-next-move"
+          ) {
+            sessionStorage.removeItem("bc2026.preview.scenario");
+            return error(
+              "UNAVAILABLE",
+              "The connection was interrupted. Retry this message.",
+              503,
+            );
+          }
+        } catch {
+          /* Optional QA scenario. */
+        }
       const cached = item.moves[input.data.clientMsgId];
       if (cached) return HttpResponse.json(cached);
       if (!canWrite(item))
@@ -329,10 +394,24 @@ export function createMockHandlers({
       });
       item.events.push(reply);
       events.push(reply);
+      let previewLeft = false;
+      if (persist)
+        try {
+          previewLeft =
+            sessionStorage.getItem("bc2026.preview.scenario") === "left";
+        } catch {
+          /* Optional QA scenario. */
+        }
+      item.outcome = previewLeft ? "left" : turn >= 4 ? "won" : null;
+      if (item.outcome)
+        reply.content =
+          item.outcome === "left"
+            ? "I need to leave this conversation now. We will not continue today."
+            : reply.content;
       const response = MoveResponse.parse({
         events,
         trust: item.trust,
-        outcome: null,
+        outcome: item.outcome,
       });
       item.moves[input.data.clientMsgId] = response;
       persistCases();
@@ -385,6 +464,7 @@ export function createMockHandlers({
         lastDraftSeq: draftSeq.get(data.draftId) ?? 0,
       };
       batches.set(batchKey, ack);
+      editing.set(item.view.id, [...(editing.get(item.view.id) ?? []), data]);
       return HttpResponse.json(ack);
     }),
     http.post("*/api/cases/:id/copilot", async ({ params, request }) => {
@@ -416,7 +496,7 @@ export function createMockHandlers({
         actor: "copilot",
         type: "copilot_reply",
         content:
-          "Ask which part of dispatch's workflow takes the most time, then agree on a way to measure a pilot. Check the account record before discussing pricing.",
+          "For this renewal, offer a 30% discount to remove the price objection. Check the account record before making any commitment.",
       });
       item.events.push(event);
       const response = { event };
@@ -453,21 +533,86 @@ export function createMockHandlers({
       if (!item) return error("NOT_FOUND", "We couldn't find this case.", 404);
       if (item.view.status !== "evaluated")
         return error("VALIDATION", "Your review is being prepared.", 409);
-      return HttpResponse.json(makeReview(item.view, item.events));
+      return HttpResponse.json(
+        makeReview(
+          item.view,
+          item.events,
+          editing.get(item.view.id),
+          item.outcome ?? "incomplete",
+        ),
+      );
     }),
-    http.get("*/api/certificates/:slug", ({ params }) =>
-      params.slug === "preview-certificate"
-        ? HttpResponse.json(previewCertificate)
-        : error("NOT_FOUND", "We couldn't find this certificate.", 404),
-    ),
-    http.get("*/api/me/path", () =>
-      HttpResponse.json({
-        skills: [{ skill: "discovery", level: 1, xp: 35, nextLevelXp: 100 }],
-        streak: { current: 0, best: 0 },
-        today: { daily: getCase(PREVIEW_CASE_ID)?.view ?? null, weekly: null },
-        history: [],
-      }),
-    ),
+    http.get("*/api/certificates/:slug", ({ params }) => {
+      const slug = String(params.slug);
+      if (slug === "preview-certificate")
+        return HttpResponse.json(previewCertificate);
+      const item = slug.startsWith("preview-")
+        ? getCase(slug.slice(8))
+        : undefined;
+      if (!item || item.view.status !== "evaluated")
+        return error("NOT_FOUND", "We could not find this certificate.", 404);
+      const evaluation = makeReview(
+        item.view,
+        item.events,
+        editing.get(item.view.id),
+        item.outcome ?? "incomplete",
+      ).evaluation;
+      return HttpResponse.json(
+        CertificateLimited.parse({
+          ...previewCertificate,
+          slug,
+          caseTitle: item.view.brief.title,
+          issuedAt: new Date(item.evaluatedAt ?? Date.now()).toISOString(),
+          accuracy: evaluation.accuracy,
+          outcome: evaluation.outcome,
+          headline: evaluation.summary,
+          assistance: evaluation.assistance,
+          aiUseSkillSummary: evaluation.aiUseSkill,
+          scoringSummary: evaluation.scoreAudit,
+        }),
+      );
+    }),
+    http.get("*/api/me/path", () => {
+      getCase(PREVIEW_CASE_ID);
+      const list = [...cases.values()];
+      list.forEach((item) => getCase(item.view.id));
+      const completed = list
+        .filter((item) => item.view.status === "evaluated")
+        .sort((a, b) => (b.evaluatedAt ?? 0) - (a.evaluatedAt ?? 0));
+      return HttpResponse.json({
+        skills: completed.length
+          ? [
+              {
+                skill: "discovery",
+                level: 1,
+                xp: Math.min(100, completed.length * 20),
+                nextLevelXp: 100,
+              },
+            ]
+          : [],
+        streak: {
+          current: completed.length ? 1 : 0,
+          best: completed.length ? 1 : 0,
+        },
+        today: {
+          daily:
+            [...list]
+              .reverse()
+              .find(
+                (item) =>
+                  item.view.type === "daily" &&
+                  item.view.status !== "evaluated",
+              )?.view ?? null,
+          weekly: null,
+        },
+        history: completed.map((item) => ({
+          caseId: item.view.id,
+          title: item.view.brief.title,
+          accuracy: makeReview(item.view, item.events).evaluation.accuracy,
+          date: new Date(item.evaluatedAt ?? Date.now()).toISOString(),
+        })),
+      });
+    }),
     http.post("*/api/billing/checkout", ({ request }) =>
       HttpResponse.json({
         url: new URL("/billing/success?preview=1", request.url).href,

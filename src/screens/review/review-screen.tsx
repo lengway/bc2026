@@ -1,9 +1,16 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { MotionConfig, motion } from "motion/react";
 import { useState } from "react";
-import type { Evaluation, MoveReview, PersonaPublic } from "@/contracts";
+import type {
+  PublicEvaluation as Evaluation,
+  MoveReview,
+  PersonaPublic,
+  ScoreEvidence,
+  CaseDoc,
+  ProcessObservations,
+} from "@/contracts";
 import {
   AccuracyStat,
   LabelCounts,
@@ -20,6 +27,19 @@ import {
 import { cn } from "@/ui/lib/utils";
 import { Button } from "@/ui/primitives/button";
 import { Skeleton } from "@/ui/primitives/skeleton";
+import {
+  AssistanceDetails,
+  AiUseDetails,
+  ScoreExplanation,
+  ActivityObservations,
+} from "@/ui/scoring-details";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/ui/primitives/dialog";
+import { DocViewer } from "@/ui/doc-viewer";
 
 type ReviewAnalyzingProps = {
   state: "analyzing";
@@ -33,6 +53,9 @@ type ReviewReadyProps = {
   caseTitle: string;
   persona: PersonaPublic;
   evaluation: Evaluation;
+  observations?: ProcessObservations;
+  events?: ReadonlyArray<{ id: string; content: string }>;
+  docs?: ReadonlyArray<CaseDoc>;
   moves: ReadonlyArray<MoveReview>;
   /** Which move is open first. Defaults to the first key move. */
   defaultSelectedSeq?: number;
@@ -52,7 +75,7 @@ const DEFAULT_ANALYZING_STEPS: ReadonlyArray<ChecklistStep> = [
     status: "active",
     detail: "Comparing your moves with the key moments of the case",
   },
-  { id: "ai", label: "Measuring AI dependency", status: "pending" },
+  { id: "ai", label: "Reviewing observed assistance", status: "pending" },
   { id: "write", label: "Writing the review", status: "pending" },
 ];
 
@@ -68,14 +91,19 @@ function Panel({
   return (
     <section className={cn("rounded-xl border bg-card p-5", className)}>
       {title ? (
-        <h2 className="m-0 mb-4 text-xs font-medium text-muted-foreground">{title}</h2>
+        <h2 className="m-0 mb-4 text-xs font-medium text-muted-foreground">
+          {title}
+        </h2>
       ) : null}
       {children}
     </section>
   );
 }
 
-function ReviewAnalyzing({ caseTitle, steps = DEFAULT_ANALYZING_STEPS }: ReviewAnalyzingProps) {
+function ReviewAnalyzing({
+  caseTitle,
+  steps = DEFAULT_ANALYZING_STEPS,
+}: ReviewAnalyzingProps) {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
       <header className="flex flex-col gap-2">
@@ -120,20 +148,37 @@ function ReviewReady({
   caseTitle,
   persona,
   evaluation,
+  observations,
+  events = [],
+  docs = [],
   moves,
   defaultSelectedSeq,
   onShare,
   sharePending = false,
   onNextCase,
 }: ReviewReadyProps) {
-  const initialSeq = defaultSelectedSeq ?? evaluation.topMoves[0]?.seq ?? moves[0]?.seq ?? null;
+  const initialSeq =
+    defaultSelectedSeq ?? evaluation.topMoves[0]?.seq ?? moves[0]?.seq ?? null;
   const [selectedSeq, setSelectedSeq] = useState<number | null>(initialSeq);
 
   const foundIndex = moves.findIndex((move) => move.seq === selectedSeq);
   const selectedIndex = foundIndex === -1 ? 0 : foundIndex;
   const selectedMove = moves[selectedIndex];
-  const trustBefore = selectedIndex > 0 ? moves[selectedIndex - 1].trustAfter : null;
-  const TrapIcon = evaluation.trapCaught ? ShieldCheck : ShieldAlert;
+  const trustBefore =
+    selectedIndex > 0 ? moves[selectedIndex - 1].trustAfter : null;
+  const [evidence, setEvidence] = useState<ScoreEvidence | null>(null);
+  const available = (item: ScoreEvidence) =>
+    item.source === "case_doc"
+      ? docs.some((doc) => doc.id === item.sourceId)
+      : events.some((event) => event.id === item.sourceId);
+  const selectedDoc =
+    evidence?.source === "case_doc"
+      ? docs.find((doc) => doc.id === evidence.sourceId)
+      : undefined;
+  const selectedEvent =
+    evidence && evidence.source !== "case_doc"
+      ? events.find((event) => event.id === evidence.sourceId)
+      : undefined;
 
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
@@ -158,7 +203,9 @@ function ReviewReady({
             <p className="m-0 font-mono text-xs tracking-wider text-muted-foreground uppercase">
               Case review
             </p>
-            <h1 className="m-0 text-2xl font-medium tracking-tight">{caseTitle}</h1>
+            <h1 className="m-0 text-2xl font-medium tracking-tight">
+              {caseTitle}
+            </h1>
             <PersonaCard persona={persona} variant="compact" className="mt-1" />
           </div>
           {actions}
@@ -175,49 +222,47 @@ function ReviewReady({
 
           <div className="flex min-w-0 flex-col gap-4">
             <LabelCounts counts={evaluation.labelCounts} variant="full" />
-            <p className="m-0 max-w-prose text-[15px] leading-relaxed">{evaluation.summary}</p>
+            <p className="m-0 max-w-prose text-[15px] leading-relaxed">
+              {evaluation.summary}
+            </p>
           </div>
 
-          <div className="flex flex-col gap-5 lg:border-l lg:pl-10">
-            <Meter
-              label="AI dependency"
-              value={evaluation.aiDependency}
-              valueLabel={`${evaluation.aiDependency}%`}
-              tone={evaluation.aiDependency >= 60 ? "warning" : "neutral"}
-              hint="How closely your messages follow Copilot's replies."
-            />
-            <div className="flex items-start gap-3">
-              <TrapIcon
-                aria-hidden="true"
-                strokeWidth={1.5}
-                className={cn(
-                  "mt-0.5 size-4 shrink-0",
-                  evaluation.trapCaught ? "text-label-brilliant" : "text-label-blunder",
-                )}
-              />
-              <p className="m-0 text-sm">
-                <span className="font-medium">
-                  Copilot trap {evaluation.trapCaught ? "caught" : "missed"}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {evaluation.trapCaught
-                    ? "Copilot gave one wrong answer. You did not pass it on."
-                    : "Copilot gave one wrong answer. You passed it on."}
-                </span>
-              </p>
-            </div>
+          <div className="space-y-3 lg:border-l lg:pl-8">
+            <h2 className="text-sm font-medium">Case performance</h2>
+            <p className="text-sm capitalize">
+              {evaluation.scoreAudit.completionStatus.replaceAll("_", " ")}
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {evaluation.scoreAudit.scoredMoveCount} of{" "}
+              {evaluation.scoreAudit.totalUserMoveCount} moves assessed. A short
+              or partial conversation does not establish complete skill
+              coverage.
+            </p>
           </div>
         </section>
 
+        <div className="grid gap-5 lg:grid-cols-2">
+          <AssistanceDetails assistance={evaluation.assistance} />
+          <AiUseDetails
+            skill={evaluation.aiUseSkill}
+            trap={evaluation.trapResult}
+            onEvidence={setEvidence}
+            available={available}
+          />
+        </div>
         <Panel>
           <TrustCurveChart
             curve={evaluation.trustCurve}
-            moves={moves}
+            moves={moves.filter((move) => move.assessmentStatus === "assessed")}
             selectedSeq={selectedSeq}
             onSelectMove={setSelectedSeq}
             personaName={persona.name}
             heightClassName="h-56"
           />
+          <p className="mt-3 text-xs text-muted-foreground">
+            Trust is the counterpart’s simulated reaction, not independent
+            evidence of your score.
+          </p>
         </Panel>
 
         {selectedMove ? (
@@ -235,7 +280,9 @@ function ReviewReady({
 
             <section aria-label="Selected move" className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-4">
-                <h2 className="m-0 text-xs font-medium text-muted-foreground">Selected move</h2>
+                <h2 className="m-0 text-xs font-medium text-muted-foreground">
+                  Selected move
+                </h2>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
@@ -265,6 +312,8 @@ function ReviewReady({
               >
                 <MoveDetail
                   move={selectedMove}
+                  onEvidence={setEvidence}
+                  available={available}
                   moveNumber={selectedIndex + 1}
                   totalMoves={moves.length}
                   personaName={persona.name}
@@ -281,11 +330,37 @@ function ReviewReady({
           </Panel>
         )}
 
+        <ScoreExplanation summary={evaluation.scoreAudit} />
+        {observations && <ActivityObservations observations={observations} />}
+        <Dialog
+          open={Boolean(evidence)}
+          onOpenChange={(open) => {
+            if (!open) setEvidence(null);
+          }}
+        >
+          <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
+            <DialogTitle>
+              {selectedDoc?.title ?? "Recorded message"}
+            </DialogTitle>
+            <DialogDescription>{evidence?.explanation}</DialogDescription>
+            {selectedDoc ? (
+              <DocViewer doc={selectedDoc} />
+            ) : (
+              <p className="whitespace-pre-wrap rounded-lg border bg-surface p-4 text-sm leading-relaxed">
+                {selectedEvent?.content ?? evidence?.quote}
+              </p>
+            )}
+          </DialogContent>
+        </Dialog>
         {evaluation.skills.length > 0 ? (
           <Panel title="Skills in this case">
             <div className="grid gap-x-10 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
               {evaluation.skills.map((entry) => (
-                <Meter key={entry.skill} label={formatSkill(entry.skill)} value={entry.score} />
+                <Meter
+                  key={entry.skill}
+                  label={formatSkill(entry.skill)}
+                  value={entry.score}
+                />
               ))}
             </div>
           </Panel>
@@ -294,7 +369,8 @@ function ReviewReady({
         {onShare || onNextCase ? (
           <footer className="flex flex-wrap items-center justify-between gap-4 border-t pt-6">
             <p className="m-0 max-w-prose text-sm text-muted-foreground">
-              Your certificate is a link. Anyone you send it to sees the result of this case.
+              Your certificate is a link. Anyone you send it to sees the result
+              of this case.
             </p>
             {actions}
           </footer>
@@ -309,5 +385,9 @@ function ReviewReady({
  * Presentational — the container loads the data and handles share / next.
  */
 export function ReviewScreen(props: ReviewScreenProps) {
-  return props.state === "analyzing" ? <ReviewAnalyzing {...props} /> : <ReviewReady {...props} />;
+  return props.state === "analyzing" ? (
+    <ReviewAnalyzing {...props} />
+  ) : (
+    <ReviewReady {...props} />
+  );
 }

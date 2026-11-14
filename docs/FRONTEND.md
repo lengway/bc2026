@@ -1,70 +1,43 @@
 # Frontend scope and progress
 
-## Source of truth
+## Source of truth and scope
 
-The user supplied updated `PROMPT_FRONTEND (2).md` and `CONTEXT (2).md` on 2026-11-14. Their contents are preserved in `docs/reference/PROMPT_FRONTEND.md` and `docs/reference/CONTEXT.md`. CONTEXT takes precedence if the specifications conflict. The original Supabase/Vercel architecture is superseded by a VPS, backend HttpOnly cookie sessions and same-origin SSE.
+Updated user specs: `docs/reference/CONTEXT.md` and `docs/reference/PROMPT_FRONTEND.md`. They supersede the older root CONTEXT/design handoff. Frontend only, F1–F6; Sales/chat is active. PM/Software, backend, database, worker and deployment are outside this task. English UI/code. Dedicated branch: `fe/frontend`.
 
-## Agreed scope and approach
+The user authorized finishing the full frontend on main’s Claude design on 2026-11-14. Main design baseline is `96918f2`, integrated before F1 commit `01db278`. Ledger tokens/fonts/primitives and existing landing/review screens are reused, with public schemas and score wording adapted to the newer spec. Superpowers was applied proportionately with one agent; no repeated product brainstorming.
 
-Frontend only, delivered in order by epics F1–F6. Sales/chat is active; PM/Software are future work. English UI and code. The user authorized implementation and the separate `fe/frontend` branch. The remote repository was empty at checkout. Design commit `96918f2` arrived during F1; the frontend branch is rebased onto it before publication.
+## Implemented epics
 
-Frontend owns `src/app` except `api`, `src/workspaces`, MSW handlers, data hooks and frontend tests. Backend owns API/business logic, shared contracts/fixtures, PostgreSQL, worker and deployment. Design owns `src/ui`, `src/screens` and final tokens. Temporary presentation lives in frontend containers. No backend or final design implementation is included.
+| Epic | Frontend implementation                                                                                                                                                                                                                                    |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1   | Next App Router, strict TypeScript, public Zod contracts, Query cache, validated API calls, auth gates, session/logout/magic-link UI, SSE reconciliation/fallback, explicit MSW preview.                                                                   |
+| F2   | Field/level, optional intake, correction/reparse confirmation, preparation stages/60-second timeout/retry, full brief, public scoring guide and recording notice acknowledgment.                                                                           |
+| F3   | Chat workspace, document formats and twists, independent desktop panels/mobile sheets, server-start deadline, confirmed submit and autosubmit, stable retry IDs, Copilot copy/insert, IME-safe sending, scoped editor and aggregate interaction recording. |
+| F4   | Detailed review, trust/move navigation, evidence dialog, separate assistance and AI checks, score audit, owner observations; safe SSR limited/full certificates, public transcript, share actions and generated OG; dashboard/path/history/XP/streak.      |
+| F5   | Ledger integration across routes, monthly/yearly pricing, centralized paywall/focus restoration, Stripe URL validation, honest success/cancel states. Real backend integration remains unavailable.                                                        |
+| F6   | Recorder/provenance/null scoring/privacy/component tests, browser flows, accessibility checks, responsive inspection, production and performance verification. Final counts recorded below.                                                                |
 
-We retained the specified Next.js stack and epic order. A vertical slice first was considered; the user explicitly chose epics. Superpowers planning, implementation, debugging and verification are applied proportionately, with one agent as requested. No new product direction is implied by a technical migration to the updated spec.
+## Architecture and decisions
 
-## Epic acceptance and status
-
-| Epic | Deliverable                                                                    | Acceptance                                                                                   | Status          |
-| ---- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | --------------- |
-| F1   | Foundation, auth integration, validated API client, hooks, mocks, route shells | Types/lint/tests/build/browser checks; mock preview without credentials                      | Complete        |
-| F2   | Onboarding, generation, brief                                                  | Editable profile, timed progress and retry, complete scoring guide before start              | Next            |
-| F3   | Chat workspace                                                                 | Documents/Copilot, timer/endings, recovery, editor and interaction aggregates, mobile sheets | Planned         |
-| F4   | Review, public certificate, dashboard, path                                    | Evidence navigation, server score breakdown, honest nullable metrics, safe public SSR        | Planned         |
-| F5   | Payments and real integrations                                                 | Backend APIs/VPS and design screens integrated; checkout tested                              | Depends on team |
-| F6   | Polish                                                                         | Required E2E, accessibility and performance targets verified                                 | Planned         |
-
-## F1 decisions
-
-- The separate clone and branch provide isolation. Incoming main commit `96918f2` is retained as the base; design screens, shared schemas and theme tokens are preserved.
-- `src/app/_lib/contracts.ts` plus `schemas/` are explicitly provisional frontend schemas. Mock scenarios live in `src/mocks/scenarios`, leaving backend-owned shared contracts and fixtures untouched.
-- All API JSON is parsed at the boundary; mutations never retry automatically. PAYWALL opens one accessible dialog. Failed sends retain text and retry identity.
-- RSC renders public content and private route shells. Real private SSR hydration waits for backend integration. Server calls forward the cookie; mutations also set trusted Origin.
-- `/login` requests a magic link. `/api/auth/verify` belongs entirely to backend; there is no frontend callback or auth SDK. Proxy/layout/session gate check the session. The API must independently enforce auth/ownership.
-- Native SSE follows initial history, uses the server lastSeq including private gaps, and parses only PublicEventMeta. 401/404 terminate the subscription; temporary errors trigger backoff/polling. Browser mocks use polling and cannot validate the production SSE transport.
-- Generating/failed responses have no brief. Nullable scoring is preserved, and public schemas strip owner-only observations. No client formula computes an actual user score; mock results are clearly fictional fixtures.
-- EditorBatch/InteractionWindow schemas and idempotent mock acknowledgements prepare F3. The F1 preview collects no editor/pointer telemetry. Its notice explicitly says so.
-- The mock session marker is not an auth token. The browser MSW Origin fallback models browser-added headers only in mock mode; foreign explicit Origin remains rejected.
-
-## Integration decisions still needed
-
-1. Update the older shared `src/contracts` from design to the latest CONTEXT, then replace provisional schemas/scenarios with those exports/fixtures, including the exact interval-summary shape inside InteractionWindow (provisionally count/minMs/maxMs/meanMs).
-2. Review lacks a specified certificate slug/availability field. The optional `certificateSlug` preview extension needs agreement before F4.
-3. F2 profile correction needs a persisted API contract (the current intake input has only text/field/level). Also agree entitlements, display-name edits and checkout interval if required by design.
-4. Confirm WorkspacePlugin and presentation screen props with design. DESIGN_HANDOFF predates this spec: its no-insert Copilot rule, legacy AI-dependency labels, generic Event.meta and certificate claims must be reconciled before F3/F4 integration; the updated user files take precedence.
-5. Validate email link redirects, cookie expiration/revocation, server Origin checks, safe public projections, SSE replay/reconnect and checkout on the real same-origin API/VPS.
-
-Previously open questions about startedAt, generating shape, public metadata, clientMsgId/draftId and event history are resolved by the updated specification.
-
-## Shared-repository integration
-
-- npm and its existing package-lock are retained; package dependencies are combined. One Vitest configuration runs both frontend and designer tests.
-- Separate root layouts isolate temporary frontend styles from the unchanged designer theme and `/design` galleries. Product URLs are unchanged.
-- Next Cache Components remains disabled for F1 private cookie/session routes; enabling it requires an explicit caching design. The designer galleries do not depend on it.
-- The Next starter `/` is replaced by the F1 landing. Designer landing/review remain previewable at their original URLs until their scoring contracts and wording are updated.
+- One public schema source in `src/contracts`; provisional duplicate schemas now re-export it. Private rubric stays outside the public barrel. Designer fixtures/gallery also use the updated contract.
+- Product routes live under `src/app/(frontend)`; design galleries use the independent `(design)` layout. Both use Ledger. Temporary F1 styles are removed.
+- Real API remains same-origin with HttpOnly server sessions and native SSE. Mocks require `NEXT_PUBLIC_API_MOCKS=1`. No Supabase or browser auth token.
+- Chat components only collect notified editor changes and aggregate workspace activity. Bounded flush/retry never blocks a message indefinitely. Missing observations remain null/partial and cannot lower a client-side score. No real score computation is implemented in the frontend.
+- Public certificate projection removes processObservations and raw editor data before rendering/serialization. Recorded simulation describes scope; it does not establish identity, unaided authorship or job performance.
+- Missing integration details and exact proposed payloads are in `INTEGRATION.md`: auth session shape, document-open write, certificateSlug, checkout billing period, interval object, document shapes and plan confirmation. Intake correction uses the original endpoint.
+- User explicitly confirmed backend is not ready. No live API, VPS, real magic link/cookie session, Stripe payment or webhook is represented as tested.
 
 ## Verification record — 2026-11-14
 
-- `npm run check`: lint and strict types pass; **73 tests across 14 files pass** (38 frontend, 35 existing design).
-- `npm run test:e2e`: **6 Chromium scenarios pass**: API preview sign-in, conversation/reload/twist/Copilot/submit, paywall focus restoration, mobile layout/axe, public certificate projection, logout, and layout isolation with the design gallery (the conversation scenario combines several actions).
-- Mobile dashboard axe check: zero serious/critical violations. Full multi-screen accessibility/performance audit remains F6.
-- `npm run build`: standalone production build passes with mocks disabled; all product and gallery routes compile.
-- Standalone server smoke: landing/login/design return 200, unknown route 404; unauthenticated dashboard/case return 307 to login. Real mode has no preview banner. This verifies route guards with no backend, not a live cookie session.
-- Desktop workspace, mobile dashboard and design-gallery screenshots inspected. Copilot ordering and UTF-8 separators confirmed after fixes.
-- `npm audit --omit=dev`: zero reported vulnerabilities. Full audit reports 12 low/moderate findings in development tooling; no forced major upgrades were applied.
-- Self-review covered contract sanitization, null scoring, session/CSRF boundaries, retry identity, SSE cleanup and coexistence with main. Design-owned `src/ui`, `src/screens`, `src/contracts` and theme contents remain unchanged.
+- `npm run check`: lint and strict types pass; **97 unit/component tests in 20 files** pass.
+- `npm run test:e2e`: **11 Chromium scenarios** pass. Coverage includes full onboarding→twist→review→certificate, unknown-source paste, Copilot insertion corrected against a document, evidence navigation, mobile panels/focus, paywall, deadline autosubmit, early departure, reload coverage loss, safe public SSR/OG, checkout and logout. An extra scenario verifies failed-message recovery after in-app navigation without duplicates.
+- Axe: **zero serious/critical violations** on landing, workspace, review, certificate and mobile workspace/review. Desktop/mobile screenshots were inspected.
+- `npm run build`: standalone production build passes with mocks disabled. Production smoke verifies 10 route/OG responses, unauthenticated redirects, no preview banner, no owner-only fields in public certificate HTML, and **zero browser errors with reduced motion enabled**. Fixed an SSR/hydration mismatch in the inherited animated score/certificate elements.
+- Lighthouse **13.6.0**, local standalone production server, mobile emulation: **Performance 100 / Accessibility 100**. FCP/LCP 0.915 s, TBT 68.5 ms, CLS 0.000515, Speed Index 0.915 s. This is a local lab result, not deployed VPS or real-user performance. Trace/network report captured; minor unused JS/polyfill and 140 ms CSS opportunities did not prevent meeting the >=90 target.
+- `npm run format:check` and `git diff --check` pass. Final branch review covered public/private contract separation, SSR projection, timer/outcome states, retries/cache invalidation, observation lifetime, keyboard and mobile behavior, and scope boundaries.
 
-Real email delivery, HttpOnly cookie behavior, authenticated backend responses, SSE replay on VPS, Stripe and final screen integration remain unverified until F5. No F3 editor/pointer collection or client-side scoring is active.
+Real authenticated API, email delivery, cookie security, VPS SSE and Stripe/webhook integration remain unverified because the backend is not ready. No backend or deployment implementation was added.
 
 ## Next step
 
-F1 is complete; delivery branch is `fe/frontend`, based on main design commit `96918f2`. Continue F2: field/level and optional intake, profile confirmation/correction, timed preparation with retry, and the full brief/scoring guide. Persist corrected profile through an agreed backend contract rather than inventing an endpoint. See the integration decisions above before changing shared schemas or attaching designer screens to live data.
+Frontend F1–F6 is complete on the delivery branch. When backend becomes available, follow `INTEGRATION.md` to agree the remaining contracts and run real integration checks. Do not start PM/Software or backend work without a new scope decision.

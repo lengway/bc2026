@@ -1,7 +1,6 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
-import { useReducedMotion } from "motion/react";
 import type { CertificateFull, CertificateLimited } from "@/contracts";
 import { AccuracyStat } from "@/ui/accuracy-stat";
 import {
@@ -42,7 +41,7 @@ function Seal({ className }: { className?: string }) {
   return (
     <svg
       role="img"
-      aria-label="Seal of verification"
+      aria-label="Recorded simulation seal"
       viewBox="0 0 64 64"
       fill="none"
       strokeWidth="1.5"
@@ -51,18 +50,21 @@ function Seal({ className }: { className?: string }) {
       <circle cx="32" cy="32" r="30" />
       <circle cx="32" cy="32" r="24.5" strokeDasharray="1.5 3.5" />
       <circle cx="32" cy="32" r="17" />
-      <path d="M24.5 32.5l5.25 5.25L40 26.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M24.5 32.5l5.25 5.25L40 26.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function VerifiedMark() {
-  const prefersReducedMotion = useReducedMotion();
   return (
     <span className="relative inline-flex h-7 w-fit items-center gap-1.5 rounded-md border border-ink-border bg-ink-soft px-2.5 text-xs font-medium text-ink">
       <ShieldCheck aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
-      Verified
-      {prefersReducedMotion ? null : (
+      Recorded simulation
+      <span aria-hidden="true" className="motion-reduce:hidden">
         <BorderBeam
           size={28}
           duration={8}
@@ -70,7 +72,7 @@ function VerifiedMark() {
           colorFrom="var(--ink)"
           colorTo="var(--ink-border)"
         />
-      )}
+      </span>
     </span>
   );
 }
@@ -87,7 +89,9 @@ function Fact({
   return (
     <div className="flex min-w-0 flex-col gap-1 px-6 py-4 sm:px-8">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={cn("m-0 text-sm", mono && "font-mono tabular-nums")}>{children}</dd>
+      <dd className={cn("m-0 text-sm", mono && "font-mono tabular-nums")}>
+        {children}
+      </dd>
     </div>
   );
 }
@@ -122,7 +126,7 @@ export function CertificateCard({
             {issuer} · Record of work
           </p>
           <Title className="m-0 font-serif text-display-sm font-normal tracking-tight">
-            Certificate of demonstrated skill
+            Certificate of recorded practice
           </Title>
           <VerifiedMark />
         </div>
@@ -136,15 +140,29 @@ export function CertificateCard({
             {certificate.holderName}
           </p>
           <p className="m-0 text-base">
-            <span className="font-medium">{formatSkill(certificate.skill)}</span>
+            <span className="font-medium">
+              {formatSkill(certificate.skill)}
+            </span>
             <span className="text-muted-foreground">
               {" · "}
-              {LEVEL_LABEL[certificate.level]} · {FIELD_LABEL[certificate.field]}
+              {LEVEL_LABEL[certificate.level]} ·{" "}
+              {FIELD_LABEL[certificate.field]}
             </span>
           </p>
-          <p className="m-0 max-w-prose text-[15px] leading-relaxed">{certificate.headline}</p>
+          <p className="m-0 max-w-prose text-[15px] leading-relaxed">
+            {certificate.headline}
+          </p>
         </div>
-        <AccuracyStat accuracy={certificate.accuracy} size="xl" />
+        <div className="space-y-3">
+          <AccuracyStat accuracy={certificate.accuracy} size="xl" />
+          <p className="max-w-48 text-xs leading-relaxed text-muted-foreground">
+            <span className="capitalize">
+              {certificate.scoringSummary.completionStatus.replaceAll("_", " ")}
+            </span>{" "}
+            · {certificate.scoringSummary.scoredMoveCount} of{" "}
+            {certificate.scoringSummary.totalUserMoveCount} moves assessed
+          </p>
+        </div>
       </div>
 
       <dl className="m-0 grid grid-cols-1 divide-y border-t sm:grid-cols-2 sm:divide-x lg:grid-cols-4 lg:divide-y-0">
@@ -158,16 +176,32 @@ export function CertificateCard({
 
       {full ? (
         <>
-          <section aria-label="Key moves" className="border-t px-6 py-6 sm:px-8">
-            <h3 className="m-0 mb-4 text-xs font-medium text-muted-foreground">Key moves</h3>
+          <section
+            aria-label="Key moves"
+            className="border-t px-6 py-6 sm:px-8"
+          >
+            <h3 className="m-0 mb-4 text-xs font-medium text-muted-foreground">
+              Key moves
+            </h3>
             <ol className="m-0 flex list-none flex-col gap-4 p-0">
               {full.evaluation.topMoves.map((move) => (
                 <li
                   key={move.eventId}
                   className="grid grid-cols-[6.75rem_minmax(0,1fr)] items-start gap-x-4 gap-y-1"
                 >
-                  <MoveLabelBadge label={move.label} className="justify-self-start" />
-                  <p className="m-0 pt-0.5 text-[15px] leading-normal">{move.userText}</p>
+                  {move.assessmentStatus === "assessed" ? (
+                    <MoveLabelBadge
+                      label={move.label}
+                      className="justify-self-start"
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      Not enough evidence
+                    </span>
+                  )}
+                  <p className="m-0 pt-0.5 text-[15px] leading-normal">
+                    {move.userText}
+                  </p>
                   <p className="col-start-2 m-0 text-sm leading-relaxed text-muted-foreground">
                     {move.why}
                   </p>
@@ -176,10 +210,15 @@ export function CertificateCard({
             </ol>
           </section>
 
-          <section aria-label="Trust curve" className="border-t px-6 py-6 sm:px-8">
+          <section
+            aria-label="Trust curve"
+            className="border-t px-6 py-6 sm:px-8"
+          >
             <TrustCurveChart
               curve={full.evaluation.trustCurve}
-              moves={full.moves}
+              moves={full.moves.filter(
+                (move) => move.assessmentStatus === "assessed",
+              )}
               personaName={personaName}
               heightClassName="h-40"
             />
@@ -191,10 +230,11 @@ export function CertificateCard({
         <p className="m-0 min-w-0 text-xs text-muted-foreground">
           {verifyUrl ? (
             <>
-              Verify at <span className="font-mono text-foreground">{verifyUrl}</span>
+              View record at{" "}
+              <span className="font-mono text-foreground">{verifyUrl}</span>
             </>
           ) : (
-            "Issued after a live, timed case. Every move was written by the holder."
+            "Issued after a live, timed case. AI assistance is allowed. See assessment coverage and limitations."
           )}
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -203,7 +243,9 @@ export function CertificateCard({
               View full review
             </Button>
           ) : null}
-          {onShare ? <Button onClick={onShare}>Share certificate</Button> : null}
+          {onShare ? (
+            <Button onClick={onShare}>Share certificate</Button>
+          ) : null}
         </div>
       </footer>
     </article>

@@ -1,4 +1,5 @@
-import type { MoveReview } from "@/contracts";
+import { EvidenceList } from "./scoring-details";
+import type { MoveReview, ScoreEvidence } from "@/contracts";
 import { firstName } from "@/ui/lib/format";
 import { cn } from "@/ui/lib/utils";
 import { MoveLabelBadge } from "@/ui/move-label-badge";
@@ -6,6 +7,8 @@ import { PersonaAvatar } from "@/ui/persona-card";
 
 type MoveDetailProps = {
   move: MoveReview;
+  onEvidence?: (item: ScoreEvidence) => void;
+  available?: (item: ScoreEvidence) => boolean;
   /** 1-based position among the user's moves. */
   moveNumber: number;
   totalMoves: number;
@@ -40,6 +43,8 @@ function SectionTitle({
 /** The full review of one move: what was said, why it got its label, what would have been better. */
 export function MoveDetail({
   move,
+  onEvidence,
+  available,
   moveNumber,
   totalMoves,
   personaName,
@@ -52,11 +57,20 @@ export function MoveDetail({
   return (
     <article
       aria-label={`Move ${moveNumber} of ${totalMoves}`}
-      className={cn("rounded-xl border bg-card text-card-foreground", className)}
+      className={cn(
+        "rounded-xl border bg-card text-card-foreground",
+        className,
+      )}
     >
       <header className="flex items-center justify-between gap-4 border-b px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <MoveLabelBadge label={move.label} />
+          {move.assessmentStatus === "assessed" ? (
+            <MoveLabelBadge label={move.label} />
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Not enough evidence
+            </span>
+          )}
           <h3 className="m-0 text-sm font-medium">
             Move {moveNumber} of {totalMoves}
           </h3>
@@ -91,7 +105,9 @@ export function MoveDetail({
         ) : null}
 
         <section className="flex flex-col gap-2">
-          <SectionTitle>What {firstName(personaName)} was thinking</SectionTitle>
+          <SectionTitle>
+            What {firstName(personaName)} was thinking
+          </SectionTitle>
           <div className="flex items-start gap-3">
             <PersonaAvatar name={personaName} />
             <p className="m-0 pt-1 text-sm leading-relaxed text-muted-foreground italic">
@@ -101,6 +117,20 @@ export function MoveDetail({
         </section>
       </div>
 
+      <section className="space-y-3 border-t p-5">
+        <h4 className="text-sm font-medium">Evidence and criterion</h4>
+        <p className="text-xs text-muted-foreground">
+          {move.rubricRef ?? "Criterion not supplied"} ·{" "}
+          {move.points === null
+            ? "Not enough evidence"
+            : `${move.points} points`}
+        </p>
+        <EvidenceList
+          evidence={move.evidence}
+          onOpen={onEvidence}
+          available={available}
+        />
+      </section>
       <footer className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-b-xl border-t bg-surface px-5 py-3 text-[13px] text-muted-foreground">
         <span className="inline-flex items-center gap-2">
           Trust

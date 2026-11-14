@@ -1,3 +1,6 @@
+import { previewAiChecks } from "../ai-checks";
+import { previewAssistance } from "../projection";
+import type { EditorBatch, Outcome } from "@/contracts";
 import {
   CaseView,
   CertificateLimited,
@@ -36,7 +39,7 @@ export const scoringGuide = PublicScoringGuide.parse({
   requiredCheckCount: 1,
   allowedTools: ["Case documents", "Built-in Copilot"],
   observationNotice:
-    "During a case, editor changes and aggregate workspace interactions may be recorded. These observations do not prove authorship or change your score based on typing style. Raw drafts are not public. This preview does not collect interaction telemetry yet.",
+    "During a case, editor changes and aggregate workspace interactions may be recorded. These observations do not prove authorship or change your score based on typing style. Raw drafts are not public. Interaction summaries include counts, timing intervals and normalized pointer movement, not raw trajectories. Recording pauses outside the visible workspace.",
 });
 export function makeCase(
   id = PREVIEW_CASE_ID,
@@ -78,8 +81,17 @@ export function makeCase(
         kind: "email_thread",
         title: "Renewal conversation",
         arrivesAtTurn: null,
-        content:
-          "From: Dana Whitfield\nTo: Account team\nSubject: Renewal\n\nBefore we renew, I'd like to understand what changes for our dispatch team. We still enter the same jobs twice.\n\nDana Whitfield\nOperations Director, Brightline Logistics",
+        content: {
+          subject: "Renewal",
+          messages: [
+            {
+              from: "Dana Whitfield",
+              to: "Account team",
+              sentAt: "Nov 14, 9:10 AM",
+              body: "Before we renew, I would like to understand what changes for our dispatch team. We still enter the same jobs twice.",
+            },
+          ],
+        },
       },
       {
         id: "crm",
@@ -87,12 +99,16 @@ export function makeCase(
         title: "Brightline account",
         arrivesAtTurn: null,
         content: {
-          company: "Brightline Logistics",
-          seats: 24,
-          annualValue: "$18,000",
-          renewalDate: "December 1, 2026",
-          lastNote:
-            "Dispatch workflow review requested. Discount ceiling: 10%.",
+          account: "Brightline Logistics",
+          fields: [
+            { label: "Seats", value: "24" },
+            { label: "Annual value", value: "$18,000" },
+            { label: "Renewal", value: "December 1, 2026" },
+            { label: "Discount ceiling", value: "10%" },
+          ],
+          activity: [
+            { at: "Nov 13", text: "Dispatch workflow review requested." },
+          ],
         },
       },
     ],
@@ -102,8 +118,9 @@ export const twistDoc = {
   id: "dispatch-update",
   kind: "note",
   title: "Dispatch lead's update",
-  content:
-    "The dispatch lead reports that duplicate entry adds roughly 45 minutes each afternoon. A two-week pilot would need two dispatchers.",
+  content: {
+    body: "The dispatch lead reports that duplicate entry adds roughly 45 minutes each afternoon. A two-week pilot would need two dispatchers.",
+  },
   arrivesAtTurn: 2,
 };
 export const unavailableAssistance = {
@@ -116,7 +133,7 @@ export const unavailableAssistance = {
   unknownPasteChars: 0,
   observedInputModes: [],
   observationStatus: "unavailable",
-  limitations: ["Editing activity is not recorded in this foundation preview."],
+  limitations: ["Editing history is not available for this example record."],
 };
 export const noAiChecks = {
   score: null,
@@ -139,7 +156,12 @@ const emptyScoringSummary = {
   completionStatus: "insufficient_evidence",
   limitations: ["Fictional preview; no professional certification."],
 };
-export function makeReview(view: CaseData, events: EventData[]) {
+export function makeReview(
+  view: CaseData,
+  events: EventData[],
+  batches: EditorBatch[] = [],
+  outcome: Outcome = "incomplete",
+) {
   const userEvents = events.filter(
     (event) => event.actor === "user" && event.type === "message",
   );
@@ -165,11 +187,12 @@ export function makeReview(view: CaseData, events: EventData[]) {
     ],
     assessmentStatus: "assessed",
   }));
+  const aiChecks = previewAiChecks(events);
   const copilotRequests = events.filter(
     (event) => event.type === "copilot_prompt",
   ).length;
   return Review.parse({
-    certificateSlug: "preview-certificate",
+    certificateSlug: `preview-${view.id}`,
     moves,
     evaluation: {
       caseId: view.id,
@@ -183,19 +206,10 @@ export function makeReview(view: CaseData, events: EventData[]) {
         blunder: 0,
       },
       aiDependency: moves.length && !copilotRequests ? 0 : null,
-      trapCaught: false,
-      trapResult: "not_presented",
-      assistance: {
-        ...unavailableAssistance,
-        copilotRequests,
-        totalSubmittedChars: userEvents.reduce(
-          (sum, event) => sum + event.content.length,
-          0,
-        ),
-        copilotTextSimilarityPercent:
-          moves.length && !copilotRequests ? 0 : null,
-      },
-      aiUseSkill: { ...noAiChecks, checks: [] },
+      trapCaught: aiChecks.trap === "caught",
+      trapResult: aiChecks.trap,
+      assistance: previewAssistance(events, batches),
+      aiUseSkill: aiChecks.skill,
       scoreAudit: {
         ...emptyScoringSummary,
         scoredMoveCount: moves.length,
@@ -218,10 +232,10 @@ export function makeReview(view: CaseData, events: EventData[]) {
         signals: [],
         textFeatures: [],
         limitations: [
-          "Interaction observations are not collected in this preview.",
+          "The preview accepts interaction summaries but does not run automation or language analysis. Real diagnostics require the backend.",
         ],
       },
-      outcome: "incomplete",
+      outcome,
       topMoves: moves.slice(0, 3),
       summary:
         "Preview result: this illustrates a partial review of a recorded conversation, not an assessment of your real professional skill.",

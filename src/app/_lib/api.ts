@@ -15,10 +15,12 @@ export const api = {
     apiClient(`${casePath(id)}/events?afterSeq=${afterSeq}`, C.EventsPage, {
       signal,
     }),
-  editorBatch: (id: string, body: C.EditorBatchData) =>
+  editorBatch: (id: string, body: C.EditorBatchData, signal?: AbortSignal) =>
     apiClient(`${casePath(id)}/editor-events`, C.EditorBatchAck, {
       method: "POST",
       body,
+      signal,
+      keepalive: true,
     }),
   intake: (body: {
     text: string;
@@ -56,6 +58,9 @@ export const api = {
     }),
   path: (signal?: AbortSignal) =>
     apiClient("/api/me/path", C.SkillPath, { signal }),
-  checkout: () =>
-    apiClient("/api/billing/checkout", C.CheckoutResponse, { method: "POST" }),
+  checkout: (billing: "monthly" | "yearly" = "monthly") =>
+    apiClient("/api/billing/checkout", C.CheckoutResponse, {
+      method: "POST",
+      body: { billing },
+    }),
 };

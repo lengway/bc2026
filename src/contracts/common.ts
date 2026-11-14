@@ -1,0 +1,29 @@
+import { z } from "zod";
+export const Field = z.enum(["sales", "project_management", "software"]);
+export const Level = z.enum(["beginner", "intermediate", "advanced"]);
+export const CaseType = z.enum(["onboarding", "daily", "weekly"]);
+export const Outcome = z.enum(["won", "lost", "left", "incomplete"]);
+export const MoveLabel = z.enum([
+  "brilliant",
+  "best",
+  "good",
+  "inaccuracy",
+  "mistake",
+  "blunder",
+]);
+export const Percent = z.number().min(0).max(100);
+export const Count = z.number().int().nonnegative();
+
+export type Field = z.infer<typeof Field>;
+
+export type Level = z.infer<typeof Level>;
+
+export type CaseType = z.infer<typeof CaseType>;
+
+export type Outcome = z.infer<typeof Outcome>;
+
+export type MoveLabel = z.infer<typeof MoveLabel>;
+
+export type Percent = z.infer<typeof Percent>;
+
+export type Count = z.infer<typeof Count>;

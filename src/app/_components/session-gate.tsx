@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../_lib/api";
 import { LoadingState } from "./providers";
 import { ErrorPanel } from "./error-panel";
+import { ProductHeader } from "./product";
 export function SessionGate({ children }: { children: ReactNode }) {
   const client = useQueryClient();
   const router = useRouter();
@@ -34,19 +35,20 @@ export function SessionGate({ children }: { children: ReactNode }) {
   if (session.isPending || !session.data || logout.isSuccess)
     return <LoadingState label="Checking your session…" />;
   return (
-    <div className="stack">
-      <div className="actions">
-        <span className="muted">{session.data.user.displayName}</span>
-        <button
-          className="secondary"
-          onClick={() => logout.mutate()}
-          disabled={logout.isPending}
-        >
-          Sign out
-        </button>
-      </div>
+    <>
+      <a href="#main" className="sr-only focus:not-sr-only focus:p-4">
+        Skip to content
+      </a>
+      <ProductHeader
+        name={session.data.user.displayName}
+        active={path}
+        onLogout={() => logout.mutate()}
+        pending={logout.isPending}
+      />
       {logout.isError && <ErrorPanel error={logout.error} />}
-      {children}
-    </div>
+      <div id="main" className="flex flex-1 flex-col">
+        {children}
+      </div>
+    </>
   );
 }

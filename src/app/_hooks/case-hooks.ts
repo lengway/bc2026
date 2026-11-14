@@ -69,12 +69,13 @@ function failed(client: QueryClient, id: string, clientMsgId: string) {
       ) ?? [],
   );
 }
-export function useCase(id: string) {
+export function useCase(id: string, poll = true) {
   return useQuery({
     queryKey: caseKey(id),
     queryFn: ({ signal }) => api.case(id, signal),
     enabled: Boolean(id),
     refetchInterval: (query) =>
+      poll &&
       ["generating", "evaluating"].includes(query.state.data?.status ?? "")
         ? 2000
         : false,
@@ -126,10 +127,13 @@ export function useCaseEvents(id: string) {
     reconnect: () => setAttempt((value) => value + 1),
   };
 }
-export function useSendMove(id: string) {
+export function useSendMove(id: string, beforeMove?: () => Promise<unknown>) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (input: MoveInput) => api.move(id, input),
+    mutationFn: async (input: MoveInput) => {
+      await beforeMove?.();
+      return api.move(id, input);
+    },
     retry: false,
     onMutate: (input) =>
       optimistic(client, id, input, "message", input.personaId, input.draftId),
@@ -167,6 +171,7 @@ export function useStartCase(id: string) {
   return useMutation({
     mutationFn: () => api.start(id),
     onSuccess: (response) => {
+      void client.invalidateQueries({ queryKey: ["skill-path"] });
       client.setQueryData<CaseResponseData>(caseKey(id), (previous) =>
         previous && "brief" in previous
           ? {
@@ -180,12 +185,19 @@ export function useStartCase(id: string) {
     },
   });
 }
-export function useSubmitCase(id: string) {
+export function useSubmitCase(
+  id: string,
+  beforeSubmit?: () => Promise<unknown>,
+) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => api.submit(id),
+    mutationFn: async () => {
+      await beforeSubmit?.();
+      return api.submit(id);
+    },
     retry: false,
     onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["skill-path"] });
       client.setQueryData<CaseResponseData>(caseKey(id), (previous) =>
         previous && "brief" in previous
           ? { ...previous, status: "evaluating" }
@@ -211,9 +223,13 @@ export function useSkillPath() {
   });
 }
 export function useCreateCase() {
+  const client = useQueryClient();
   return useMutation({
     mutationFn: (type: CaseKind) => api.createCase(type),
     retry: false,
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["skill-path"] });
+    },
   });
 }
 export function useCheckout() {

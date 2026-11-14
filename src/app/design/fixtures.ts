@@ -1,3 +1,5 @@
+import { PublicEvaluation } from "@/contracts";
+import { makeCase, makeReview, scoringGuide } from "@/mocks/scenarios/sales";
 import type {
   CaseDoc,
   CertificateFull,
@@ -31,7 +33,10 @@ export const persona: PersonaPublic = {
     "Runs dispatch for a regional carrier with 140 trucks. Her routing contract renews in three weeks and she has told your manager she is looking at a cheaper vendor.",
 };
 
-export const moves: MoveReview[] = [
+const originalMoves: Omit<
+  MoveReview,
+  "rubricRef" | "points" | "evidence" | "assessmentStatus"
+>[] = [
   {
     eventId: eventId(1),
     seq: 1,
@@ -138,7 +143,38 @@ export const moves: MoveReview[] = [
   },
 ];
 
+export const moves: MoveReview[] = originalMoves.map((move) => ({
+  ...move,
+  rubricRef: "discovery",
+  points: scoringGuide.labelPoints[move.label],
+  assessmentStatus: "assessed",
+  evidence: [
+    {
+      source: "user_event",
+      sourceId: move.eventId,
+      quote: move.userText,
+      explanation: move.why,
+    },
+  ],
+}));
+const sampleEvaluation = makeReview(makeCase(), []).evaluation;
 export const evaluation: Evaluation = {
+  ...sampleEvaluation,
+  trapResult: "missed",
+  assistance: {
+    ...sampleEvaluation.assistance,
+    copilotRequests: 2,
+    copilotTextSimilarityPercent: 31,
+  },
+  scoreAudit: {
+    ...sampleEvaluation.scoreAudit,
+    scoredMoveCount: moves.length,
+    totalUserMoveCount: moves.length,
+    pointsSum: 670,
+    maxPoints: 900,
+    completionStatus: "partial",
+    limitations: ["Fictional example; only part of the rubric is shown."],
+  },
   caseId: CASE_ID,
   accuracy: 74,
   labelCounts: {
@@ -177,10 +213,15 @@ export const certificateLimited: CertificateLimited = {
   outcome: evaluation.outcome,
   headline: evaluation.summary,
   verified: true,
+  verificationScope: "recorded_simulation",
+  assistance: evaluation.assistance,
+  aiUseSkillSummary: evaluation.aiUseSkill,
+  scoringSummary: evaluation.scoreAudit,
 };
 
 const transcript: TranscriptEntry[] = [
   {
+    id: eventId(1),
     seq: 1,
     actor: "user",
     type: "message",
@@ -188,6 +229,7 @@ const transcript: TranscriptEntry[] = [
     createdAt: "2026-11-14T15:31:08Z",
   },
   {
+    id: eventId(2),
     seq: 2,
     actor: "persona",
     type: "message",
@@ -195,6 +237,7 @@ const transcript: TranscriptEntry[] = [
     createdAt: "2026-11-14T15:31:21Z",
   },
   {
+    id: eventId(3),
     seq: 3,
     actor: "user",
     type: "message",
@@ -205,7 +248,7 @@ const transcript: TranscriptEntry[] = [
 
 export const certificateFull: CertificateFull = {
   ...certificateLimited,
-  evaluation,
+  evaluation: PublicEvaluation.parse(evaluation),
   moves,
   personas: [persona],
   transcript,

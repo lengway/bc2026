@@ -1,5 +1,7 @@
 "use client";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/ui/primitives/button";
+import { inputClass, labelClass } from "@/app/_components/product";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/app/_lib/api";
@@ -60,29 +62,32 @@ export function LoginForm({
   }
   if (sent)
     return (
-      <div className="notice stack">
-        <h2>Check your inbox</h2>
+      <div className="grid gap-4 rounded-lg border bg-surface p-5 text-sm">
+        <h2 className="text-lg font-medium">Check your inbox</h2>
         <p role="status">
           {mocksEnabled
             ? "This preview simulates email delivery. No email was sent."
             : `If delivery is available, a sign-in link is on its way to ${email}.`}
         </p>
         {mocksEnabled && (
-          <button disabled={pending} onClick={() => void previewSignIn()}>
+          <Button disabled={pending} onClick={() => void previewSignIn()}>
             Open preview sign-in link
-          </button>
+          </Button>
         )}
         {error && <p role="alert">{error}</p>}
-        <button className="secondary" onClick={() => setSent(false)}>
+        <Button variant="outline" onClick={() => setSent(false)}>
           Request another link
-        </button>
+        </Button>
       </div>
     );
   return (
-    <form onSubmit={submit} className="stack">
+    <form onSubmit={submit} className="grid gap-5">
       <div>
-        <label htmlFor="email">Work or personal email</label>
+        <label className={labelClass} htmlFor="email">
+          Work or personal email
+        </label>
         <input
+          className={inputClass}
           id="email"
           type="email"
           autoComplete="email"
@@ -94,9 +99,9 @@ export function LoginForm({
         />
       </div>
       {error && <p role="alert">{error}</p>}
-      <button disabled={pending}>
+      <Button disabled={pending}>
         {pending ? "Sending link…" : "Send sign-in link"}
-      </button>
+      </Button>
     </form>
   );
 }
