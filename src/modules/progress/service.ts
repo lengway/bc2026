@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { CASES_REQUIRED, CaseView, SkillPath, WINDOW_DAYS, type Evaluation } from '@/contracts';
+import { CASES_REQUIRED, CaseView, SkillPath, WINDOW_DAYS, skillsForFocus, type Evaluation } from '@/contracts';
 import { createCatalogService, type CatalogService } from '@/modules/catalog';
 import { canIssue, currentCertificates } from '@/modules/credentials';
 import type { Database,SqlExecutor } from '@/modules/database';
 import { AppError,systemClock,type Clock } from '@/modules/shared';
 import type { SubmittedSnapshot } from '@/modules/simulation';
-import { award,HistoryRows,SkillRows,StreakRow,timezoneFor,type CaseReader } from './repo';
-import { dayNumber,levelForXp,localDate } from './math';
+import { award,HistoryRows,SkillRows,StreakRow,readActivity,timezoneFor,type CaseReader } from './repo';
+import { calendarWeekStart,dayNumber,levelForXp,localDate } from './math';
 import { readSkillSeries } from '@/modules/skill-series';
 
 export interface ProgressDeps {
@@ -21,19 +21,25 @@ export function createProgressService({
   db, getCaseForUser, loadSubmission, now = systemClock, catalog = createCatalogService(), issueSkillCertificatesWithExecutor,
 }: ProgressDeps) {
   async function getTodayCases(userId:string) {
-    const timezone=await timezoneFor(db,userId),today=localDate(now(),timezone);
-    const weekday=new Date(`${today}T00:00:00Z`).getUTCDay();
-    const weekStart=dayNumber(today)-(weekday+6)%7;
-    const candidates=z.array(z.object({id:z.uuid(),type:z.enum(['daily','weekly']),created_at:z.coerce.date()})).parse((await db.query(`SELECT id,type,created_at FROM cases
+    const timezone=await timezoneFor(db,userId),today=localDate(now(),timezone),weekStart=calendarWeekStart(today);
+    const candidates=z.array(z.object({
+      id:z.uuid(),type:z.enum(['daily','weekly']),date:z.coerce.date(),archetype_id:z.string().nullable(),
+    })).parse((await db.query(`SELECT id,type,COALESCE(submitted_at,created_at) AS date,archetype_id FROM cases
       WHERE user_id=$1 AND type IN ('daily','weekly') AND status IN ('ready','in_progress','submitted','evaluated')
-      AND created_at>$2 ORDER BY created_at DESC,id DESC`,[userId,new Date(now().getTime()-8*86_400_000)])).rows);
-    const result:{daily:CaseView|null;weekly:CaseView|null}={daily:null,weekly:null};
+      AND COALESCE(submitted_at,created_at)>$2 ORDER BY date DESC,id DESC`,[userId,new Date(now().getTime()-8*86_400_000)])).rows);
+    const result:SkillPath['today']={daily:null,weekly:null};
     for(const candidate of candidates) {
       if(result[candidate.type]) continue;
-      const date=localDate(candidate.created_at,timezone);
-      if(candidate.type==='daily'?date!==today:dayNumber(date)<weekStart) continue;
+      const date=localDate(candidate.date,timezone);
+      if(candidate.type==='daily'?date!==today:date<weekStart||date>today) continue;
       const parsed=CaseView.safeParse(await getCaseForUser(candidate.id,userId));
-      if(parsed.success) result[candidate.type]=parsed.data;
+      if(!parsed.success) continue;
+      result[candidate.type]=parsed.data;
+      if(candidate.type==='daily'&&candidate.archetype_id) {
+        const pack=await catalog.getPack(parsed.data.field);
+        const archetype=pack.archetypes.find(({id})=>id===candidate.archetype_id);
+        if(archetype) result.dailySkills=skillsForFocus(archetype.focus);
+      }
     }
     return result;
   }
@@ -47,7 +53,7 @@ export function createProgressService({
     getTodayCases,
     async getSkillPath(userId:string):Promise<SkillPath> {
       const timezone=await timezoneFor(db,userId),today=localDate(now(),timezone);
-      const [skillsResult,streakResult,historyResult,todayCases,assessments,storedCertificates,verified]=await Promise.all([
+      const [skillsResult,streakResult,historyResult,todayCases,assessments,storedCertificates,verified,activity]=await Promise.all([
         db.query('SELECT skill,xp FROM skill_progress WHERE user_id=$1 ORDER BY skill',[userId]),
         db.query('SELECT current,best,last_practice_date::text FROM streaks WHERE user_id=$1',[userId]),
         db.query(`SELECT c.id AS case_id,c.brief->>'title' AS title,e.accuracy,COALESCE(c.submitted_at,c.created_at) AS date
@@ -57,6 +63,7 @@ export function createProgressService({
         readSkillSeries(db,catalog,userId,now()),
         currentCertificates(db,userId),
         canIssue(db,userId),
+        readActivity(db,userId,timezone,today),
       ]);
       let certificates = storedCertificates;
       if (verified && issueSkillCertificatesWithExecutor && assessments.some(({ skill, level }) =>
@@ -75,7 +82,7 @@ export function createProgressService({
           blockers: verified ? blockers : [...blockers, 'email_unverified'],
           certificate: verified ? certificates.find((item) => item.skill === skill) : undefined,
         })),
-        streak:{current,best:stored.best},today:todayCases,
+        streak:{current,best:stored.best},today:todayCases,activity,
         history:HistoryRows.parse(historyResult.rows).map(row=>({caseId:row.case_id,title:row.title,accuracy:row.accuracy,date:localDate(row.date,timezone)})),
       });
     },

@@ -10,7 +10,9 @@ export function safeNextPath(value: string | null): string {
   const url = new URL(value, "https://app.invalid");
   if (
     url.origin !== "https://app.invalid" ||
-    !/^\/(dashboard|onboarding|case|review|path)(\/|$)/.test(url.pathname)
+    !/^\/(dashboard|onboarding|case|review|path|history|certificates|settings|billing|help)(\/|$)/.test(
+      url.pathname,
+    )
   )
     return "/dashboard";
   return url.pathname + url.search + url.hash;

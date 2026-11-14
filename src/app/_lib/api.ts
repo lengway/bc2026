@@ -4,13 +4,16 @@ const casePath = (id: string) => `/api/cases/${encodeURIComponent(id)}`;
 export const api = {
   session: (signal?: AbortSignal) =>
     apiClient("/api/auth/session", C.SessionView, { signal }),
-  magicLink: (email: string) =>
+  magicLink: (email: string, next?: string) =>
     apiClient("/api/auth/magic-link", C.MagicLinkResponse, {
       method: "POST",
-      body: { email },
+      body: { email, next },
     }),
   logout: () =>
-    apiClient("/api/auth/logout", C.LogoutResponse, { method: "POST" }),
+    apiClient("/api/auth/logout", C.LogoutResponse, {
+      method: "POST",
+      body: {},
+    }),
   events: (id: string, afterSeq = 0, signal?: AbortSignal) =>
     apiClient(`${casePath(id)}/events?afterSeq=${afterSeq}`, C.EventsPage, {
       signal,
@@ -22,11 +25,8 @@ export const api = {
       signal,
       keepalive: true,
     }),
-  intake: (body: {
-    text: string;
-    field: "sales";
-    level: "beginner" | "intermediate" | "advanced";
-  }) => apiClient("/api/intake", C.Profile, { method: "POST", body }),
+  intake: (body: C.IntakeRequest) =>
+    apiClient("/api/intake", C.Profile, { method: "POST", body }),
   createCase: (type: C.CaseKind, skill?: C.SkillId) =>
     apiClient("/api/cases", C.CreateCaseResponse, {
       method: "POST",

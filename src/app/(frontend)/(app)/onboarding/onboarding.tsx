@@ -1,20 +1,19 @@
 "use client";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Pencil } from "lucide-react";
 import { api } from "@/app/_lib/api";
 import { useCreateCase } from "@/app/_hooks/case-hooks";
+import { learningProfileKey } from "@/app/_hooks/use-learning-profile";
 import { Button } from "@/ui/primitives/button";
 import { LEVEL_LABEL, formatSkill } from "@/ui/lib/format";
-import { cn } from "@/ui/lib/utils";
 import { inputClass, labelClass, Surface } from "@/app/_components/product";
 import { ErrorPanel } from "@/app/_components/error-panel";
-import { FOCUS_AREAS, type FocusArea, type Level } from "@/contracts";
+import { FOCUS_AREAS, type Level } from "@/contracts";
 import {
   EMPTY_ANSWERS,
   EXPERIENCE,
-  FOCUS_CHOICES,
   MAX_FOCUS,
   ROLES,
   SEGMENTS,
@@ -22,6 +21,8 @@ import {
   toggleFocus,
   type IntakeAnswers,
 } from "./intake";
+
+import { Choice, FocusChips, Question } from "./intake-fields";
 
 const FIELDS = [
   {
@@ -44,121 +45,18 @@ const FIELDS = [
   },
 ] as const;
 
-function Question({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <fieldset className="grid gap-3">
-      <legend className="mb-3 grid gap-1">
-        <span className="text-sm font-medium">{title}</span>
-        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
-      </legend>
-      {children}
-    </fieldset>
-  );
-}
-
-function Choice({
-  name,
-  checked,
-  onChange,
-  label,
-  detail,
-  disabled,
-}: {
-  name: string;
-  checked: boolean;
-  onChange: () => void;
-  label: string;
-  detail?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <label
-      className={cn(
-        "flex min-h-12 items-center gap-3 rounded-lg border px-3.5 py-2.5 text-sm transition-colors duration-150 ease-out",
-        disabled
-          ? "cursor-not-allowed bg-surface text-muted-foreground"
-          : "cursor-pointer hover:border-border-strong",
-        checked && "border-ink bg-ink-soft hover:border-ink",
-      )}
-    >
-      <input
-        type="radio"
-        name={name}
-        checked={checked}
-        disabled={disabled}
-        onChange={onChange}
-        className="size-4 shrink-0 accent-ink"
-      />
-      <span className="grid gap-0.5">
-        <span className="font-medium">{label}</span>
-        {detail && (
-          <span className="text-xs text-muted-foreground">{detail}</span>
-        )}
-      </span>
-    </label>
-  );
-}
-
-function FocusChips({
-  selected,
-  blocked,
-  onToggle,
-  label,
-}: {
-  selected: FocusArea[];
-  blocked: FocusArea[];
-  onToggle: (area: FocusArea) => void;
-  label: string;
-}) {
-  const full = selected.length >= MAX_FOCUS;
-  return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
-      {FOCUS_CHOICES.map((area) => {
-        const on = selected.includes(area);
-        const disabled = !on && (full || blocked.includes(area));
-        return (
-          <button
-            key={area}
-            type="button"
-            aria-pressed={on}
-            disabled={disabled}
-            onClick={() => onToggle(area)}
-            className={cn(
-              "inline-flex min-h-10 items-center gap-1.5 rounded-md border px-3 text-sm outline-none transition-colors duration-150 ease-out",
-              "focus-visible:ring-2 focus-visible:ring-ring",
-              on
-                ? "border-ink bg-ink text-primary-foreground"
-                : "bg-card hover:border-border-strong",
-              disabled && "cursor-not-allowed opacity-45 hover:border-border",
-            )}
-          >
-            {on && (
-              <Check aria-hidden="true" className="size-3.5" strokeWidth={2} />
-            )}
-            {FOCUS_AREAS[area].label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export function Onboarding() {
   const [step, setStep] = useState<1 | 2>(1);
   const [answers, setAnswers] = useState<IntakeAnswers>(EMPTY_ANSWERS);
   const [triedSubmit, setTriedSubmit] = useState(false);
   const router = useRouter();
+  const client = useQueryClient();
   const intake = useMutation({
     mutationFn: api.intake,
-    onSuccess: () => setStep(2),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: learningProfileKey });
+      setStep(2);
+    },
   });
   const create = useCreateCase();
   const busy = intake.isPending || create.isPending;

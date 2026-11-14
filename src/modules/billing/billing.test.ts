@@ -17,6 +17,11 @@ class FakeProvider implements BillingProvider {
     this.sessions.push({ id, userId: input.userId, priceId: input.priceId, customerId: input.customerId });
     return { id, url: `https://checkout.stripe.com/${id}` };
   }
+  portals: { customerId: string; returnUrl: string }[] = [];
+  async createPortal(input: { customerId: string; returnUrl: string }) {
+    this.portals.push(input);
+    return { url: 'https://billing.stripe.com/p/session' };
+  }
   async retrieveSubscription(id: string) {
     const found = this.subscriptions.get(id);
     if (!found) throw new Error('missing subscription');
@@ -44,6 +49,16 @@ describe('billing with PostgreSQL', () => {
     return { sub, event };
   }
   const send = (billing: ReturnType<typeof createBillingService>, event: BillingEvent) => billing.handleWebhook(JSON.stringify(event), 'valid');
+
+  it('reports the current quota and only opens a portal for a bound Stripe customer', async () => {
+    const s = await setup();
+    expect(await s.billing.summary(s.userId)).toMatchObject({ plan: 'free', freeDailyRemaining: 1, canManage: false });
+    await expect(s.billing.portal(s.userId)).rejects.toMatchObject({ status: 404 });
+    const { sub } = await activate(s);
+    expect(await s.billing.summary(s.userId)).toMatchObject({ plan:'pro', periodEnd: sub.periodEnd.toISOString(), canManage: true });
+    expect(await s.billing.portal(s.userId)).toEqual({ url: 'https://billing.stripe.com/p/session' });
+    expect(s.provider.portals).toEqual([{ customerId: sub.customerId, returnUrl: 'http://localhost:3000/settings/billing' }]);
+  });
 
   it('enforces free and guest entitlements, counts failed generations correctly, and allows reuse after seven days', async () => {
     const { userId, billing } = await setup();

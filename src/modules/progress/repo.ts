@@ -3,12 +3,29 @@ import { Evaluation,type CaseResponse } from '@/contracts';
 import type { SqlExecutor } from '@/modules/database';
 import { AppError } from '@/modules/shared';
 import type { SubmittedSnapshot } from '@/modules/simulation';
-import { levelForXp,localDate,streakFromDays } from './math';
+import { calendarWeekStart,dateFromDayNumber,dayNumber,levelForXp,localDate,streakFromDays } from './math';
 
 export async function timezoneFor(db:SqlExecutor,userId:string,lock=false) {
   const result=await db.query(`SELECT timezone FROM users WHERE id=$1${lock?' FOR UPDATE':''}`,[userId]);
   if(!result.rows[0]) throw new AppError('NOT_FOUND',404,'User account not found.');
   return z.object({timezone:z.string()}).parse(result.rows[0]).timezone;
+}
+const ActivityRow=z.object({total:z.coerce.number().int().nonnegative(),weekly:z.coerce.number().int().nonnegative()});
+const PracticeDateRows=z.array(z.object({day:z.iso.date()}));
+export async function readActivity(db:SqlExecutor,userId:string,timezone:string,today:string) {
+  let calendarZone='UTC';
+  try { calendarZone=new Intl.DateTimeFormat('en-US',{timeZone:timezone}).resolvedOptions().timeZone; }
+  catch { /* Use the same UTC fallback as localDate. */ }
+  const [completed,practiced]=await Promise.all([
+    db.query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (
+      WHERE (COALESCE(submitted_at,created_at) AT TIME ZONE $2)::date BETWEEN $3::date AND $4::date
+    ) AS weekly FROM cases WHERE user_id=$1 AND status='evaluated'`,[userId,calendarZone,calendarWeekStart(today),today]),
+    db.query(`SELECT DISTINCT practice_date::text AS day FROM practice_completions
+      WHERE user_id=$1 AND counts_as_practice=true AND practice_date BETWEEN $2::date AND $3::date
+      ORDER BY day`,[userId,dateFromDayNumber(dayNumber(today)-13),today]),
+  ]);
+  const {total,weekly}=ActivityRow.parse(completed.rows[0]);
+  return {totalCompleted:total,completedThisWeek:weekly,today,practicedDates:PracticeDateRows.parse(practiced.rows).map(({day})=>day)};
 }
 export async function award(tx:SqlExecutor,snapshot:SubmittedSnapshot,input:Evaluation,now:Date) {
   const evaluation=Evaluation.parse(input);
@@ -32,7 +49,7 @@ export async function award(tx:SqlExecutor,snapshot:SubmittedSnapshot,input:Eval
       await tx.query('UPDATE skill_progress SET level=$3 WHERE user_id=$1 AND skill=$2',[snapshot.case.userId,skill,levelForXp(total).level]);
     }
   }
-  const days=z.array(z.object({day:z.iso.date()})).parse((await tx.query(`SELECT DISTINCT practice_date::text AS day FROM practice_completions
+  const days=PracticeDateRows.parse((await tx.query(`SELECT DISTINCT practice_date::text AS day FROM practice_completions
     WHERE user_id=$1 AND counts_as_practice=true ORDER BY day`,[snapshot.case.userId])).rows).map(row=>row.day);
   const streak=streakFromDays(days);
   await tx.query(`INSERT INTO streaks(user_id,current,best,last_practice_date) VALUES($1,$2,$3,$4)

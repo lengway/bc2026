@@ -1,9 +1,16 @@
 import { http, HttpResponse, delay } from "msw";
 import { z } from "zod";
+import type { HistoryCase, OwnedCaseRecord } from "@/contracts";
+import { createActivityHandlers } from "./app-activity-handlers";
+import { createAppAccountHandlers } from "./app-account-handlers";
+import { representativeSkillPath } from "./scenarios/app-ux";
+import {
+  activityHistory,
+  activityCertificates,
+} from "./scenarios/owner-activity";
 import {
   CaseView,
   GenerateCaseRequest,
-  IntakeRequest,
   MagicLinkRequest,
   MoveRequest,
   CopilotRequest,
@@ -80,6 +87,12 @@ export function createMockHandlers({
       return authenticated;
     }
   }
+  function showsRepresentativeApp() {
+    return (
+      persist &&
+      sessionStorage.getItem("gambit.preview.appFixture") === "certified"
+    );
+  }
   function setSession(value: boolean) {
     authenticated = value;
     if (persist)
@@ -145,6 +158,48 @@ export function createMockHandlers({
       lastSeq: item.events.at(-1)?.seq ?? 0,
     };
   }
+  function completedCases() {
+    getCase(PREVIEW_CASE_ID);
+    const list = [...cases.values()];
+    list.forEach((item) => getCase(item.view.id));
+    return list
+      .filter((item) => item.view.status === "evaluated")
+      .sort((a, b) => (b.evaluatedAt ?? 0) - (a.evaluatedAt ?? 0));
+  }
+  function ownerActivity() {
+    return completedCases().map((item) => {
+      const { evaluation } = makeReview(
+        item.view,
+        item.events,
+        editing.get(item.view.id),
+        item.outcome ?? "incomplete",
+      );
+      const issuedAt = new Date(item.evaluatedAt ?? Date.now()).toISOString();
+      const summary = {
+        caseId: item.view.id,
+        title: item.view.brief.title,
+        skill: item.targetSkill ?? "discovery",
+        outcome: evaluation.outcome,
+        accuracy: evaluation.accuracy,
+      } as const;
+      const history: HistoryCase = {
+        ...summary,
+        date: issuedAt.slice(0, 10),
+        labelCounts: {
+          brilliant: evaluation.labelCounts.brilliant,
+          blunder: evaluation.labelCounts.blunder,
+        },
+      };
+      const certificate: OwnedCaseRecord = {
+        ...summary,
+        slug: previewCertificateSlug(item.view.id),
+        issuedAt,
+        hasPublicLink: true,
+        revokedAt: null,
+      };
+      return { history, certificate };
+    });
+  }
   return [
     http.all("*/api/*", ({ request }) => {
       const path = new URL(request.url).pathname;
@@ -152,7 +207,7 @@ export function createMockHandlers({
       // Only the browser preview supplies this fallback; explicit origins always win.
       const origin = request.headers.get("Origin") ?? browserOrigin;
       if (
-        request.method === "POST" &&
+        ["POST", "PATCH", "DELETE"].includes(request.method) &&
         path !== "/api/billing/webhook" &&
         origin !== new URL(request.url).origin
       )
@@ -167,6 +222,22 @@ export function createMockHandlers({
         path === "/api/billing/webhook";
       if (!publicRoute && !sessionActive())
         return error("UNAUTHORIZED", "Sign in to continue.", 401);
+    }),
+    ...createAppAccountHandlers({ sessionActive, setSession, persist }),
+    ...createActivityHandlers({
+      cases: () =>
+        showsRepresentativeApp()
+          ? activityHistory.items
+          : ownerActivity().map(({ history }) => history),
+      certificates: () =>
+        showsRepresentativeApp()
+          ? activityCertificates
+          : {
+              skills: [],
+              caseRecords: ownerActivity().map(
+                ({ certificate }) => certificate,
+              ),
+            },
     }),
     http.post("*/api/auth/magic-link", async ({ request }) => {
       const input = MagicLinkRequest.safeParse(await request.json());
@@ -192,42 +263,11 @@ export function createMockHandlers({
         headers: { Location: "/dashboard" },
       });
     }),
-    http.get("*/api/auth/session", () =>
-      HttpResponse.json(
-        sessionActive()
-          ? {
-              user: {
-                id: "20000000-0000-4000-8000-000000000001",
-                email: "alex@example.com",
-                displayName: "Alex Morgan",
-                isGuest: false,
-              },
-              expiresAt: new Date(Date.now() + 3600_000).toISOString(),
-            }
-          : null,
-      ),
-    ),
     http.post("*/api/auth/logout", () => {
       if (!sessionActive())
         return error("UNAUTHORIZED", "Your session has ended.", 401);
       setSession(false);
       return HttpResponse.json({ ok: true });
-    }),
-    http.post("*/api/intake", async ({ request }) => {
-      const input = IntakeRequest.safeParse(await request.json());
-      if (!input.success)
-        return error("VALIDATION", "Please check your profile details.");
-      return HttpResponse.json({
-        userId: "20000000-0000-4000-8000-000000000001",
-        intakeText: input.data.text,
-        updatedAt: new Date().toISOString(),
-        field: input.data.field,
-        level: input.data.level,
-        subfield: "account_management",
-        years: Number(input.data.text.match(/(\d+)\s*years?/i)?.[1] ?? 0),
-        pains: input.data.text.trim() ? [input.data.text.trim()] : [],
-        goals: ["Understand customer needs"],
-      });
     }),
     http.post("*/api/cases", async ({ request }) => {
       const input = GenerateCaseRequest.safeParse(await request.json());
@@ -548,12 +588,42 @@ export function createMockHandlers({
       );
     }),
     http.get("*/api/me/path", () => {
+      if (showsRepresentativeApp())
+        return HttpResponse.json(representativeSkillPath());
       getCase(PREVIEW_CASE_ID);
       const list = [...cases.values()];
       list.forEach((item) => getCase(item.view.id));
       const completed = list
         .filter((item) => item.view.status === "evaluated")
         .sort((a, b) => (b.evaluatedAt ?? 0) - (a.evaluatedAt ?? 0));
+      const now = new Date();
+      const today = now.toISOString().slice(0, 10);
+      const weekStart = new Date(`${today}T00:00:00Z`);
+      weekStart.setUTCDate(
+        weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7),
+      );
+      const activityWindowStart = new Date(`${today}T00:00:00Z`);
+      activityWindowStart.setUTCDate(activityWindowStart.getUTCDate() - 13);
+      const completionDate = (item: (typeof completed)[number]) =>
+        new Date(item.evaluatedAt ?? now.getTime()).toISOString().slice(0, 10);
+      const practicedDates = [
+        ...new Set(
+          completed
+            .filter(
+              (item) =>
+                (item.evaluatedAt ?? 0) >= activityWindowStart.getTime() &&
+                item.events.some(
+                  (event) => event.actor === "user" && event.type === "message",
+                ),
+            )
+            .map(completionDate),
+        ),
+      ].sort();
+      const daily = list.findLast(
+        (item) =>
+          item.view.type === "daily" &&
+          (item.view.status !== "evaluated" || completionDate(item) === today),
+      );
       const scored = completed.flatMap((item) => {
         const evaluation = makeReview(
           item.view,
@@ -618,15 +688,18 @@ export function createMockHandlers({
           best: completed.length ? 1 : 0,
         },
         today: {
-          daily:
-            [...list]
-              .reverse()
-              .find(
-                (item) =>
-                  item.view.type === "daily" &&
-                  item.view.status !== "evaluated",
-              )?.view ?? null,
+          daily: daily?.view ?? null,
+          dailySkills: daily ? [daily.targetSkill ?? "discovery"] : undefined,
           weekly: null,
+        },
+        activity: {
+          totalCompleted: completed.length,
+          completedThisWeek: completed.filter(
+            (item) =>
+              completionDate(item) >= weekStart.toISOString().slice(0, 10),
+          ).length,
+          today,
+          practicedDates,
         },
         history: completed.map((item) => ({
           caseId: item.view.id,

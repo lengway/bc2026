@@ -23,3 +23,4 @@ export type { EditorBatch as EditorBatchData } from './telemetry';
 export { EvaluationOutcome as Outcome } from './evaluation';
 export * from './focus';
 export * from './skill-series';
+export * from './owner-activity';

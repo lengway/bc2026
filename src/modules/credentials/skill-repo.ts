@@ -19,6 +19,7 @@ const CertificateRow = z.object({
   isGuest: z.boolean(),
   holderName: z.string().nullable(),
   supersededBy: SkillCertificateSlug.nullable(),
+  superseded: z.boolean(),
 });
 
 const MemberRow = CaseRef.extend({
@@ -28,9 +29,11 @@ const MemberRow = CaseRef.extend({
 });
 
 export async function currentCertificates(db: SqlExecutor, userId: string) {
-  const { rows } = await db.query(`SELECT id,skill,level,slug FROM skill_certificates
+  const { rows } = await db.query(`SELECT id,skill,level,slug,revoked_at AS "revokedAt" FROM skill_certificates
     WHERE user_id=$1 AND superseded_by IS NULL`, [userId]);
-  return z.array(CertificateRow.pick({ id: true, skill: true, level: true, slug: true })).parse(rows);
+  return z.array(CertificateRow.pick({ id: true, skill: true, level: true, slug: true }).extend({
+    revokedAt: z.coerce.date().nullable().transform((value) => value?.toISOString() ?? null),
+  })).parse(rows);
 }
 
 export async function issueSkillCertificate(
@@ -58,10 +61,10 @@ export async function issueSkillCertificate(
 export async function findSkillCertificate(db: SqlExecutor, slug: string) {
   const { rows } = await db.query(`SELECT c.id,c.user_id AS "userId",c.skill,c.level,c.slug,c.issued_at AS "issuedAt",
     c.average_accuracy AS "averageAccuracy",c.is_demo AS "isDemo",c.is_seeded_demo AS "isSeededDemo",
-    u.is_guest AS "isGuest",u.display_name AS "holderName",next.slug AS "supersededBy"
+    u.is_guest AS "isGuest",u.display_name AS "holderName",next.slug AS "supersededBy",(c.superseded_by IS NOT NULL) AS superseded
     FROM skill_certificates c JOIN users u ON u.id=c.user_id
-    LEFT JOIN skill_certificates next ON next.id=c.superseded_by
-    WHERE c.slug=$1 AND (u.email_verified_at IS NOT NULL OR u.is_guest)`, [slug]);
+    LEFT JOIN skill_certificates next ON next.id=c.superseded_by AND next.revoked_at IS NULL
+    WHERE c.slug=$1 AND c.revoked_at IS NULL AND (u.email_verified_at IS NOT NULL OR u.is_guest)`, [slug]);
   return rows[0] ? CertificateRow.parse(rows[0]) : null;
 }
 
@@ -78,7 +81,7 @@ export async function skillCertificateMembers(db: SqlExecutor, id: string) {
 
 export async function findCaseSkillCertificate(db: SqlExecutor, caseId: string) {
   const { rows } = await db.query(`SELECT c.slug,c.skill FROM skill_certificate_cases m
-    JOIN skill_certificates c ON c.id=m.certificate_id WHERE m.case_id=$1
+    JOIN skill_certificates c ON c.id=m.certificate_id WHERE m.case_id=$1 AND c.revoked_at IS NULL
     ORDER BY c.superseded_by IS NULL DESC,c.issued_at DESC,c.level DESC,c.skill LIMIT 1`, [caseId]);
   return rows[0] ? CertificateRow.pick({ slug: true, skill: true }).parse(rows[0]) : undefined;
 }

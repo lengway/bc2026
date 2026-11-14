@@ -103,6 +103,7 @@ export const ReviewResponse = z.object({
   moves: z.array(MoveReview),
   transcript: z.array(CaseRecordTranscriptEvent).default([]),
   caseRecordSlug: CaseRecordSlug.optional(),
+  caseRecordLinkDisabled: z.boolean().optional(),
   certificateSlug: CaseRecordSlug.optional(),
 });
 export type ReviewResponse = z.infer<typeof ReviewResponse>;
@@ -110,6 +111,13 @@ export type ReviewResponse = z.infer<typeof ReviewResponse>;
 export const CheckoutRequest = z.strictObject({ plan: z.enum(['monthly', 'yearly']) });
 export type CheckoutRequest = z.infer<typeof CheckoutRequest>;
 
+export const BillingSummary = z.object({
+  plan: z.enum(['free', 'pro']),
+  periodEnd: Timestamp.nullable(),
+  freeDailyRemaining: z.union([z.literal(0), z.literal(1)]),
+  canManage: z.boolean(),
+});
+export type BillingSummary = z.infer<typeof BillingSummary>;
 export const CheckoutResponse = z.object({ url: z.url({ protocol: /^https?$/ }) });
 export type CheckoutResponse = z.infer<typeof CheckoutResponse>;
 

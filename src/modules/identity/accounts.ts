@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import {
   RegisterRequest, LoginRequest, ResetPasswordRequest, ChangePasswordRequest, ChangeEmailRequest,
   UpdateAccountRequest, DeleteAccountRequest, ForgotPasswordRequest,
@@ -11,14 +12,14 @@ import { AccountRow, accountSession, authorizeSensitive, consumeAccountToken, er
 
 export function createAccountService({ db, mailer, appUrl, now = systemClock, onEmailVerified }: IdentityDeps) {
   const accepted = () => ({ accepted: true as const });
-  async function deliver(email: string, purpose: MailPurpose, token: string | null) {
+  async function deliver(email: string, purpose: MailPurpose, token: string | null, preserveOnFailure = false) {
     const url = token ? new URL(purpose === 'reset_password' ? '/reset-password' : '/verify-email', appUrl) : null;
     if (url && token) url.searchParams.set('token', token);
     try {
       if (!mailer.sendAccountMail) throw new Error('Account mail delivery is not configured');
       await mailer.sendAccountMail(email, purpose, url?.toString()??null);
     } catch {
-      if (token) await db.query('DELETE FROM auth_tokens WHERE token_hash=$1 AND consumed_at IS NULL', [hashToken(token)]);
+      if (token && !preserveOnFailure) await db.query('DELETE FROM auth_tokens WHERE token_hash=$1 AND consumed_at IS NULL', [hashToken(token)]);
       throw new AppError('VALIDATION', 503, 'Unable to send an account email. Please try again.');
     }
   }
@@ -44,6 +45,27 @@ export function createAccountService({ db, mailer, appUrl, now = systemClock, on
         return issueMailToken(tx, user.id, 'verify_email', at, { email: user.email, passwordHash, displayName: data.displayName });
       });
       await deliver(data.email, 'verify_email', token);
+      return accepted();
+    },
+    async resendVerification(session: string | null, requestKey: string) {
+      const at = now();
+      const owner = await db.transaction(tx => accountSession(tx, session, at));
+      if (owner.email_verified_at) return accepted();
+      await consumeRateLimit(db, `register:ip:${hashToken(requestKey)}`, 20, 3_600_000, at);
+      await consumeRateLimit(db, `register:email:${hashToken(owner.email)}`, 3, 3_600_000, at);
+      const proof = await db.transaction(async tx => {
+        const account = await accountSession(tx, session, at);
+        if (account.email_verified_at) return null;
+        // The most recent signup proof may carry the mailbox owner's credentials
+        // even when this session belongs to an earlier provisional registration.
+        const pending = await tx.query(`SELECT meta FROM auth_tokens WHERE user_id=$1 AND purpose='verify_email'
+          AND consumed_at IS NULL ORDER BY expires_at DESC LIMIT 1`, [account.id]);
+        const parsed = z.record(z.string(),z.unknown()).safeParse(pending.rows[0]?.meta);
+        if (!parsed.success || parsed.data.email !== account.email) throw new AppError('FORBIDDEN',403,'Sign in with an email link to confirm your address.');
+        const token = await issueMailToken(tx, account.id, 'verify_email', at, parsed.data);
+        return { email: account.email, token };
+      });
+      if (proof) await deliver(proof.email, 'verify_email', proof.token, true);
       return accepted();
     },
     async login(input: LoginRequest, requestKey: string, existingToken: string | null = null) {

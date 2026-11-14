@@ -1,6 +1,6 @@
 import {
   CASES_REQUIRED, CertificateSlug, SkillCertificateFull, SkillCertificateLimited, SkillCertificateSlug,
-  type CertificateResponse, type ReviewResponse, type SkillCertificateResponse,
+  DisablePublicLinkRequest, type CertificateResponse, type ReviewResponse, type SkillCertificateResponse,
 } from '@/contracts';
 import { createCatalogService, type CatalogService } from '@/modules/catalog';
 import { readSkillSeries } from '@/modules/skill-series';
@@ -38,8 +38,30 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
     return issued;
   }
 
+  async function getOwnedLink(caseId: string, userId: string): Promise<{ slug?: string; disabled: boolean }> {
+    if (!z.uuid().safeParse(caseId).success || !z.uuid().safeParse(userId).success) {
+      throw new AppError('NOT_FOUND', 404, 'Case record not found.');
+    }
+    const existing = await findOwnedSlug(db, caseId, userId);
+    if (existing) return existing.revokedAt ? { disabled: true } : { slug: CertificateSlug.parse(existing.slug), disabled: false };
+    const owner = await db.query('SELECT id FROM cases WHERE id=$1 AND user_id=$2 AND status=$3', [caseId, userId, 'evaluated']);
+    if (!owner.rows.length) throw new AppError('NOT_FOUND', 404, 'Case record not found.');
+    if (!await canIssue(db, userId)) return { disabled: false };
+    const snapshot = await loadSubmission(caseId);
+    if (!snapshot || snapshot.case.userId !== userId) throw new AppError('NOT_FOUND', 404, 'Case record not found.');
+    const record = await db.transaction(tx => issue(tx, snapshot, now()));
+    return record.revokedAt ? { disabled: true } : { slug: record.slug, disabled: false };
+  }
+
   return {
     issueSkillCertificatesWithExecutor,
+    async disablePublicLink(userId: string, kind: DisablePublicLinkRequest['kind'], slug: string) {
+      const input = DisablePublicLinkRequest.parse({kind,slug});
+      const table = input.kind === 'skill' ? 'skill_certificates' : 'certificates';
+      const updated = await db.query(`UPDATE ${table} SET revoked_at=COALESCE(revoked_at,$3) WHERE user_id=$1 AND slug=$2 RETURNING id`, [userId,input.slug,now()]);
+      if (!updated.rows.length) throw new AppError('NOT_FOUND',404,'Certificate not found.');
+      return {ok:true as const};
+    },
     async getSkillCertificateBySlug(slug: string): Promise<SkillCertificateResponse> {
       if (!SkillCertificateSlug.safeParse(slug).success) throw new AppError('NOT_FOUND', 404, 'Certificate not found.');
       const certificate = await findSkillCertificate(db, slug);
@@ -73,16 +95,9 @@ export function createCredentialsService({db,loadSubmission,getReview,canFull,no
     },
     issueCertificate:(snapshot:SubmittedSnapshot)=>db.transaction(tx=>issue(tx,snapshot,now())),
     issueCertificateWithExecutor:async(tx:SqlExecutor,snapshot:SubmittedSnapshot)=>await canIssue(tx,snapshot.case.userId)?issue(tx,snapshot,now()):null,
+    getOwnedLink,
     async getOwnedSlug(caseId:string,userId:string):Promise<string|undefined> {
-      if(!z.uuid().safeParse(caseId).success||!z.uuid().safeParse(userId).success) throw new AppError('NOT_FOUND',404,'Certificate not found.');
-      const slug=await findOwnedSlug(db,caseId,userId);
-      if(slug) return CertificateSlug.parse(slug);
-      const owner=await db.query('SELECT id FROM cases WHERE id=$1 AND user_id=$2 AND status=$3',[caseId,userId,'evaluated']);
-      if(!owner.rows.length) throw new AppError('NOT_FOUND',404,'Certificate not found.');
-      if(!await canIssue(db,userId)) return undefined;
-      const snapshot=await loadSubmission(caseId);
-      if(!snapshot||snapshot.case.userId!==userId) throw new AppError('NOT_FOUND',404,'Certificate not found.');
-      return (await db.transaction(tx=>issue(tx,snapshot,now()))).slug;
+      return (await getOwnedLink(caseId,userId)).slug;
     },
     async getBySlug(slug:string):Promise<CertificateResponse> {
       if(!CertificateSlug.safeParse(slug).success) throw new AppError('NOT_FOUND',404,'Certificate not found.');

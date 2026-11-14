@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { GambitLogo } from "@/ui/brand";
 import { ThemeToggle } from "@/ui/theme-toggle";
-import { ArrowRight, LayoutDashboard, Route } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/ui/primitives/button";
 import { cn } from "@/ui/lib/utils";
 import type { ReactNode } from "react";
@@ -54,22 +54,12 @@ export function PageHeading({
     </header>
   );
 }
-export function ProductHeader({
-  name,
-  onLogout,
-  pending,
-  active,
-}: {
-  name?: string;
-  onLogout?: () => void;
-  pending?: boolean;
-  active?: string;
-}) {
+function ProductHeader() {
   return (
     <header className="border-b bg-background">
       <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
         <Link
-          href={name ? "/dashboard" : "/"}
+          href="/"
           aria-label="Gambit home"
           className="inline-flex min-h-11 items-center"
         >
@@ -80,49 +70,15 @@ export function ProductHeader({
           className="flex items-center gap-1 sm:gap-3"
         >
           <ThemeToggle />
-          {name ? (
-            <>
-              <Button asChild variant="ghost" size="sm">
-                <Link
-                  href="/dashboard"
-                  aria-current={active === "/dashboard" ? "page" : undefined}
-                >
-                  <LayoutDashboard aria-hidden="true" />
-                  Practice
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm">
-                <Link
-                  href="/path"
-                  aria-current={active === "/path" ? "page" : undefined}
-                >
-                  <Route aria-hidden="true" />
-                  Progress
-                </Link>
-              </Button>
-            </>
-          ) : (
-            <Button asChild variant="ghost">
-              <Link href="/pricing">Plans</Link>
-            </Button>
-          )}
-          {onLogout ? (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={onLogout}
-            >
-              Sign out
-            </Button>
-          ) : (
-            <Button asChild size="sm">
-              <Link href="/login">
-                Sign in
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
-          )}
+          <Button asChild variant="ghost">
+            <Link href="/pricing">Plans</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/login">
+              Sign in
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
         </nav>
       </div>
     </header>

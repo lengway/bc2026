@@ -1,9 +1,5 @@
-import { ClientData } from "@/app/_components/providers";
-import { PathPreview } from "@/app/(frontend)/(app)/path/path-preview";
+import { SkillsClient } from "./skills-client";
+
 export default function PathPage() {
-  return (
-    <ClientData>
-      <PathPreview />
-    </ClientData>
-  );
+  return <SkillsClient />;
 }

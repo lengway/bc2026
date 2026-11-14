@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertOrigin, hashToken, newToken, readSessionCookie, sessionCookie, safeRedirect } from '../index';
+import { assertOrigin, hashToken, newToken, readSessionCookie, sessionCookie, safeRedirect } from '../security';
 
 describe('session security', () => {
   it('uses unpredictable tokens and stores only a stable one-way hash', () => {
@@ -28,6 +28,8 @@ describe('session security', () => {
     for (const target of ['https://evil.example', '//evil.example', '/\\evil.example', '/api/auth/logout']) {
       expect(safeRedirect(target)).toBe('/onboarding');
     }
-    expect(safeRedirect('/dashboard')).toBe('/dashboard');
+    for (const target of ['/dashboard', '/history?period=week', '/certificates', '/settings/learning', '/help#scoring']) {
+      expect(safeRedirect(target)).toBe(target);
+    }
   });
 });

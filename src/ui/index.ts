@@ -40,3 +40,8 @@ export {
   formatSkill,
   initials,
 } from "./lib/format";
+
+export { AppShell, APP_NAVIGATION, type AppBreadcrumb } from "./app-shell";
+export { EmptyState, SectionHeader, StatCard } from "./app-summary";
+export { HorizontalScroller } from "./horizontal-scroller";
+export { SeriesProgress, SKILL_ICONS, SkillCard, skillSeriesStatus } from "./skill-card";

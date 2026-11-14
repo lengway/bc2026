@@ -110,6 +110,18 @@ describe("Public skill certificate", () => {
     expect(screen.queryByText("Key move")).not.toBeInTheDocument();
   });
 
+  it("marks an older certificate even when its replacement link is disabled", () => {
+    render(
+      <SkillCertificateCard
+        certificate={{ ...certificate, superseded: true, supersededBy: null }}
+      />,
+    );
+    expect(screen.getByText("Superseded", { exact: true })).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: /newer certificate/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows one key move per case in Full", () => {
     render(
       <SkillCertificateCard

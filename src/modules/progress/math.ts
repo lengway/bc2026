@@ -15,6 +15,11 @@ export function localDate(instant:Date,timezone:string):string {
   return `${value('year')}-${value('month')}-${value('day')}`;
 }
 export const dayNumber=(day:string)=>Math.floor(Date.parse(`${day}T00:00:00Z`)/86_400_000);
+export const dateFromDayNumber=(day:number)=>new Date(day*86_400_000).toISOString().slice(0,10);
+export function calendarWeekStart(date:string):string {
+  const weekday=new Date(`${date}T00:00:00Z`).getUTCDay();
+  return dateFromDayNumber(dayNumber(date)-(weekday+6)%7);
+}
 export function streakFromDays(days:readonly string[]) {
   let current=0,best=0,previous:number|undefined;
   for(const day of [...new Set(days)].sort()) {

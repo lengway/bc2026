@@ -1,5 +1,6 @@
 "use client";
 import "./workspace.css";
+import Link from "next/link";
 import type { WorkspacePlugin } from "../types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -41,6 +42,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
+  DialogTrigger,
 } from "@/ui/primitives/dialog";
 import { inputClass } from "@/app/_components/product";
 import { ErrorPanel } from "@/app/_components/error-panel";
@@ -474,7 +476,36 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
                 Timer unavailable. Refresh to reconnect.
               </span>
             )}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  className="min-h-11"
+                  variant="ghost"
+                  disabled={submit.isPending}
+                >
+                  Leave case
+                </Button>
+              </DialogTrigger>
+              <DialogContent showCloseButton={false}>
+                <DialogTitle>Leave this case?</DialogTitle>
+                <DialogDescription>
+                  The timer keeps running. Sent messages are saved. Any text you
+                  haven’t sent will be lost.
+                </DialogDescription>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline" className="min-h-11">
+                      Stay
+                    </Button>
+                  </DialogClose>
+                  <Button asChild className="min-h-11">
+                    <Link href="/dashboard">Leave case</Link>
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Button
+              className="min-h-11"
               variant="outline"
               disabled={busy}
               onClick={() => setConfirm(true)}

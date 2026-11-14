@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  CaseParams,CaseResponse,CertificateParams,CertificateResponse,CheckoutRequest,CheckoutResponse,CopilotRequest,CopilotResponse,
+  BillingSummary,DisablePublicLinkRequest,CaseParams,CaseResponse,CertificateParams,CertificateResponse,CheckoutRequest,CheckoutResponse,CopilotRequest,CopilotResponse,
   EditorBatch,EditorBatchAck,EventsPage,EventsQuery,GenerateCaseRequest,GenerateCaseResponse,IntakeRequest,LogoutResponse,
   MagicLinkRequest,MagicLinkResponse,MagicLinkVerifyQuery,MoveRequest,MoveResponse,Profile,ReviewResponse,SessionView,
   SkillCertificateParams,SkillCertificateResponse,SkillPath,StartCaseResponse,StripeWebhookResponse,SubmitCaseResponse,
@@ -11,6 +11,7 @@ import { AppError } from '@/modules/shared';
 import { assertJson,body,guarded,json,query,readBody,type ParamsContext } from './http';
 import { eventStream,streamCursor } from './stream';
 import { createAccountApi } from './accounts';
+import { createOwnerActivityApi } from './owner-activity';
 
 const Empty=z.strictObject({});
 export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:number}={}) {
@@ -34,6 +35,7 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
   const caseId=async(context:ParamsContext)=>CaseParams.parse(await context.params).id;
   return {
     ...createAccountApi(app,{csrf,respond,user,token,requestKey,secure}),
+    ...createOwnerActivityApi(app,{respond,user}),
     authOptions:()=>guarded(async()=>json(z.object({guestAccessEnabled:z.boolean()}),{guestAccessEnabled:app.config.GUEST_ACCESS_ENABLED})),
     session:(request:Request)=>respond(request,async()=>{
       const session=await app.identity.getSession(token(request));
@@ -61,6 +63,7 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
       csrf(request);await body(request,Empty);await app.identity.revokeSession(token(request));
       return json(LogoutResponse,{ok:true},200,{'Set-Cookie':sessionCookie('',new Date(0),secure,app.now())});
     }),
+    getIntake:(request:Request)=>respond(request,async()=>json(Profile.nullable(),await app.identity.getProfile((await user(request)).id))),
     intake:(request:Request)=>respond(request,async()=>{
       csrf(request);const owner=await user(request);
       return json(Profile,await app.identity.upsertProfileFromIntake(owner.id,await body(request,IntakeRequest)));
@@ -106,8 +109,8 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
     review:(request:Request,context:ParamsContext)=>respond(request,async()=>{
       const owner=await user(request),id=await caseId(context);
       const review=await app.evaluation.getReview(id,owner.id);
-      const caseRecordSlug=await app.credentials.getOwnedSlug(id,owner.id);
-      return json(ReviewResponse,{...review,caseRecordSlug,certificateSlug:caseRecordSlug});
+      const {slug: caseRecordSlug,disabled}=await app.credentials.getOwnedLink(id,owner.id);
+      return json(ReviewResponse,{...review,caseRecordSlug,certificateSlug:caseRecordSlug,caseRecordLinkDisabled:disabled||undefined});
     }),
     certificate:(_request:Request,context:ParamsContext)=>guarded(async()=>{
       const {slug}=CertificateParams.parse(await context.params);
@@ -118,6 +121,15 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
       return json(SkillCertificateResponse,await app.credentials.getSkillCertificateBySlug(slug));
     }),
     path:(request:Request)=>respond(request,async()=>json(SkillPath,await app.progress.getSkillPath((await user(request)).id))),
+    disablePublicLink:(request:Request)=>respond(request,async()=>{
+      csrf(request);const owner=await user(request);const input=await body(request,DisablePublicLinkRequest);
+      return json(LogoutResponse,await app.credentials.disablePublicLink(owner.id,input.kind,input.slug));
+    }),
+    billingSummary:(request:Request)=>respond(request,async()=>json(BillingSummary,await app.billing.summary((await user(request)).id))),
+    billingPortal:(request:Request)=>respond(request,async()=>{
+      csrf(request);const owner=await user(request);await body(request,Empty);
+      return json(CheckoutResponse,await app.billing.portal(owner.id));
+    }),
     checkout:(request:Request)=>respond(request,async()=>{
       csrf(request);const owner=await user(request);const input=await body(request,CheckoutRequest);
       return json(CheckoutResponse,await app.billing.checkout(owner.id,input.plan));

@@ -31,20 +31,23 @@ export function GambitMark({ className, title }: { className?: string; title?: s
   );
 }
 
-/** Mark + wordmark. The wordmark uses the certificate serif. */
+/** Mark + wordmark with an optional sans-serif treatment for application chrome. */
 export function GambitLogo({
   className,
   size = "md",
+  sans = false,
 }: {
   className?: string;
   size?: "sm" | "md";
+  sans?: boolean;
 }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <GambitMark className={size === "sm" ? "size-5" : "size-6"} />
       <span
         className={cn(
-          "font-serif leading-none tracking-tight text-foreground",
+          "leading-none tracking-tight text-foreground",
+          sans ? "font-sans font-medium" : "font-serif",
           size === "sm" ? "text-xl" : "text-2xl",
         )}
       >

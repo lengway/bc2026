@@ -9,6 +9,7 @@ export type BillingSubscription = z.infer<typeof BillingSubscription>;
 export interface BillingProvider {
   constructEvent(rawBody: string, signature: string): BillingEvent;
   createCheckout(input: { userId: string; priceId: string; successUrl: string; cancelUrl: string; customerId?: string }): Promise<{ id: string; url: string }>;
+  createPortal(input: { customerId: string; returnUrl: string }): Promise<{ url: string }>;
   retrieveSubscription(id: string): Promise<BillingSubscription>;
 }
 const disabled = () => new AppError('VALIDATION', 503, 'Billing is not configured.');
@@ -40,6 +41,10 @@ export function createStripeProvider({ secretKey, webhookSecret }: { secretKey?:
       const session = await client().checkout.sessions.create({ mode: 'subscription', line_items: [{ price: input.priceId, quantity: 1 }], customer: input.customerId, client_reference_id: input.userId, metadata: { userId: input.userId }, subscription_data: { metadata: { userId: input.userId } }, success_url: input.successUrl, cancel_url: input.cancelUrl });
       if (!session.url || session.livemode) throw new Error('Invalid test checkout session');
       return { id: session.id, url: session.url };
+    },
+    async createPortal({ customerId, returnUrl }) {
+      const session = await client().billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
+      return { url: session.url };
     },
     async retrieveSubscription(id) {
       const subscription = await client().subscriptions.retrieve(id);

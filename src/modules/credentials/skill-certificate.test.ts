@@ -96,6 +96,21 @@ describe('skill certificate integration', () => {
     expect((await demo.discovery(owner)).blockers).toContain('left_case');
   });
 
+  it('does not reissue a revoked skill certificate or link to it from a public case record', async () => {
+    const demo = fixture();
+    const first = await demo.add('cold-discovery');
+    const owner = first.userId;
+    await demo.add('vendor', { owner });
+    await demo.add('committee', { owner });
+    const certificate = (await demo.issue(owner)).find(({ skill }) => skill === 'discovery')!;
+    const record = await demo.service.issueCertificate(first.snapshot);
+    await expect(demo.service.disablePublicLink(randomUUID(),'skill',certificate.slug)).rejects.toMatchObject({status:404});
+    await demo.service.disablePublicLink(owner,'skill',certificate.slug);
+    await expect(demo.service.getSkillCertificateBySlug(certificate.slug)).rejects.toMatchObject({status:404});
+    expect((await demo.service.getBySlug(record.slug)).skillCertificate).toBeUndefined();
+    expect(await demo.issue(owner)).toEqual([]);
+  });
+
   it('catches up historical certificates on concurrent authenticated path reads', async () => {
     const demo = fixture({ catchUp: true });
     const first = await demo.add('cold-discovery', { accuracy: 82 });

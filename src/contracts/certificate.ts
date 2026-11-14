@@ -88,6 +88,7 @@ export const SkillCertificateLimited = CaseRecordLimited.pick({
   aiDependencyAverage: AveragePercent.nullable(),
   trapResults: z.array(z.object({ caseId: Id, trapResult: TrapResult })).length(CASES_REQUIRED),
   supersededBy: SkillCertificateSlug.nullable(),
+  superseded: z.boolean().optional(),
 });
 export type SkillCertificateLimited = z.infer<typeof SkillCertificateLimited>;
 
@@ -103,3 +104,9 @@ export type SkillCertificateFull = z.infer<typeof SkillCertificateFull>;
 // Parse full responses first so the limited projection does not strip the evidence.
 export const SkillCertificateResponse = z.union([SkillCertificateFull, SkillCertificateLimited]);
 export type SkillCertificateResponse = z.infer<typeof SkillCertificateResponse>;
+
+export const DisablePublicLinkRequest = z.strictObject({
+  kind: z.enum(['skill', 'case_record']),
+  slug: CertificateSlug,
+});
+export type DisablePublicLinkRequest = z.infer<typeof DisablePublicLinkRequest>;
