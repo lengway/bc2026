@@ -17,7 +17,8 @@ import type { ChecklistStep } from "@/ui";
  */
 
 const CASE_ID = "00000000-0000-4000-8000-000000000100";
-const eventId = (n: number) => `00000000-0000-4000-8000-0000000000${String(n).padStart(2, "0")}`;
+const eventId = (n: number) =>
+  `00000000-0000-4000-8000-0000000000${String(n).padStart(2, "0")}`;
 
 export const persona: PersonaPublic = {
   id: "dana-whitfield",
@@ -38,15 +39,15 @@ export const moves: MoveReview[] = [
       "Hi Dana, thanks for making time. Before we get into the renewal, I would like to hear how the last quarter went on your side.",
     label: "good",
     why: "A reasonable open. It invites her to talk, but it is broad enough to answer with a pleasantry.",
-    betterMove:
-      "I saw dispatch tickets doubled in March. What happened there?",
+    betterMove: "I saw dispatch tickets doubled in March. What happened there?",
     innerThought: "Fine. At least he is not opening with a slide deck.",
     trustAfter: 40,
   },
   {
     eventId: eventId(2),
     seq: 3,
-    userText: "Understood. You mentioned you are looking at other vendors. What is driving that?",
+    userText:
+      "Understood. You mentioned you are looking at other vendors. What is driving that?",
     label: "good",
     why: "Direct and fair. You asked for the reason instead of defending the product.",
     betterMove: "Is this about the March dispatch issues, or about price?",
@@ -67,7 +68,8 @@ export const moves: MoveReview[] = [
   {
     eventId: eventId(4),
     seq: 7,
-    userText: "That sounds frustrating. I can loop in our support team to look at it.",
+    userText:
+      "That sounds frustrating. I can loop in our support team to look at it.",
     label: "inaccuracy",
     why: "Right instinct, but you handed the problem off instead of staying with it. She gave you a number and you did not use it.",
     betterMove:
@@ -102,7 +104,8 @@ export const moves: MoveReview[] = [
   {
     eventId: eventId(7),
     seq: 15,
-    userText: "You are right, and I apologize. I quoted that without checking the agreement.",
+    userText:
+      "You are right, and I apologize. I quoted that without checking the agreement.",
     label: "good",
     why: "Owning the error quickly stopped the slide. It would have been stronger with the correct figure in the same message.",
     betterMove:
@@ -138,7 +141,14 @@ export const moves: MoveReview[] = [
 export const evaluation: Evaluation = {
   caseId: CASE_ID,
   accuracy: 74,
-  labelCounts: { brilliant: 1, best: 2, good: 4, inaccuracy: 1, mistake: 0, blunder: 1 },
+  labelCounts: {
+    brilliant: 1,
+    best: 2,
+    good: 4,
+    inaccuracy: 1,
+    mistake: 0,
+    blunder: 1,
+  },
   aiDependency: 31,
   trapCaught: false,
   outcome: "won",
@@ -236,12 +246,21 @@ export const docs: CaseDoc[] = [
         { label: "Plan", value: "Routing Pro, 140 vehicles" },
         { label: "Annual contract value", value: "$86,400" },
         { label: "Renewal date", value: "Dec 5, 2026" },
-        { label: "Primary contact", value: "Dana Whitfield, Operations Director" },
+        {
+          label: "Primary contact",
+          value: "Dana Whitfield, Operations Director",
+        },
         { label: "Health", value: "At risk" },
       ],
       activity: [
-        { at: "Apr 02", text: "Support ticket #4471 opened: misrouted loads after v4 migration" },
-        { at: "Jun 18", text: "Ticket #4471 still open. Escalation requested by customer" },
+        {
+          at: "Apr 02",
+          text: "Support ticket #4471 opened: misrouted loads after v4 migration",
+        },
+        {
+          at: "Jun 18",
+          text: "Ticket #4471 still open. Escalation requested by customer",
+        },
         { at: "Nov 12", text: "Customer mentions competing quote, 11% lower" },
       ],
     },
@@ -273,7 +292,8 @@ export const docs: CaseDoc[] = [
     title: "Shipments by month",
     arrivesAtTurn: null,
     content: {
-      caption: "Source: Brightline account export. Misrouted counts are customer-reported.",
+      caption:
+        "Source: Brightline account export. Misrouted counts are customer-reported.",
       columns: ["Month", "Shipments", "Misrouted", "Rate"],
       rows: [
         ["February", "402", "38", "9.5%"],
@@ -321,13 +341,35 @@ export const skillPath: SkillPath = {
 };
 
 export const practiceDays = [
-  "Nov 1", "Nov 2", "Nov 3", "Nov 4", "Nov 5", "Nov 6", "Nov 7",
-  "Nov 8", "Nov 9", "Nov 10", "Nov 11", "Nov 12", "Nov 13", "Nov 14",
+  "Nov 1",
+  "Nov 2",
+  "Nov 3",
+  "Nov 4",
+  "Nov 5",
+  "Nov 6",
+  "Nov 7",
+  "Nov 8",
+  "Nov 9",
+  "Nov 10",
+  "Nov 11",
+  "Nov 12",
+  "Nov 13",
+  "Nov 14",
 ].map((label, index) => ({ label, practiced: index >= 2 }));
 
 export const preparingSteps: ChecklistStep[] = [
-  { id: "profile", label: "Reading your profile", status: "done", detail: "Sales · SDR · 3 years" },
-  { id: "scenario", label: "Choosing a scenario", status: "done", detail: "Renewal under price pressure" },
+  {
+    id: "profile",
+    label: "Reading your profile",
+    status: "done",
+    detail: "Sales · SDR · 3 years",
+  },
+  {
+    id: "scenario",
+    label: "Choosing a scenario",
+    status: "done",
+    detail: "Renewal under price pressure",
+  },
   {
     id: "counterpart",
     label: "Writing your counterpart",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { fontVariables } from "@/ui/fonts";
 import { TooltipProvider } from "@/ui/primitives/tooltip";
-import "./globals.css";
+import "@/app/globals.css";
 
 export const metadata: Metadata = {
   title: "[PRODUCT]",
