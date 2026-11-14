@@ -22,3 +22,4 @@ export type { MoveRequest as MoveInput, CopilotRequest as CopilotInput } from '.
 export type { EditorBatch as EditorBatchData } from './telemetry';
 export { EvaluationOutcome as Outcome } from './evaluation';
 export * from './focus';
+export * from './skill-series';
