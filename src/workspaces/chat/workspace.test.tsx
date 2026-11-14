@@ -24,6 +24,63 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+it("submits Copilot on Enter while preserving Shift+Enter, composition and pending guards", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("matchMedia", (media: string) => ({
+    media,
+    matches: media.includes("1024"),
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+  const view = {
+    ...makeCase(),
+    status: "in_progress" as const,
+    startedAt: new Date().toISOString(),
+  };
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const copilot = vi
+    .spyOn(api, "copilot")
+    .mockImplementation(() => new Promise(() => {}));
+  vi.spyOn(api, "editorBatch").mockResolvedValue({
+    acceptedCount: 0,
+    acceptedWindowCount: 0,
+    lastDraftSeq: 0,
+  });
+  const mounted = render(
+    <QueryClientProvider client={client}>
+      <ChatWorkspace caseView={view} />
+    </QueryClientProvider>,
+  );
+  const editor = screen.getByRole("textbox", { name: "Ask Copilot" });
+  fireEvent.keyDown(editor, { key: "Enter" });
+  await act(async () => vi.advanceTimersByTimeAsync(20));
+  expect(copilot).not.toHaveBeenCalled();
+  fireEvent.change(editor, { target: { value: "What should I verify?" } });
+  expect(fireEvent.keyDown(editor, { key: "Enter", shiftKey: true })).toBe(
+    true,
+  );
+  expect(fireEvent.keyDown(editor, { key: "Enter", isComposing: true })).toBe(
+    true,
+  );
+  expect(fireEvent.keyDown(editor, { key: "Enter", keyCode: 229 })).toBe(true);
+  await act(async () => vi.advanceTimersByTimeAsync(20));
+  expect(copilot).not.toHaveBeenCalled();
+  fireEvent.keyDown(editor, { key: "Enter" });
+  await act(async () => vi.advanceTimersByTimeAsync(20));
+  expect(copilot).toHaveBeenCalledTimes(1);
+  expect(copilot).toHaveBeenCalledWith(
+    view.id,
+    expect.objectContaining({ text: "What should I verify?" }),
+  );
+  fireEvent.keyDown(editor, { key: "Enter" });
+  await act(async () => vi.advanceTimersByTimeAsync(20));
+  expect(copilot).toHaveBeenCalledTimes(1);
+  mounted.unmount();
+  client.clear();
+});
+
 it("keeps an accepted message locked for exact retry when the later LLM operation fails", async () => {
   vi.useFakeTimers();
   vi.stubGlobal("matchMedia", (media: string) => ({

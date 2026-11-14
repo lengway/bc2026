@@ -1,10 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useCase, useReview, useCreateCase } from "@/app/_hooks/case-hooks";
-import { api } from "@/app/_lib/api";
 import { ErrorPanel } from "@/app/_components/error-panel";
 import { LoadingState } from "@/app/_components/providers";
 import { Button } from "@/ui/primitives/button";
@@ -16,12 +14,6 @@ export function ReviewPreview({ id }: { id: string }) {
   const create = useCreateCase();
   const ready = current.data?.status === "evaluated";
   const query = useReview(id, ready);
-  const events = useQuery({
-    queryKey: ["review-events", id],
-    queryFn: ({ signal }) => api.events(id, 0, signal),
-    enabled: ready,
-    retry: false,
-  });
   useEffect(() => {
     if (ready) return;
     const timer = setTimeout(() => setSlow(true), 60_000);
@@ -80,7 +72,7 @@ export function ReviewPreview({ id }: { id: string }) {
     return (
       <ErrorPanel error={query.error} retry={() => void query.refetch()} />
     );
-  const { evaluation, moves, certificateSlug } = query.data;
+  const { evaluation, moves, certificateSlug, transcript } = query.data;
   const persona = view.personas[0];
   if (!persona)
     return (
@@ -90,27 +82,13 @@ export function ReviewPreview({ id }: { id: string }) {
     );
   return (
     <>
-      {events.isError && (
-        <div className="mx-auto max-w-6xl px-4 pt-5">
-          <ErrorPanel
-            error={events.error}
-            retry={() => void events.refetch()}
-          />
-          <p className="mt-2 text-xs text-muted-foreground">
-            Message links are temporarily unavailable. Supplied evidence
-            quotations remain visible.
-          </p>
-        </div>
-      )}
       <ReviewScreen
         state="ready"
         caseTitle={view.brief.title}
         persona={persona}
         evaluation={evaluation}
-        observations={evaluation.processObservations}
         moves={moves}
-        events={events.data?.events}
-        docs={view.docs}
+        transcript={transcript}
         onShare={
           certificateSlug
             ? () => router.push(`/c/${encodeURIComponent(certificateSlug)}`)

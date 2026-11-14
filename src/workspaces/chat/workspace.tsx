@@ -167,9 +167,24 @@ function CopilotPanel({
           maxLength={5000}
           disabled={disabled}
           onChange={(e) => onQuestion(e.target.value)}
+          onKeyDown={(event) => {
+            if (
+              event.key !== "Enter" ||
+              event.shiftKey ||
+              event.nativeEvent.isComposing ||
+              event.keyCode === 229
+            )
+              return;
+            event.preventDefault();
+            if (!disabled && !pending && question.trim())
+              event.currentTarget.form?.requestSubmit();
+          }}
           placeholder="What should I verify?"
         />
-        <Button disabled={disabled || !question.trim()} type="submit">
+        <Button
+          disabled={disabled || pending || !question.trim()}
+          type="submit"
+        >
           {pending ? "Thinking…" : "Ask Copilot"}
         </Button>
         {error && <ErrorPanel error={error} />}

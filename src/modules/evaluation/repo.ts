@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MoveReview, ReviewResponse } from '@/contracts';
+import { CertificateTranscriptEvent, MoveReview, ReviewResponse } from '@/contracts';
 import type { SqlExecutor } from '@/modules/database';
 
 export async function readReviewState(db: SqlExecutor, id: string, userId?: string) {
@@ -23,7 +23,11 @@ export async function readReview(db: SqlExecutor, id: string): Promise<ReviewRes
     FROM move_reviews r JOIN events e ON e.id=r.event_id AND e.case_id=r.case_id WHERE r.case_id=$1 ORDER BY e.seq`, [id])).rows);
   const topIds = z.array(z.uuid()).parse(evaluation?.topIds);
   const byId = new Map(moves.map((move) => [move.eventId, move]));
-  return ReviewResponse.parse({ evaluation: { ...evaluation, topMoves: topIds.map((eventId) => byId.get(eventId)) }, moves });
+  const transcript = (await db.query(`SELECT id,seq,actor,type,content,
+    created_at AS "createdAt" FROM events WHERE case_id=$1 AND is_public=true ORDER BY seq`, [id])).rows
+    .map((event) => CertificateTranscriptEvent.parse({ ...event,
+      createdAt: event.createdAt instanceof Date ? event.createdAt.toISOString() : event.createdAt }));
+  return ReviewResponse.parse({ evaluation: { ...evaluation, topMoves: topIds.map((eventId) => byId.get(eventId)) }, moves, transcript });
 }
 
 export async function publishReview(tx: SqlExecutor, { evaluation, moves }: ReviewResponse, at: Date) {

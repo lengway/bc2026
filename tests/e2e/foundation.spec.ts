@@ -32,7 +32,7 @@ async function submit(page: Page) {
   await page.getByRole("button", { name: "Submit for review" }).click();
   await expect(page).toHaveURL(/\/review\//);
   await expect(
-    page.getByRole("heading", { name: "Observed assistance", exact: true }),
+    page.getByRole("heading", { name: "Conversation", exact: true }),
   ).toBeVisible();
 }
 async function accessible(page: Page) {
@@ -49,6 +49,43 @@ async function accessible(page: Page) {
   ).toBe(true);
 }
 
+test("review replay stays readable in both themes with reachable mobile controls", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/design/review");
+  await expect(page.getByRole("status", { name: "Move position" })).toHaveText(
+    "5 / 9",
+  );
+  for (const dark of [false, true]) {
+    await page.evaluate(
+      (value) => document.documentElement.classList.toggle("dark", value),
+      dark,
+    );
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.getByRole("button", { name: "First move", exact: true }).click();
+    await accessible(page);
+    await page.screenshot({
+      path: `../review-${dark ? "dark" : "light"}-desktop.png`,
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('[data-selected="true"]').scrollIntoViewIfNeeded();
+    await expect(
+      page.getByRole("navigation", { name: "Replay controls" }),
+    ).toBeInViewport();
+    await page.getByRole("button", { name: "Next move", exact: true }).click();
+    await expect(
+      page.getByRole("status", { name: "Move position" }),
+    ).toHaveText("2 / 9");
+    await accessible(page);
+    await page.screenshot({
+      path: `../review-${dark ? "dark" : "light"}-mobile.png`,
+      fullPage: false,
+    });
+  }
+});
+
 test("onboarding, three moves, twist, evidence review and matching limited certificate", async ({
   page,
 }) => {
@@ -60,22 +97,27 @@ test("onboarding, three moves, twist, evidence review and matching limited certi
   await page.screenshot({ path: "../frontend-landing.png", fullPage: true });
   await signIn(page);
   await page.getByRole("link", { name: "Set up your practice" }).click();
-  await page.getByLabel("Beginner", { exact: true }).check();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("radio", { name: /Account manager/ }).check();
+  await page.getByRole("radio", { name: "3–5 years", exact: true }).check();
   await page
-    .getByLabel("Your role, experience and what feels difficult")
-    .fill("I work in sales, 3 years. Renewal conversations are difficult.");
+    .getByRole("group", { name: "What you want to practice" })
+    .getByRole("button", { name: "Renewals and churn risk", exact: true })
+    .click();
+  await page
+    .getByLabel("Anything else we should know", { exact: false })
+    .fill("I work in sales, 5 years. Renewal conversations are difficult.");
   await page.getByRole("button", { name: "Review my profile" }).click();
   await expect(
-    page.getByText("Sales · Account management · 3 years", { exact: true }),
+    page.getByText("Sales · Account management · 5 years", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Edit my answer" }).click();
+  await page.getByRole("button", { name: "Edit my answers" }).click();
+  await page.getByRole("radio", { name: "6+ years", exact: true }).check();
   await page
-    .getByLabel("Your role, experience and what feels difficult")
-    .fill("I work in sales, 4 years. Renewal conversations are difficult.");
+    .getByLabel("Anything else we should know", { exact: false })
+    .fill("I work in sales, 6 years. Renewal conversations are difficult.");
   await page.getByRole("button", { name: "Review my profile" }).click();
   await expect(
-    page.getByText("Sales · Account management · 4 years", { exact: true }),
+    page.getByText("Sales · Account management · 6 years", { exact: true }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Looks right, prepare my case" })
@@ -103,11 +145,23 @@ test("onboarding, three moves, twist, evidence review and matching limited certi
   );
   await page.screenshot({ path: "../frontend-workspace.png", fullPage: true });
   await submit(page);
-  await page.getByText("Why this score?", { exact: true }).click();
-  await expect(page.getByText("240 / 300", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "View message" }).first().click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.keyboard.press("Escape");
+  await page.getByText("How this was scored", { exact: true }).click();
+  await expect(
+    page.getByText(
+      "Messages without enough evidence to judge are not counted.",
+    ),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Last move", exact: true }).click();
+  await expect(page.getByRole("status", { name: "Move position" })).toHaveText(
+    "3 / 3",
+  );
+  await page.keyboard.press("ArrowLeft");
+  await expect(page.getByRole("status", { name: "Move position" })).toHaveText(
+    "2 / 3",
+  );
+  await expect(
+    page.getByRole("list", { name: "Recorded conversation" }),
+  ).toContainText("How much time does duplicate entry take each day?");
   await accessible(page);
   await page.screenshot({ path: "../frontend-review.png", fullPage: true });
   await page
@@ -194,10 +248,20 @@ test("mobile documents, Copilot insertion, keyboard entry and accessible workspa
     .getByLabel("Ask Copilot", { exact: true })
     .filter({ visible: true })
     .fill("What should I check before discussing pricing?");
-  await page
-    .getByRole("button", { name: "Ask Copilot", exact: true })
-    .filter({ visible: true })
-    .click();
+  const copilotInput = page
+    .getByLabel("Ask Copilot", { exact: true })
+    .filter({ visible: true });
+  await copilotInput.press("End");
+  await copilotInput.press("Shift+Enter");
+  await expect(copilotInput).toHaveValue(
+    "What should I check before discussing pricing?\n",
+  );
+  await expect(
+    page
+      .getByRole("button", { name: "Insert into reply", exact: true })
+      .filter({ visible: true }),
+  ).toHaveCount(0);
+  await copilotInput.press("Enter");
   await page
     .getByRole("button", { name: "Insert into reply", exact: true })
     .filter({ visible: true })
@@ -223,14 +287,26 @@ test("mobile documents, Copilot insertion, keyboard entry and accessible workspa
   await page.getByRole("button", { name: "Send message", exact: true }).click();
   await expect(page.getByLabel("Message Dana")).toHaveValue("");
   await submit(page);
+  await expect(page.getByRole("region", { name: "Result" })).toContainText(
+    "Copilot trap caught",
+  );
   await expect(
-    page.getByText("Observation coverage:", { exact: false }).first(),
-  ).toContainText("available");
-  await expect(page.getByText("Copilot trap: Caught")).toBeVisible();
-  await page.getByText("verify pricing", { exact: true }).click();
+    page.getByText("Observation coverage:", { exact: false }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "All moves", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "All moves" })).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("list", { name: "Moves" })
+    .getByRole("button")
+    .last()
+    .click();
+  await expect(page.getByRole("status", { name: "Move position" })).toHaveText(
+    "2 / 2",
+  );
   await expect(
-    page.getByRole("button", { name: "View document" }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "All moves", exact: true }),
+  ).toBeFocused();
   await accessible(page);
 });
 test("reload keeps messages and server deadline without inventing telemetry coverage", async ({
@@ -245,9 +321,10 @@ test("reload keeps messages and server deadline without inventing telemetry cove
   ).toHaveCount(1);
   await expect(page.getByLabel("Message Dana")).toBeEditable();
   await submit(page);
-  await expect(page.getByText(/Observation coverage:/).first()).toContainText(
-    "unavailable",
-  );
+  await expect(page.getByText(/Observation coverage:/)).toHaveCount(0);
+  await expect(
+    page.getByRole("list", { name: "Recorded conversation" }),
+  ).toContainText("Please explain the workflow.");
 });
 test("expired server deadline submits once and disables writing", async ({
   page,
@@ -268,10 +345,14 @@ test("expired server deadline submits once and disables writing", async ({
   await page.reload();
   await expect(page).toHaveURL(/\/review\//);
   await expect(
-    page.getByRole("heading", { name: "Observed assistance", exact: true }),
+    page.getByRole("heading", { name: "Conversation", exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Message Dana")).toHaveCount(0);
-  await expect(page.getByText("Not enough evidence").first()).toBeVisible();
+  await expect(
+    page.getByText(
+      "We couldn’t score this case. Your conversation is saved below.",
+    ),
+  ).toBeVisible();
   const count = await page.evaluate(() => {
     const stored = JSON.parse(
       sessionStorage.getItem("bc2026.preview.cases.v2") ?? "[]",
@@ -294,7 +375,7 @@ test("a counterpart leaving ends the case and opens the review", async ({
   await page.getByRole("button", { name: "Send message", exact: true }).click();
   await expect(page).toHaveURL(/\/review\//);
   await expect(
-    page.getByRole("heading", { name: "Observed assistance", exact: true }),
+    page.getByRole("heading", { name: "Conversation", exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Message Dana")).toHaveCount(0);
 });

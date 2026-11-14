@@ -19,6 +19,8 @@ type MoveDetailProps = {
   /** Pre-formatted time into the case, e.g. "05:41". */
   timeLabel?: string;
   className?: string;
+  showUserText?: boolean;
+  showEvidence?: boolean;
 };
 
 function SectionTitle({
@@ -51,6 +53,8 @@ export function MoveDetail({
   trustBefore = null,
   timeLabel,
   className,
+  showUserText = true,
+  showEvidence = true,
 }: MoveDetailProps) {
   const delta = trustBefore === null ? null : move.trustAfter - trustBefore;
 
@@ -84,12 +88,14 @@ export function MoveDetail({
       </header>
 
       <div className="flex flex-col gap-5 p-5">
-        <section className="flex flex-col gap-2">
-          <SectionTitle>Your move</SectionTitle>
-          <p className="m-0 rounded-lg border bg-surface px-3.5 py-3 text-[15px] leading-normal">
-            {move.userText}
-          </p>
-        </section>
+        {showUserText && (
+          <section className="flex flex-col gap-2">
+            <SectionTitle>Your move</SectionTitle>
+            <p className="m-0 rounded-lg border bg-surface px-3.5 py-3 text-[15px] leading-normal">
+              {move.userText}
+            </p>
+          </section>
+        )}
 
         <section className="flex flex-col gap-2">
           <SectionTitle>Why</SectionTitle>
@@ -118,20 +124,22 @@ export function MoveDetail({
         </section>
       </div>
 
-      <section className="space-y-3 border-t p-5">
-        <h4 className="text-sm font-medium">Evidence and criterion</h4>
-        <p className="text-xs text-muted-foreground">
-          {move.rubricRef ?? "Criterion not supplied"} ·{" "}
-          {move.points === null
-            ? "Not enough evidence"
-            : `${move.points} points`}
-        </p>
-        <EvidenceList
-          evidence={move.evidence}
-          onOpen={onEvidence}
-          available={available}
-        />
-      </section>
+      {showEvidence && (
+        <section className="space-y-3 border-t p-5">
+          <h4 className="text-sm font-medium">Evidence and criterion</h4>
+          <p className="text-xs text-muted-foreground">
+            {move.rubricRef ?? "Criterion not supplied"} ·{" "}
+            {move.points === null
+              ? "Not enough evidence"
+              : `${move.points} points`}
+          </p>
+          <EvidenceList
+            evidence={move.evidence}
+            onOpen={onEvidence}
+            available={available}
+          />
+        </section>
+      )}
       <footer className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-b-xl border-t bg-surface px-5 py-3 text-[13px] text-muted-foreground">
         <span className="inline-flex items-center gap-2">
           Trust

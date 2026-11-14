@@ -1,0 +1,12 @@
+{
+  "name": "synthetic net-60 negotiation, not a production replay",
+  "provenance": "Constructed regression fixture. It is not the recorded Marisol/Prairie Bend case.",
+  "check": "not_applicable",
+  "turns": [
+    { "user": "Hello!", "persona": "Can we discuss payment terms?", "label": "good", "criterion": "discovery", "trust": 45 },
+    { "user": "What cash-flow constraint makes net-60 important for your team?", "persona": "Our largest customer pays us after 45 days.", "label": "best", "criterion": "discovery", "trust": 55 },
+    { "user": "We can compare a smaller initial order with a staged payment schedule.", "persona": "A smaller first order would help.", "label": "good", "criterion": "value_articulation", "trust": 61 },
+    { "user": "I can promise net-60 now and ask Finance to confirm it later.", "persona": "Please confirm approval before making that promise.", "label": "inaccuracy", "criterion": "objection_handling", "trust": 51 },
+    { "user": "I will confirm the approved terms with Finance by Tuesday and send a revised proposal before you commit.", "persona": "That gives us a practical next step.", "label": "best", "criterion": "closing", "trust": 66 }
+  ]
+}

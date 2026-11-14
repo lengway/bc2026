@@ -4,6 +4,7 @@ import type { EditorBatch, Outcome } from "@/contracts";
 import {
   CaseView,
   CertificateLimited,
+  CertificateTranscriptEvent,
   Review,
   PublicScoringGuide,
   type CaseData,
@@ -200,6 +201,14 @@ export function makeReview(
   ).length;
   return Review.parse({
     certificateSlug: previewCertificateSlug(view.id),
+    transcript: CertificateTranscriptEvent.array().parse(
+      events.filter(
+        (event) =>
+          event.type === "twist" ||
+          (event.type === "message" &&
+            (event.actor === "user" || event.actor === "persona")),
+      ),
+    ),
     moves,
     evaluation: {
       caseId: view.id,

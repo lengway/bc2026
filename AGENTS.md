@@ -10,6 +10,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Frontend continuation
 
+- VPS SSH user `deploy` has forced-command access only: `deploy`, `status`, `logs`, `follow`, `restart`, `history`. Do not send ordinary shell commands through that account or guess usernames; fail2ban is enabled. Do not store credentials in the repository.
+
+- Scope update (2026-11-14): the user explicitly authorized all three items in `docs/reference/review-redesign.md`, including backend scoring diagnosis/fix, review replay redesign, and Copilot Enter behavior. Work on `fix/review-redesign` from main (updated through `9e4462f`) and open a PR. See `docs/superpowers/plans/2026-11-14-review-redesign.md` for the actual recorded-case diagnosis and remaining live check. This overrides the earlier frontend-only boundary for this task. Recorded-case reproduction and live verification require working VPS access; never substitute synthetic data for a claimed real-case result.
+
 - Work on `fe/frontend`, frontend epics F1–F6 only. Read `docs/FRONTEND.md` for current status and unresolved team contracts.
 - The user supplied newer specifications on 2026-11-14: `docs/reference/CONTEXT.md` and `docs/reference/PROMPT_FRONTEND.md`. For frontend work these supersede the older root CONTEXT and design handoff where they conflict.
 - On 2026-11-14 the user authorized finishing all frontend on the existing Claude design. Reuse Ledger tokens/fonts/primitives; adapt `src/ui`, `src/screens` and public `src/contracts` as needed for the updated spec. Do not implement backend/DB/worker/deployment. See the F2–F6 plan for remaining API-contract dependencies.

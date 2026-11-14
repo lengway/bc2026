@@ -1,0 +1,241 @@
+{
+  "provenance": "Minimized recorded eval.moves v2 response and supporting transcript from the five-move Marisol/Prairie Bend net-60 case. Event IDs are anonymized. User/account IDs, timestamps, editor/browser telemetry, drafts, hidden persona data and unrelated advice are omitted. No corrected model result is included.",
+  "criteria": [
+    {
+      "id": "discovery",
+      "title": "Discover requirements and decision ownership",
+      "required": true,
+      "description": "Use neutral, focused questions to identify outstanding requirements, distinguish stakeholder roles, and establish decision timing."
+    },
+    {
+      "id": "objection_handling",
+      "title": "Resolve concerns within commercial authority",
+      "required": true,
+      "description": "Explore acceptable alternatives, respect approval boundaries, and negotiate a workable response without unsupported concessions."
+    },
+    {
+      "id": "value_articulation",
+      "title": "Connect the proposal to stakeholder priorities",
+      "required": true,
+      "description": "Explain how a proposed approach supports the customer's operational and purchasing needs using relevant, supported information."
+    },
+    {
+      "id": "critical_ai_use",
+      "title": "Verify evidence and recommendations",
+      "required": true,
+      "description": "Check AI-generated advice against authoritative evidence, reconcile discrepancies, and distinguish confirmed facts from assumptions."
+    },
+    {
+      "id": "closing",
+      "title": "Secure an actionable next step",
+      "required": true,
+      "description": "Agree on named owners, dated actions, dependencies, and a realistic decision path without overstating commitment."
+    }
+  ],
+  "events": [
+    {
+      "id": "26000000-0000-4000-8000-000000000001",
+      "seq": 1,
+      "actor": "user",
+      "type": "message",
+      "content": "Hello!"
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000002",
+      "seq": 2,
+      "actor": "persona",
+      "type": "message",
+      "content": "Hello. I have about eight minutes. What would you like to cover?"
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000006",
+      "seq": 6,
+      "actor": "copilot",
+      "type": "copilot_reply",
+      "content": "Можно спросить Марисоль так:\n\n“Hi Marisol, thanks for making time. You mentioned one additional finance requirement. Could you tell me what it is and what would be needed to resolve it? Who needs to approve it, and what are the next steps before you can submit the purchasing packet?”\n\nЕсли вопрос в сроках оплаты: “Would net-45 on the one-time implementation fee help?”\n\nВажно: я ранее ошибочно написал, что можно самостоятельно предложить net-60. Для net-60 нужны письменные согласования директора по продажам и deal desk. Новую смету пока не отправляй."
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000007",
+      "seq": 7,
+      "actor": "user",
+      "type": "message",
+      "content": "Hi Marisol, thanks for making time. You mentioned one additional finance requirement. Could you tell me what it is and what would be needed to resolve it? Who needs to approve it, and what are the next steps before you can submit the purchasing packet?"
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000008",
+      "seq": 8,
+      "actor": "persona",
+      "type": "message",
+      "content": "Finance now requires either a signed implementation acceptance checklist or net-60 terms on the implementation fee; the subscription can stay at net 30. I can submit the packet, but the controller approves the expenditure at the November 18 review. A complete packet is due November 17 at noon Central, so we need one of those requirements resolved before then."
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000012",
+      "seq": 12,
+      "actor": "copilot",
+      "type": "copilot_reply",
+      "content": "Скажи Марисоль:\n\n“Thanks, Marisol. I understand the packet is due November 17 at noon Central. I’ll request approval for net-60 on the implementation fee and get back to you as soon as I have an answer. The subscription would remain net-30. Is there anything else you need for the packet?”\n\nПосле разговора сразу запроси письменное согласование у директора по продажам и deal desk. Не обещай net-60 до их одобрения."
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000013",
+      "seq": 13,
+      "actor": "user",
+      "type": "message",
+      "content": "Thanks, Marisol. I understand the packet is due November 17 at noon Central. I’ll request approval for net-60 on the implementation fee and get back to you as soon as I have an answer. The subscription would remain net-30. Is there anything else you need for the packet?"
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000014",
+      "seq": 14,
+      "actor": "persona",
+      "type": "message",
+      "content": "The latest quote shows $4,800 for implementation. I can email the finance requirement; when can you confirm whether net-60 is approved so I can assemble the packet?"
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000016",
+      "seq": 16,
+      "actor": "copilot",
+      "type": "copilot_reply",
+      "content": "Скажи Марисоль:\n\n“Thanks, Marisol. Please email me the finance requirement. I’ll request the required approvals now and update you on their status before the November 17 noon Central deadline. I’ll also verify the implementation fee shown in the latest quote.”\n\nСразу запроси письменное согласование net-60 у директора по продажам и deal desk. Проверь сумму внедрения: в предложении $4,800, а в CRM $4,500. Не обещай net-60 до одобрения и пока не отправляй новую смету."
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000017",
+      "seq": 17,
+      "actor": "user",
+      "type": "message",
+      "content": "Thanks, Marisol. Please email me the finance requirement. I’ll request the required approvals now and update you on their status before the November 17 noon Central deadline. I’ll also verify the implementation fee shown in the latest quote."
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000018",
+      "seq": 18,
+      "actor": "persona",
+      "type": "message",
+      "content": "I’ll email the finance requirement. Can you give me a specific time for your update so I can plan the packet assembly?"
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000020",
+      "seq": 20,
+      "actor": "copilot",
+      "type": "copilot_reply",
+      "content": "Скажи Марисоль:\n\n“Thanks, Marisol. I’ll update you by November 17 at 10:00 a.m. Central on the approval status, so you have time to assemble the packet. Please send me the finance requirement by email.”\n\nСразу запроси письменное одобрение net-60 у директора по продажам и deal desk — ответ может занять рабочий день. Обещай обновление статуса, а не само одобрение."
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000021",
+      "seq": 21,
+      "actor": "user",
+      "type": "message",
+      "content": "Thanks, Marisol. I’ll update you by November 17 at 10:00 a.m. Central on the approval status, so you have time to assemble the packet. Please send me the finance requirement by email."
+    },
+    {
+      "id": "26000000-0000-4000-8000-000000000022",
+      "seq": 22,
+      "actor": "persona",
+      "type": "message",
+      "content": "I’ll email the finance requirement and plan for your update at 10:00 a.m. Central on November 17. Please let me know whether net-60 is approved and if a revised order form will be available for the packet."
+    }
+  ],
+  "recordedMoves": [
+    {
+      "why": "The greeting is appropriate, but provides insufficient evidence of discovery or another rubric skill.",
+      "label": "good",
+      "eventId": "26000000-0000-4000-8000-000000000001",
+      "evidence": [
+        {
+          "quote": "Hello!",
+          "source": "user_event",
+          "sourceId": "26000000-0000-4000-8000-000000000001",
+          "explanation": "This is a greeting rather than a substantive sales action."
+        }
+      ],
+      "rubricRef": null,
+      "betterMove": "Briefly establish the purpose of the call and ask what finance needs before the purchasing packet can be submitted.",
+      "assessmentStatus": "insufficient_evidence"
+    },
+    {
+      "why": "The question neutrally addresses the finance requirement, approval ownership, and submission process. However, the wording repeats the preceding suggested message without adding substance, so it does not independently establish demonstrated discovery skill.",
+      "label": "good",
+      "eventId": "26000000-0000-4000-8000-000000000007",
+      "evidence": [
+        {
+          "quote": "Could you tell me what it is and what would be needed to resolve it? Who needs to approve it, and what are the next steps before you can submit the purchasing packet?",
+          "source": "user_event",
+          "sourceId": "26000000-0000-4000-8000-000000000007",
+          "explanation": "The message contains relevant discovery questions."
+        },
+        {
+          "quote": "Could you tell me what it is and what would be needed to resolve it? Who needs to approve it, and what are the next steps before you can submit the purchasing packet?",
+          "source": "copilot_event",
+          "sourceId": "26000000-0000-4000-8000-000000000006",
+          "explanation": "The same questions were supplied immediately beforehand; repetition alone does not establish additional skill evidence."
+        }
+      ],
+      "rubricRef": "discovery",
+      "betterMove": "Use the customer's answer to clarify the requirement's scope, acceptable alternatives, and exact decision timetable.",
+      "assessmentStatus": "insufficient_evidence"
+    },
+    {
+      "why": "The message appropriately makes net-60 conditional on approval and preserves subscription terms. It repeats the preceding suggested response without adding substantive reasoning about authority, alternatives, or feasibility.",
+      "label": "good",
+      "eventId": "26000000-0000-4000-8000-000000000013",
+      "evidence": [
+        {
+          "quote": "I’ll request approval for net-60 on the implementation fee and get back to you as soon as I have an answer. The subscription would remain net-30.",
+          "source": "user_event",
+          "sourceId": "26000000-0000-4000-8000-000000000013",
+          "explanation": "The wording does not grant unapproved terms, but leaves the approvers and response time unspecified."
+        },
+        {
+          "quote": "I’ll request approval for net-60 on the implementation fee and get back to you as soon as I have an answer. The subscription would remain net-30.",
+          "source": "copilot_event",
+          "sourceId": "26000000-0000-4000-8000-000000000012",
+          "explanation": "The substantive proposal was supplied in the preceding advice."
+        }
+      ],
+      "rubricRef": "objection_handling",
+      "betterMove": "Explain that written approval is needed from the sales director and deal desk together, compare the approval lead times, and confirm whether that route works for procurement.",
+      "assessmentStatus": "insufficient_evidence"
+    },
+    {
+      "why": "The message requests written customer requirements and proposes checking the fee, but does not actually reconcile the amounts or provide the specific update time the customer requested. It adds no substance beyond the immediately preceding suggestion.",
+      "label": "good",
+      "eventId": "26000000-0000-4000-8000-000000000017",
+      "evidence": [
+        {
+          "quote": "I’ll request the required approvals now and update you on their status before the November 17 noon Central deadline. I’ll also verify the implementation fee shown in the latest quote.",
+          "source": "user_event",
+          "sourceId": "26000000-0000-4000-8000-000000000017",
+          "explanation": "This promises future verification rather than documenting a completed reconciliation."
+        },
+        {
+          "quote": "I’ll request the required approvals now and update you on their status before the November 17 noon Central deadline. I’ll also verify the implementation fee shown in the latest quote.",
+          "source": "copilot_event",
+          "sourceId": "26000000-0000-4000-8000-000000000016",
+          "explanation": "The message repeats the preceding proposed response."
+        }
+      ],
+      "rubricRef": "critical_ai_use",
+      "betterMove": "Confirm the quoted $4,800 against the older $4,500 CRM entry before preparing revised paperwork, and offer a specific status checkpoint before the packet cutoff.",
+      "assessmentStatus": "insufficient_evidence"
+    },
+    {
+      "why": "The content establishes a specific status checkpoint rather than guaranteeing approval. However, it repeats the suggested response without adding an approval owner, paperwork dependency, or contingency.",
+      "label": "good",
+      "eventId": "26000000-0000-4000-8000-000000000021",
+      "evidence": [
+        {
+          "quote": "I’ll update you by November 17 at 10:00 a.m. Central on the approval status, so you have time to assemble the packet.",
+          "source": "user_event",
+          "sourceId": "26000000-0000-4000-8000-000000000021",
+          "explanation": "The proposed checkpoint is specific and conditional, but does not establish when complete paperwork will be ready."
+        },
+        {
+          "quote": "I’ll update you by November 17 at 10:00 a.m. Central on the approval status, so you have time to assemble the packet.",
+          "source": "copilot_event",
+          "sourceId": "26000000-0000-4000-8000-000000000020",
+          "explanation": "The same commitment was supplied immediately beforehand."
+        }
+      ],
+      "rubricRef": "closing",
+      "betterMove": "Confirm who will obtain both written approvals, when an approved revised order form could be delivered, and how Marisol will be notified if the packet deadline becomes infeasible.",
+      "assessmentStatus": "insufficient_evidence"
+    }
+  ]
+}

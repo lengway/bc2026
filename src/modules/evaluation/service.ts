@@ -1,10 +1,11 @@
 import { CaseParams, type Evaluation, type MoveReview, type ReviewResponse } from '@/contracts';
 import type { Database, SqlExecutor } from '@/modules/database';
 import type { Job, JobsService } from '@/modules/jobs';
-import { EvaluatedMoves, type LlmService } from '@/modules/llm';
+import type { LlmService } from '@/modules/llm';
 import { AppError, systemClock, type Clock } from '@/modules/shared';
 import type { SimulationService, SubmittedSnapshot } from '@/modules/simulation';
 import { prepareSubmission } from './observations';
+import { evaluationOutputSchema } from './proposals';
 import { evaluationLease, publishReview, readReview, readReviewState, reconcileFailed } from './repo';
 import { assessSubmission, presentedTraps, recordedTrustCurve } from './scoring';
 
@@ -39,7 +40,7 @@ export function createEvaluationService({ db, llm, simulation, jobs, now = syste
       trustCurve: recordedTrustCurve(prepared),
       trapInfo: presentedTraps(prepared).map(({ trap, reply }) => ({ trapId: trap.id, eventId: reply.id, erroneousClaim: trap.errorToInject })),
       assistance: { copilotRequests: prepared.assistance.copilotRequests },
-    }, EvaluatedMoves, { caseId }) : {
+    }, evaluationOutputSchema(prepared), { caseId }) : {
       data: { moves: [], aiUseChecks: [], skills: [], summary: 'No submitted actions were available for assessment.' },
       meta: { model: 'not_run', promptVersion: 'not_run' },
     };
