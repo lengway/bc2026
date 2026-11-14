@@ -10,6 +10,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Frontend continuation
 
+- Current VPS access for this user: `kasym@31.76.87.250` with the existing `gambit-vps` key, full sudo. SSH is keys-only; do not retry passwords or change authentication settings. The live v3 scoring replay passed (4/5,85%). User deferred merge/deployment and requested push-only; resume those only on a later instruction.
+
 - VPS SSH user `deploy` has forced-command access only: `deploy`, `status`, `logs`, `follow`, `restart`, `history`. Do not send ordinary shell commands through that account or guess usernames; fail2ban is enabled. Do not store credentials in the repository.
 
 - Scope update (2026-11-14): the user explicitly authorized all three items in `docs/reference/review-redesign.md`, including backend scoring diagnosis/fix, review replay redesign, and Copilot Enter behavior. Work on `fix/review-redesign` from main (updated through `9e4462f`) and open a PR. See `docs/superpowers/plans/2026-11-14-review-redesign.md` for the actual recorded-case diagnosis and remaining live check. This overrides the earlier frontend-only boundary for this task. Recorded-case reproduction and live verification require working VPS access; never substitute synthetic data for a claimed real-case result.
