@@ -54,9 +54,48 @@ it("plays the Sales scenario and repeats a request without duplicating a turn", 
     (await api.review(created.caseId)).evaluation.assistance
       .copilotTextSimilarityPercent,
   ).toBe(0);
+  const review = await api.review(created.caseId);
+  expect(review.certificateSlug).toMatch(/^[A-Za-z0-9_-]{10}$/);
+  const certificate = await api.certificate(review.certificateSlug!);
+  expect(certificate).toMatchObject({
+    slug: review.certificateSlug,
+    accuracy: 80,
+    isDemo: true,
+  });
+  expect((await api.path()).history[0]).toMatchObject({
+    caseId: created.caseId,
+    accuracy: 80,
+    date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+  });
   await expect(
     api.move(created.caseId, { ...input, clientMsgId: crypto.randomUUID() }),
   ).rejects.toMatchObject({ code: "VALIDATION", status: 409 });
+});
+it("returns a full profile from intake through the canonical API contract", async () => {
+  const profile = await api.intake({
+    text: "3 years in account management",
+    field: "sales",
+    level: "intermediate",
+  });
+  expect(profile).toMatchObject({
+    userId: (await api.session())?.user.id,
+    intakeText: "3 years in account management",
+    field: "sales",
+    level: "intermediate",
+    years: 3,
+    updatedAt: expect.any(String),
+  });
+});
+it("uses the server request contract for case creation", async () => {
+  const response = await fetch("http://localhost:3000/api/cases", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "daily", unexpected: true }),
+  });
+  expect(response.status).toBe(400);
+  expect(await response.json()).toMatchObject({
+    error: { code: "VALIDATION" },
+  });
 });
 it("returns a typed paywall for a free user's weekly case", async () => {
   await expect(api.createCase("weekly")).rejects.toMatchObject({

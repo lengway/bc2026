@@ -26,7 +26,7 @@ The user authorized finishing the full frontend on main’s Claude design on 202
 - Chat components only collect notified editor changes and aggregate workspace activity. Bounded flush/retry never blocks a message indefinitely. Missing observations remain null/partial and cannot lower a client-side score. No real score computation is implemented in the frontend.
 - Public certificate projection removes processObservations and raw editor data before rendering/serialization. Recorded simulation describes scope; it does not establish identity, unaided authorship or job performance.
 - Missing integration details and exact proposed payloads are in `INTEGRATION.md`: auth session shape, document-open write, certificateSlug, checkout billing period, interval object, document shapes and plan confirmation. Intake correction uses the original endpoint.
-- User explicitly confirmed backend is not ready. No live API, VPS, real magic link/cookie session, Stripe payment or webhook is represented as tested.
+- Backend source was subsequently merged into main in PR #1. PR #2 incorporates it and adapts the frontend to its shared schemas. No live provider, VPS, real email or Stripe delivery is represented as tested.
 
 ## Verification record — 2026-11-14
 
@@ -37,8 +37,16 @@ The user authorized finishing the full frontend on main’s Claude design on 202
 - Lighthouse **13.6.0**, local standalone production server, mobile emulation: **Performance 100 / Accessibility 100**. FCP/LCP 0.915 s, TBT 68.5 ms, CLS 0.000515, Speed Index 0.915 s. This is a local lab result, not deployed VPS or real-user performance. Trace/network report captured; minor unused JS/polyfill and 140 ms CSS opportunities did not prevent meeting the >=90 target.
 - `npm run format:check` and `git diff --check` pass. Final branch review covered public/private contract separation, SSR projection, timer/outcome states, retries/cache invalidation, observation lifetime, keyboard and mobile behavior, and scope boundaries.
 
-Real authenticated API, email delivery, cookie security, VPS SSE and Stripe/webhook integration remain unverified because the backend is not ready. No backend or deployment implementation was added.
+The above results describe the frontend-only baseline. Backend source is now available in main; the integration verification record below supersedes the original availability assumption. Live providers and VPS remain unverified.
 
 ## Next step
 
-Frontend F1–F6 is complete on the delivery branch. When backend becomes available, follow `INTEGRATION.md` to agree the remaining contracts and run real integration checks. Do not start PM/Software or backend work without a new scope decision.
+Frontend F1–F6 and the shared-contract integration are on the delivery branch. Follow `INTEGRATION.md` for remaining real-service checks, optional guest-entry UI and pending-operation reload recovery. Do not start PM/Software or backend work without a new scope decision.
+
+## PR #2 conflict resolution — 2026-11-14
+
+- Integrated main `131dfa9` (backend PR #1) into `fe/frontend` with a normal merge; no published history rewriting.
+- Kept canonical server validators, private/public projection and backend implementation; frontend compatibility exports are aliases only. Preserved Ledger/Gambit routes and UI.
+- Adapted checkout plan, nullable session/profile data, strict document/score fixtures, ten-character certificate slugs, guest demo designation, and editor interval/window transport. Unsupported document-open writes are disabled and reported as missing observations.
+- Combined Node/backend and jsdom/frontend test projects, synchronized package-manager inputs, and extended CI with frontend format/browser checks.
+- Verification: `npm run check` passes (282 tests in 50 files, including 159 backend tests against isolated local PostgreSQL); production build with mocks disabled, all 11 Chromium E2E scenarios, formatting and diff checks pass. Both lockfiles are synchronized; pnpm frozen-lockfile validation passes. No paid provider calls, deployment, or main merge is part of this task.

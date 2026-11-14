@@ -1,0 +1,10 @@
+{
+  "id": "champion-left",
+  "subfield": "account_management",
+  "title": "Champion left the company",
+  "setup": "The account sponsor left and a new stakeholder is reassessing value.",
+  "difficulty": "advanced",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

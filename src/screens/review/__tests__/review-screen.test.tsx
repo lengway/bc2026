@@ -1,7 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
+import { Evaluation, MoveReview } from "@/contracts";
+import insufficientReview from "@/mocks/fixtures/insufficient-review.json";
+import backendCertificate from "@/mocks/fixtures/certificate-full.json";
+import { CertificateFull } from "@/contracts";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { evaluation, moves, persona } from "@/app/design/fixtures";
+import { evaluation, moves, persona } from "@/app/(design)/design/fixtures";
 import { ReviewScreen } from "@/screens/review";
 
 const CASE_TITLE = "Renewal at risk: Brightline Logistics";
@@ -128,4 +132,51 @@ describe("ReviewScreen", () => {
       expect(button).toBeDisabled();
     }
   });
+});
+
+it("shows unavailable scoring without inventing zero scores", () => {
+  const unavailable = Evaluation.parse({ ...insufficientReview.evaluation,
+    aiDependency: null,
+    assistance: { ...insufficientReview.evaluation.assistance, copilotTextSimilarityPercent: null },
+  });
+  render(<ReviewScreen state="ready" caseTitle={CASE_TITLE} persona={persona} evaluation={unavailable} moves={[]} />);
+  const result = screen.getByRole("region", { name: "Result" });
+  expect(within(result).getByText("Not enough evidence")).toBeInTheDocument();
+  expect(within(result).queryByText("0%")).not.toBeInTheDocument();
+  expect(within(result).queryByRole("meter", { name: "AI dependency" })).not.toBeInTheDocument();
+  expect(screen.getByText("Not presented", { selector: "strong" })).toBeInTheDocument();
+});
+
+it("shows an unassessed backend move without presenting its fallback label as a score", async () => {
+  const value = Evaluation.parse(insufficientReview.evaluation);
+  const unassessedMoves = MoveReview.array().parse(insufficientReview.moves);
+  render(<ReviewScreen state="ready" caseTitle={CASE_TITLE} persona={persona} evaluation={value} moves={unassessedMoves} />);
+
+  const timeline = screen.getByRole("list", { name: "Moves" });
+  const moveButton = within(timeline).getByRole("button", { name: /Unassessed move.*Hi, Dana/ });
+  expect(moveButton).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Move 1, Unassessed, trust 45" })).toBeEnabled();
+  await userEvent.click(moveButton);
+  const detail = screen.getByRole("region", { name: "Selected move" });
+  expect(within(detail).getByRole("img", { name: "Unassessed move" })).toBeInTheDocument();
+  expect(within(detail).getByText(/too little evidence/)).toBeInTheDocument();
+  expect(screen.queryByRole("img", { name: "Good move" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Move 1, Good/ })).not.toBeInTheDocument();
+});
+
+it("renders a public certificate evaluation without private observations", () => {
+  const certificate = CertificateFull.parse(backendCertificate);
+  render(<ReviewScreen state="ready" caseTitle={certificate.caseTitle} persona={certificate.personas[0]} evaluation={certificate.evaluation} moves={certificate.moves} />);
+  expect(screen.getByRole("region", { name: "Result" })).toBeInTheDocument();
+});
+
+it.each([
+  ["caught", "Caught"],
+  ["missed", "Missed"],
+  ["not_presented", "Not presented"],
+  ["insufficient_evidence", "Not enough evidence"],
+] as const)("distinguishes the %s trap result", (trapResult, label) => {
+  const value = Evaluation.parse({ ...evaluation, trapResult, trapCaught: trapResult === "caught" });
+  render(<ReviewScreen state="ready" caseTitle={CASE_TITLE} persona={persona} evaluation={value} moves={moves} />);
+  expect(screen.getByText(label, { selector: "strong" })).toBeInTheDocument();
 });

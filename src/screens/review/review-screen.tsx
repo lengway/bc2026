@@ -253,7 +253,7 @@ function ReviewReady({
         <Panel>
           <TrustCurveChart
             curve={evaluation.trustCurve}
-            moves={moves.filter((move) => move.assessmentStatus === "assessed")}
+            moves={moves}
             selectedSeq={selectedSeq}
             onSelectMove={setSelectedSeq}
             personaName={persona.name}

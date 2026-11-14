@@ -7,7 +7,7 @@ import {
 } from "../scoring-details";
 import { MoveDetail } from "../move-detail";
 import { DocViewer } from "../doc-viewer";
-import { docs, moves, persona, evaluation } from "@/app/design/fixtures";
+import { docs, moves, persona, evaluation } from "@/app/(design)/design/fixtures";
 import { noAiChecks } from "@/mocks/scenarios/sales";
 import type { TrapResult } from "@/contracts";
 

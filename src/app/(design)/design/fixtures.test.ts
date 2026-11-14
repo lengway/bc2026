@@ -46,4 +46,16 @@ describe("gallery fixtures", () => {
       expect(moves.filter((move) => move.label === label)).toHaveLength(count);
     }
   });
+
+  it("records the failed AI pricing check shown in the sample review", () => {
+    expect(evaluation.trapResult).toBe("missed");
+    expect(evaluation.aiUseSkill).toMatchObject({ score: 0, assessedChecks: 1, applicableChecks: 1 });
+    expect(evaluation.aiUseSkill.checks[0]).toMatchObject({
+      status: "failed",
+      evidence: expect.arrayContaining([
+        expect.objectContaining({ source: "case_doc", sourceId: "doc-note" }),
+        expect.objectContaining({ source: "user_event", sourceId: moves[5].eventId }),
+      ]),
+    });
+  });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
+import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import type { CertificateFull, CertificateLimited } from "@/contracts";
 import { AccuracyStat } from "@/ui/accuracy-stat";
 import {
@@ -60,11 +61,12 @@ function Seal({ className }: { className?: string }) {
 }
 
 function VerifiedMark() {
+  const prefersReducedMotion = useReducedMotion();
   return (
     <span className="relative inline-flex h-7 w-fit items-center gap-1.5 rounded-md border border-ink-border bg-ink-soft px-2.5 text-xs font-medium text-ink">
       <ShieldCheck aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
       Recorded simulation
-      <span aria-hidden="true" className="motion-reduce:hidden">
+      {prefersReducedMotion ? null : <span aria-hidden="true">
         <BorderBeam
           size={28}
           duration={8}
@@ -72,7 +74,7 @@ function VerifiedMark() {
           colorFrom="var(--ink)"
           colorTo="var(--ink-border)"
         />
-      </span>
+      </span>}
     </span>
   );
 }
@@ -128,7 +130,10 @@ export function CertificateCard({
           <Title className="m-0 font-serif text-display-sm font-normal tracking-tight">
             Certificate of recorded practice
           </Title>
-          <VerifiedMark />
+          <div className="flex flex-wrap items-center gap-2">
+            <VerifiedMark />
+            {certificate.isDemo ? <span className="inline-flex h-7 items-center rounded-md border bg-surface px-2.5 text-xs font-medium text-muted-foreground">Demo</span> : null}
+          </div>
         </div>
         <Seal className="shrink-0" />
       </header>

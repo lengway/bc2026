@@ -1,0 +1,133 @@
+{
+  "evaluation": {
+    "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d02",
+    "accuracy": null,
+    "labelCounts": {
+      "brilliant": 0,
+      "best": 0,
+      "good": 0,
+      "inaccuracy": 0,
+      "mistake": 0,
+      "blunder": 0
+    },
+    "aiDependency": 0,
+    "trapCaught": false,
+    "assistance": {
+      "copilotRequests": 0,
+      "knownCopilotRetainedChars": 0,
+      "totalSubmittedChars": 9,
+      "copilotRetainedPercent": null,
+      "copilotTextSimilarityPercent": 0,
+      "unknownPasteCount": 0,
+      "unknownPasteChars": 0,
+      "observedInputModes": [],
+      "observationStatus": "unavailable",
+      "limitations": [
+        "The message arrived without editor activity."
+      ]
+    },
+    "aiUseSkill": {
+      "score": null,
+      "assessedChecks": 0,
+      "applicableChecks": 0,
+      "earnedPoints": 0,
+      "assessedMaxPoints": 0,
+      "applicableMaxPoints": 0,
+      "checks": []
+    },
+    "trapResult": "not_presented",
+    "scoreAudit": {
+      "rubricVersion": "sales-1.0.0",
+      "scorerModel": "fixture-scorer",
+      "scorerPromptVersion": "eval.moves.v1",
+      "caseLevel": "intermediate",
+      "scoredMoveCount": 0,
+      "totalUserMoveCount": 1,
+      "pointsSum": 0,
+      "maxPoints": 0,
+      "formula": "round(100 × pointsSum / maxPoints); maxPoints = 100 × scoredMoveCount. No scored moves: unavailable.",
+      "completionStatus": "insufficient_evidence",
+      "limitations": [
+        "Only an opening greeting was available for review."
+      ],
+      "labelPoints": {
+        "brilliant": 100,
+        "best": 100,
+        "good": 80,
+        "inaccuracy": 50,
+        "mistake": 20,
+        "blunder": 0
+      },
+      "criterionCoverage": [
+        {
+          "criterionId": "discovery",
+          "status": "not_observed"
+        },
+        {
+          "criterionId": "value_articulation",
+          "status": "not_observed"
+        },
+        {
+          "criterionId": "critical_ai_use",
+          "status": "not_applicable"
+        },
+        {
+          "criterionId": "objection_handling",
+          "status": "not_observed"
+        },
+        {
+          "criterionId": "closing",
+          "status": "not_observed"
+        }
+      ]
+    },
+    "outcome": "incomplete",
+    "topMoves": [],
+    "summary": "The case ended after the opening greeting. No skills could be assessed.",
+    "skills": [],
+    "trustCurve": [
+      {
+        "seq": 1,
+        "trust": 45
+      }
+    ],
+    "processObservations": {
+      "rulesVersion": "workspace-observations.v1",
+      "observationStatus": "unavailable",
+      "automationStatus": "insufficient_data",
+      "signals": [],
+      "textFeatures": [
+        {
+          "messageId": "82000000-4100-4810-8260-000000000001",
+          "charCount": 9,
+          "punctuationCounts": {
+            "comma": 1,
+            "period": 1
+          },
+          "listMarkerCount": 0,
+          "editCount": null,
+          "languageIssues": null
+        }
+      ],
+      "limitations": [
+        "The browser did not send interaction windows."
+      ]
+    }
+  },
+  "moves": [
+    {
+      "eventId": "82000000-4100-4810-8260-000000000001",
+      "seq": 1,
+      "userText": "Hi, Dana.",
+      "label": "good",
+      "why": "A greeting alone provides too little evidence for an assessment.",
+      "betterMove": "Ask how the dispatch team handles morning releases.",
+      "innerThought": "Still waiting to hear what they want to discuss.",
+      "trustAfter": 45,
+      "rubricRef": null,
+      "points": null,
+      "evidence": [],
+      "assessmentStatus": "insufficient_evidence"
+    }
+  ]
+}

@@ -188,8 +188,10 @@ export function Onboarding() {
           <Surface className="space-y-5">
             <p className="text-xs text-muted-foreground">We understood</p>
             <p className="text-xl font-medium">
-              Sales · {formatSkill(intake.data.subfield)} · {intake.data.years}{" "}
-              {intake.data.years === 1 ? "year" : "years"}
+              Sales · {formatSkill(intake.data.subfield)} ·{" "}
+              {intake.data.years === null
+                ? "Experience not specified"
+                : `${intake.data.years} ${intake.data.years === 1 ? "year" : "years"}`}
             </p>
             <p className="text-sm text-muted-foreground">
               {LEVEL_LABEL[intake.data.level]}

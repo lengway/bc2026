@@ -1,4 +1,5 @@
 import { ClientData } from "@/app/_components/providers";
+import { CertificateSlug } from "@/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { mocksEnabled } from "@/app/_lib/environment";
@@ -43,7 +44,7 @@ export default async function CertificatePage({ params }: Props) {
         }
       />
     );
-  if (mocksEnabled && slug.startsWith("preview-"))
+  if (mocksEnabled && CertificateSlug.safeParse(slug).success)
     return (
       <ClientData>
         <LocalCertificate slug={slug} />

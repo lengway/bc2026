@@ -57,7 +57,7 @@ export function MoveTimeline({
                 {index + 1}
               </span>
               {move.assessmentStatus === "insufficient_evidence" ? (
-                <span className="text-xs text-muted-foreground">—</span>
+                <MoveLabelBadge label={null} variant="glyph" size="sm" />
               ) : (
                 <MoveLabelBadge
                   label={move.label}

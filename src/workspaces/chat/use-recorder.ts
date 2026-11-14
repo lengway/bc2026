@@ -39,10 +39,13 @@ export function useRecorder(
   const paste = useRef<{ source: string | null } | null>(null);
   const lastKey = useRef(0);
   const paused = useRef(false);
-  const gap = useCallback((reason: string) => {
-    activity.current?.gap(reason);
-    setPartial(true);
-  }, []);
+  const gap = useCallback(
+    (reason: string) => {
+      activity.current?.gap(reason);
+      delivery.markPartial();
+    },
+    [delivery],
+  );
   const makeWindow = useCallback(
     () =>
       new ActivityWindow(
@@ -57,10 +60,17 @@ export function useRecorder(
   );
   const capture = useCallback(
     (window = false) => {
+      const summary =
+        window && activity.current ? activity.current.finish() : null;
+      // Browser suspension can delay timers. Do not send a window the server rejects.
+      if (summary && summary.durationMs > 10_000) {
+        activity.current?.gap("interaction_window_exceeded_limit");
+        delivery.markPartial();
+      }
       delivery.enqueue(
         edits.draftId,
         buffer.current,
-        window && activity.current ? [activity.current.finish()] : [],
+        summary && summary.durationMs <= 10_000 ? [summary] : [],
       );
       buffer.current = [];
     },
@@ -72,32 +82,25 @@ export function useRecorder(
     if (!element) return;
     const visible = () => document.visibilityState !== "hidden";
     activity.current = visible() ? makeWindow() : null;
-    let samplesTimer: ReturnType<typeof setInterval> | undefined;
-    const flush = () => {
-      capture();
-      void delivery.flush();
-    };
     const summarize = () => {
       if (activity.current) {
         capture(true);
         void delivery.flush();
       }
     };
-    const timer = setInterval(flush, 2000);
+    // Flush edits and their interaction window together, leaving headroom under
+    // the backend limit of 30 batches per minute for sends and visibility changes.
+    const timer = setInterval(summarize, 5000);
     function visibility() {
       if (!visible()) {
         summarize();
         activity.current = null;
         clipboard.clear();
-        clearInterval(samplesTimer);
-        samplesTimer = undefined;
       } else if (!activity.current && !paused.current) {
         activity.current = makeWindow();
         activity.current.gap("background_activity_not_observed");
-        samplesTimer = setInterval(summarize, 10000);
       }
     }
-    if (visible()) samplesTimer = setInterval(summarize, 10000);
     const point = (
       kind: "move" | "down" | "click" | "wheel",
       event: MouseEvent | PointerEvent | WheelEvent,
@@ -147,7 +150,6 @@ export function useRecorder(
     document.addEventListener("visibilitychange", visibility);
     return () => {
       clearInterval(timer);
-      clearInterval(samplesTimer);
       element.removeEventListener("pointermove", move);
       element.removeEventListener("pointerdown", down);
       element.removeEventListener("click", click);
@@ -187,7 +189,7 @@ export function useRecorder(
     paste.current = null;
     if (observed) buffer.current.push(observed);
     activity.current?.input(native.isTrusted, Boolean(observed));
-    if (buffer.current.length >= 25) {
+    if (buffer.current.length >= 100) {
       capture();
       void delivery.flush();
     }

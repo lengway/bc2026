@@ -213,7 +213,7 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
   const events = useCaseEvents(view.id);
   const pending = send.isPending || copilot.isPending || submit.isPending;
   const busy = !active || pending;
-  const retryInput = useRef<MoveInput | null>(null);
+  const [retryInput, setRetryInput] = useState<MoveInput | null>(null);
   const retryQuestion = useRef<CopilotInput | null>(null);
   const autoSubmitted = useRef(false);
   const noticedTwists = useRef(new Set<string>());
@@ -231,6 +231,10 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
       event.delivery === "failed" &&
       event.clientMsgId,
   );
+  // The server can publish a user event before the response-generating operation
+  // finishes. A delivered event does not resolve a failed mutation's exact retry.
+  const failedMove = send.isError ? retryInput : null;
+  const replyLocked = Boolean(failedMove || failedMessage);
   const trust =
     send.data?.trust ??
     [...events.data].reverse().find((e) => e.meta.trustAfter !== undefined)
@@ -294,7 +298,7 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
     });
   }
   function sendReply(input?: MoveInput) {
-    if (busy || (!draft.trim() && !input && !failedMessage)) return;
+    if (busy || (!draft.trim() && !input && !replyLocked)) return;
     const failedInput = failedMessage?.clientMsgId
       ? {
           text: failedMessage.content,
@@ -304,18 +308,18 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
         }
       : null;
     const move = input ??
-      retryInput.current ??
+      retryInput ??
       failedInput ?? {
-        text: draft.trim(),
+        text: draft,
         clientMsgId: crypto.randomUUID(),
         draftId: recorder.edits.draftId,
         personaId: persona?.id ?? "dana",
       };
-    retryInput.current = move;
+    setRetryInput(move);
     send.mutate(move, {
       onSuccess: (result) => {
         setDraft("");
-        retryInput.current = null;
+        setRetryInput(null);
         recorder.rotate();
         setOutcome(result.outcome);
         if (!result.outcome) {
@@ -326,11 +330,12 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
           });
         }
       },
-      onError: () => recorder.resume(),
+      // A failed response may already have closed this draft on the server.
+      // Keep observations paused until the same request succeeds and rotates it.
     });
   }
   function ask(input?: CopilotInput) {
-    if (busy || (!question.trim() && !input)) return;
+    if (busy || replyLocked || (!question.trim() && !input)) return;
     const text = question.trim();
     const request =
       input ??
@@ -355,7 +360,7 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
     }
   }
   function insert(event: DisplayEvent) {
-    if (busy || send.isError) return;
+    if (busy || replyLocked) return;
     const node = editor.current;
     const start = node?.selectionStart ?? draft.length,
       end = node?.selectionEnd ?? draft.length;
@@ -423,7 +428,7 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
     events: assistance,
     question,
     pending: copilot.isPending,
-    disabled: busy || send.isError,
+    disabled: busy || replyLocked,
     onQuestion: setQuestion,
     onSend: () => ask(),
     onCopy: copy,
@@ -583,9 +588,7 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
                         size="sm"
                         variant="outline"
                         disabled={busy}
-                        onClick={() =>
-                          sendReply(retryInput.current ?? undefined)
-                        }
+                        onClick={() => sendReply(retryInput ?? undefined)}
                       >
                         <RotateCcw aria-hidden="true" />
                         Retry message
@@ -650,10 +653,11 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
                 id="reply"
                 className={`${inputClass} min-h-28 resize-y`}
                 maxLength={5000}
-                value={failedMessage?.content ?? draft}
+                value={failedMove?.text ?? failedMessage?.content ?? draft}
                 disabled={busy}
-                readOnly={Boolean(failedMessage)}
+                readOnly={replyLocked}
                 onChange={(event) => {
+                  if (replyLocked) return;
                   recorder.change(event);
                   setDraft(event.target.value);
                 }}
@@ -677,13 +681,13 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
                   Enter to send · Shift+Enter for a new line
                 </p>
                 <Button
-                  disabled={busy || (!draft.trim() && !failedMessage)}
+                  disabled={busy || (!draft.trim() && !replyLocked)}
                   type="submit"
                 >
                   <Send aria-hidden="true" />
                   {send.isPending
                     ? "Sending…"
-                    : failedMessage
+                    : replyLocked
                       ? "Retry message"
                       : "Send message"}
                 </Button>

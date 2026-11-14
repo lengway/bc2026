@@ -5,7 +5,7 @@ import {
   evaluation,
   moves,
   persona,
-} from "@/app/design/fixtures";
+} from "@/app/(design)/design/fixtures";
 export default function HomePage() {
   return (
     <LandingScreen

@@ -161,9 +161,9 @@ export function DesignGallery() {
               <dt className="text-muted-foreground">Outcome</dt>
               <dd className="m-0 font-medium">{formatOutcome(evaluation.outcome)}</dd>
               <dt className="text-muted-foreground">AI dependency</dt>
-              <dd className="m-0 font-mono tabular-nums">{evaluation.aiDependency}%</dd>
+              <dd className="m-0 font-mono tabular-nums">{evaluation.aiDependency === null ? "Unavailable" : `${evaluation.aiDependency}%`}</dd>
               <dt className="text-muted-foreground">Copilot trap</dt>
-              <dd className="m-0 font-medium">{evaluation.trapCaught ? "Caught" : "Missed"}</dd>
+              <dd className="m-0 font-medium">{{ caught: "Caught", missed: "Missed", not_presented: "Not presented", insufficient_evidence: "Insufficient evidence" }[evaluation.trapResult]}</dd>
             </dl>
           </div>
           <div className="rounded-xl border bg-card p-5">

@@ -40,7 +40,7 @@ export function SessionGate({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <ProductHeader
-        name={session.data.user.displayName}
+        name={session.data.user.displayName ?? session.data.user.email}
         active={path}
         onLogout={() => logout.mutate()}
         pending={logout.isPending}

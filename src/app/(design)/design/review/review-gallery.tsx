@@ -5,6 +5,7 @@ import type { Evaluation, MoveReview } from "@/contracts";
 import { ReviewScreen } from "@/screens/review";
 import { cn } from "@/ui/lib/utils";
 import { evaluation, moves, persona } from "../fixtures";
+import { noAiChecks } from "@/mocks/scenarios/sales";
 
 const CASE_TITLE = "Renewal at risk: Brightline Logistics";
 
@@ -16,6 +17,8 @@ const lostMoves: MoveReview[] = [
     seq: 3,
     userText: "I can take 10% off today if you sign before Friday.",
     label: "mistake",
+    points: 20,
+    evidence: [{ source: "user_event", sourceId: moves[5].eventId, quote: "I can take 10% off today if you sign before Friday.", explanation: "The gallery example discounts before discovery." }],
     why: "You discounted before you knew what the problem was. It tells Dana the list price was never real.",
     betterMove: "Before we talk numbers: what happened in March?",
     innerThought: "So the price has air in it. Good to know.",
@@ -27,6 +30,8 @@ const lostMoves: MoveReview[] = [
     seq: 5,
     userText: "I really need an answer today. The offer expires at five.",
     label: "blunder",
+    points: 0,
+    evidence: [{ source: "user_event", sourceId: moves[6].eventId, quote: "I really need an answer today. The offer expires at five.", explanation: "The gallery example applies pressure with an invented deadline." }],
     why: "Pressure with an invented deadline, to a client who was already looking elsewhere. Her patience ran out here.",
     betterMove: "Take the time you need. What would you have to see from us to stay?",
     innerThought: "I do not negotiate with a countdown. We are done.",
@@ -39,7 +44,11 @@ const lostEvaluation: Evaluation = {
   accuracy: 33,
   labelCounts: { brilliant: 0, best: 0, good: 1, inaccuracy: 0, mistake: 1, blunder: 1 },
   aiDependency: 85,
+  assistance: { ...evaluation.assistance, copilotTextSimilarityPercent: 85, totalSubmittedChars: lostMoves.reduce((sum, move) => sum + move.userText.length, 0) },
+  scoreAudit: { ...evaluation.scoreAudit, scoredMoveCount: 3, totalUserMoveCount: 3, pointsSum: 100, maxPoints: 300 },
   trapCaught: false,
+  trapResult: "not_presented",
+  aiUseSkill: { ...noAiChecks, checks: [] },
   outcome: "left",
   topMoves: [lostMoves[2], lostMoves[1]],
   summary:

@@ -1,0 +1,235 @@
+{
+  "events": [
+    {
+      "id": "12000000-4100-4810-8260-000000000001",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 1,
+      "actor": "user",
+      "personaId": "dana",
+      "type": "message",
+      "content": "When is the handoff most likely to slip at Columbus West and Grove City?",
+      "meta": {},
+      "createdAt": "2026-03-12T15:00:13.000Z",
+      "clientMsgId": "32000000-4100-4810-8260-000000000001",
+      "draftId": "22000000-4100-4810-8260-000000000001"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000002",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 2,
+      "actor": "persona",
+      "personaId": "dana",
+      "type": "message",
+      "content": "First shift, around six. We still have people checking a spreadsheet against FleetRoute before they can release tractors.",
+      "meta": {
+        "trustAfter": 52,
+        "typingMs": 6260
+      },
+      "createdAt": "2026-03-12T15:00:26.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000003",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 3,
+      "actor": "user",
+      "personaId": "dana",
+      "type": "message",
+      "content": "Could I walk you through our reporting dashboard first?",
+      "meta": {},
+      "createdAt": "2026-03-12T15:00:39.000Z",
+      "clientMsgId": "32000000-4100-4810-8260-000000000003",
+      "draftId": "22000000-4100-4810-8260-000000000003"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000004",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 4,
+      "actor": "persona",
+      "personaId": "dana",
+      "type": "message",
+      "content": "Can we stay on the handoff for now? I also need to know how we'd pay for a pilot.",
+      "meta": {
+        "trustAfter": 48,
+        "typingMs": 4920
+      },
+      "createdAt": "2026-03-12T15:00:52.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000005",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 5,
+      "actor": "user",
+      "personaId": null,
+      "type": "doc_open",
+      "content": "Sales ops pilot pricing thread",
+      "meta": {
+        "documentIds": [
+          "slack-pricing"
+        ]
+      },
+      "createdAt": "2026-03-12T15:01:05.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000006",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 6,
+      "actor": "user",
+      "personaId": null,
+      "type": "copilot_prompt",
+      "content": "Summarize the two-yard pilot price and billing terms.",
+      "meta": {},
+      "createdAt": "2026-03-12T15:01:18.000Z",
+      "clientMsgId": "32000000-4100-4810-8260-000000000006",
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000007",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 7,
+      "actor": "copilot",
+      "personaId": null,
+      "type": "copilot_reply",
+      "content": "Quarterly billing is available on the pilot. Quote $1,800 per month for two yards, and suggest a four-week pilot.",
+      "meta": {},
+      "createdAt": "2026-03-12T15:01:31.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000008",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 8,
+      "actor": "user",
+      "personaId": "dana",
+      "type": "message",
+      "content": "I checked Sales Ops before quoting terms. The pilot is monthly only at $1,800 per month for four weeks. Quarterly billing is available only after conversion to an annual contract.",
+      "meta": {},
+      "createdAt": "2026-03-12T15:01:44.000Z",
+      "clientMsgId": "32000000-4100-4810-8260-000000000008",
+      "draftId": "22000000-4100-4810-8260-000000000008"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000009",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 9,
+      "actor": "persona",
+      "personaId": "dana",
+      "type": "message",
+      "content": "Monthly works. Finance won't switch off FleetRoute before April, though. Can both run together?",
+      "meta": {
+        "trustAfter": 64,
+        "typingMs": 5700
+      },
+      "createdAt": "2026-03-12T15:01:57.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000010",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 10,
+      "actor": "user",
+      "personaId": "dana",
+      "type": "message",
+      "content": "We can also have live FleetRoute integration running before the pilot starts.",
+      "meta": {},
+      "createdAt": "2026-03-12T15:02:10.000Z",
+      "clientMsgId": "32000000-4100-4810-8260-000000000010",
+      "draftId": "22000000-4100-4810-8260-000000000010"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000011",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 11,
+      "actor": "persona",
+      "personaId": "dana",
+      "type": "message",
+      "content": "Wait, who's doing that integration? We didn't budget anyone to touch FleetRoute this month.",
+      "meta": {
+        "trustAfter": 37,
+        "typingMs": 5780
+      },
+      "createdAt": "2026-03-12T15:02:23.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000012",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 12,
+      "actor": "user",
+      "personaId": "dana",
+      "type": "message",
+      "content": "I need to correct that: the pilot can run alongside FleetRoute using a sample CSV. Let's measure late handoffs against last week's 15 across the two yards.",
+      "meta": {},
+      "createdAt": "2026-03-12T15:02:36.000Z",
+      "clientMsgId": "32000000-4100-4810-8260-000000000012",
+      "draftId": "22000000-4100-4810-8260-000000000012"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000013",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 13,
+      "actor": "persona",
+      "personaId": "dana",
+      "type": "message",
+      "content": "A CSV is doable. Our Grove City lead has the current handoff numbers. Bring her in.",
+      "meta": {
+        "trustAfter": 69,
+        "typingMs": 5350
+      },
+      "createdAt": "2026-03-12T15:02:49.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000014",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 14,
+      "actor": "user",
+      "personaId": "dana",
+      "type": "message",
+      "content": "Could we meet Tuesday at 10 a.m. Eastern with you and the Grove City lead — I’ll bring a sample exception list and the monthly pilot terms for Finance?",
+      "meta": {},
+      "createdAt": "2026-03-12T15:03:02.000Z",
+      "clientMsgId": "32000000-4100-4810-8260-000000000014",
+      "draftId": "22000000-4100-4810-8260-000000000014"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000015",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 15,
+      "actor": "persona",
+      "personaId": "dana",
+      "type": "message",
+      "content": "Tuesday at ten works. I'll pull in our lead. Send me the monthly terms beforehand so I can run them past Finance.",
+      "meta": {
+        "trustAfter": 82,
+        "typingMs": 6680
+      },
+      "createdAt": "2026-03-12T15:03:15.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000016",
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "seq": 16,
+      "actor": "system",
+      "personaId": null,
+      "type": "submit",
+      "content": "Case submitted",
+      "meta": {},
+      "createdAt": "2026-03-12T15:03:28.000Z",
+      "clientMsgId": null,
+      "draftId": null
+    }
+  ],
+  "lastSeq": 16
+}

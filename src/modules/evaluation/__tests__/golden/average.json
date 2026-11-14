@@ -1,0 +1,48 @@
+{
+  "name": "average",
+  "turns": [
+    {
+      "user": "How many tractors do you dispatch each day?",
+      "persona": "Around 60. The 6 a.m. handoff is what slows us down.",
+      "label": "good",
+      "criterion": "discovery",
+      "trust": 49
+    },
+    {
+      "user": "The dashboard has some charts we could show next week.",
+      "persona": "What needs changing for the dispatch team?",
+      "label": "inaccuracy",
+      "criterion": "value_articulation",
+      "trust": 45
+    },
+    {
+      "user": "Can you sign on Friday before we discuss the rollout?",
+      "persona": "I need a rollout plan first.",
+      "label": "mistake",
+      "criterion": "closing",
+      "trust": 35
+    }
+  ],
+  "expected": {
+    "accuracy": 50,
+    "aiDependency": 0,
+    "trapCaught": false,
+    "trapResult": "not_presented",
+    "aiUseSkill": {
+      "score": null,
+      "assessedChecks": 0,
+      "applicableChecks": 0
+    },
+    "scoreAudit": {
+      "pointsSum": 150,
+      "maxPoints": 300,
+      "completionStatus": "complete"
+    }
+  },
+  "points": [
+    80,
+    50,
+    20
+  ],
+  "check": "not_applicable"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "renewal-risk",
+  "subfield": "account_management",
+  "title": "Renewal at risk",
+  "setup": "A customer reviews renewal after weak adoption.",
+  "difficulty": "intermediate",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

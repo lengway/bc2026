@@ -1,0 +1,10 @@
+{
+  "id": "unhappy-upsell",
+  "subfield": "account_management",
+  "title": "Upsell to unhappy client",
+  "setup": "An expansion is possible but unresolved service problems threaten the account.",
+  "difficulty": "advanced",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

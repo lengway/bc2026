@@ -5,7 +5,7 @@ import {
   ActivityWindow,
   BatchDelivery,
 } from "./recorder";
-import type { EditorBatch } from "@/contracts";
+import { InteractionWindow, type EditorBatch } from "@/contracts";
 
 describe("workspace observations", () => {
   it("records the applied replacement for composition, undo and deletion", () => {
@@ -89,6 +89,29 @@ describe("workspace observations", () => {
     expect(summary.pointerMoveSamples).toBeNull();
     expect(summary.webdriverReported).toBeNull();
     expect(summary.capabilityGaps.length).toBeGreaterThan(0);
+  });
+  it("emits canonical interval summaries with the observed median", () => {
+    const window = new ActivityWindow(0, true, false);
+    for (const at of [100, 200, 500, 1400]) window.input(true, true, at);
+    const summary = window.finish(1500);
+    expect(InteractionWindow.safeParse(summary).success).toBe(true);
+    expect(summary.inputIntervalSummary).toEqual({
+      sampleCount: 3,
+      minMs: 100,
+      medianMs: 300,
+      maxMs: 900,
+    });
+    expect(summary.movementIntervalSummary).toBeNull();
+    expect(window.finish(2000).inputIntervalSummary).toBeNull();
+  });
+  it("keeps unknown pointer types out of the canonical pointer list", () => {
+    const window = new ActivityWindow(0, true, false);
+    window.pointer("click", 0.1, 0.2, "unknown", true, 100);
+    const summary = window.finish(200);
+    expect(InteractionWindow.safeParse(summary).success).toBe(true);
+    expect(summary.pointerTypes).toEqual([]);
+    expect(summary.clickCount).toBe(1);
+    expect(summary.capabilityGaps).toContain("pointer_type_unavailable");
   });
   it("retries the same batch without duplicating IDs and abandons closed drafts", async () => {
     let now = 0;

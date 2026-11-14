@@ -1,0 +1,50 @@
+{
+  "skills": [
+    {
+      "skill": "discovery",
+      "level": 1,
+      "xp": 75,
+      "nextLevelXp": 100
+    },
+    {
+      "skill": "value_articulation",
+      "level": 1,
+      "xp": 75,
+      "nextLevelXp": 100
+    },
+    {
+      "skill": "critical_ai_use",
+      "level": 1,
+      "xp": 75,
+      "nextLevelXp": 100
+    },
+    {
+      "skill": "objection_handling",
+      "level": 1,
+      "xp": 75,
+      "nextLevelXp": 100
+    },
+    {
+      "skill": "closing",
+      "level": 1,
+      "xp": 75,
+      "nextLevelXp": 100
+    }
+  ],
+  "streak": {
+    "current": 1,
+    "best": 1
+  },
+  "today": {
+    "daily": null,
+    "weekly": null
+  },
+  "history": [
+    {
+      "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+      "title": "A pilot across two Ohio yards",
+      "accuracy": 75,
+      "date": "2026-03-12"
+    }
+  ]
+}

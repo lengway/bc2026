@@ -61,6 +61,6 @@ export const api = {
   checkout: (billing: "monthly" | "yearly" = "monthly") =>
     apiClient("/api/billing/checkout", C.CheckoutResponse, {
       method: "POST",
-      body: { billing },
+      body: { plan: billing },
     }),
 };

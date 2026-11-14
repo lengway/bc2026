@@ -1,0 +1,10 @@
+{
+  "id": "price-objection",
+  "subfield": "account_executive",
+  "title": "Price objection",
+  "setup": "A buyer challenges the price after discovery.",
+  "difficulty": "intermediate",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

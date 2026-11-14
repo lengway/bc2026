@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { AccuracyStat } from "../accuracy-stat";
 import { CertificateCard } from "../certificate-card";
-import { certificateLimited } from "@/app/design/fixtures";
+import { certificateLimited } from "@/app/(design)/design/fixtures";
 
 it("keeps an unknown score distinct from zero", () => {
   render(<AccuracyStat accuracy={null} />);
@@ -16,4 +16,9 @@ it("describes a certificate as a recorded simulation, without an identity claim"
   expect(
     screen.queryByText(/Every move was written by the holder/),
   ).not.toBeInTheDocument();
+});
+
+it("keeps the guest demo designation visible on public certificates", () => {
+  render(<CertificateCard certificate={{ ...certificateLimited, isDemo: true }} />);
+  expect(screen.getByText("Demo")).toBeInTheDocument();
 });

@@ -1,0 +1,10 @@
+{
+  "id": "demo-no-show",
+  "subfield": "sdr_outbound",
+  "title": "Demo no-show follow-up",
+  "setup": "A prospect missed a scheduled demo and has gone quiet.",
+  "difficulty": "beginner",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

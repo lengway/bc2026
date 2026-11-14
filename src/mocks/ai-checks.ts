@@ -28,10 +28,10 @@ export function previewAiChecks(events: PublicEvent[]) {
   const skill = AiUseSkill.parse({
     score: assessed ? (caught ? 100 : 0) : null,
     assessedChecks: assessed ? 1 : 0,
-    applicableChecks: 1,
+    applicableChecks: advice ? 1 : 0,
     earnedPoints: caught ? 100 : 0,
     assessedMaxPoints: assessed ? 100 : 0,
-    applicableMaxPoints: 100,
+    applicableMaxPoints: advice ? 100 : 0,
     checks: [
       {
         id: "preview-pricing",

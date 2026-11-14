@@ -19,3 +19,23 @@ PROMPT_DESIGN.md
 CLAUDE.md
 .mcp.json
 package-lock.json
+
+# Backend-owned source retains the formatting already reviewed on main.
+src/app/api/
+src/modules/
+src/field-packs/
+src/prompts/
+src/worker/
+src/mocks/fixtures/
+tests/backend/
+scripts/
+db/
+deploy/
+docs/spec/
+docs/backend-handoff.md
+docs/superpowers/plans/*backend*
+docs/superpowers/plans/t0-contracts-report.md
+docs/superpowers/plans/t1-coordination.md
+docs/superpowers/specs/2026-11-14-guest-access-design.md
+PROJECT_CONTEXT.md
+pnpm-workspace.yaml

@@ -5,10 +5,9 @@ import { apiClient, ApiError } from "./api-client";
 import { mocksEnabled } from "./environment";
 export const getPublicCertificate = cache(async (slug: string) => {
   if (slug === "sample" || slug === "sample-full") {
-    const samples = await import("@/app/design/fixtures");
+    const samples = await import("@/app/(design)/design/fixtures");
     return Certificate.parse({
       ...samples[slug === "sample" ? "certificateLimited" : "certificateFull"],
-      slug,
     });
   }
   if (mocksEnabled) {

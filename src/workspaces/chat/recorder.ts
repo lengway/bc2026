@@ -103,26 +103,25 @@ export class ClipboardEvidence {
 }
 class Intervals {
   private last: number | null = null;
-  private count = 0;
-  private sum = 0;
-  private min = Infinity;
-  private max = 0;
+  private values: number[] = [];
   add(at: number) {
     if (this.last !== null) {
-      const interval = Math.max(0, at - this.last);
-      this.count++;
-      this.sum += interval;
-      this.min = Math.min(this.min, interval);
-      this.max = Math.max(this.max, interval);
+      this.values.push(Math.max(0, at - this.last));
     }
     this.last = at;
   }
-  summary(): IntervalSummary {
+  summary(): IntervalSummary | null {
+    if (!this.values.length) return null;
+    const sorted = [...this.values].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
     return {
-      count: this.count,
-      minMs: this.count ? this.min : null,
-      maxMs: this.count ? this.max : null,
-      meanMs: this.count ? this.sum / this.count : null,
+      sampleCount: sorted.length,
+      minMs: sorted[0],
+      medianMs:
+        sorted.length % 2
+          ? sorted[middle]
+          : (sorted[middle - 1] + sorted[middle]) / 2,
+      maxMs: sorted[sorted.length - 1],
     };
   }
 }
@@ -171,9 +170,9 @@ export class ActivityWindow {
   ) {
     if (!this.pointerSupported) return;
     if (kind === "move" && at - this.lastSample < 100) return;
-    this.types.add(
-      type === "mouse" || type === "touch" || type === "pen" ? type : "unknown",
-    );
+    if (type === "mouse" || type === "touch" || type === "pen")
+      this.types.add(type);
+    else this.gaps.add("pointer_type_unavailable");
     this.trust(trusted);
     if (kind === "down") this.downs++;
     else if (kind === "click") this.clicks++;
@@ -275,6 +274,10 @@ export class BatchDelivery {
     private status: (partial: boolean) => void,
     private now = Date.now,
   ) {}
+  markPartial() {
+    this.lost = true;
+    this.status(true);
+  }
   enqueue(
     draftId: string,
     events: EditorEvent[],

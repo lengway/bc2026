@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { certificateFull, certificateLimited } from "@/app/design/fixtures";
+import { certificateFull, certificateLimited } from "@/app/(design)/design/fixtures";
 import { CertificateCard } from "@/ui/certificate-card";
 
 describe("CertificateCard", () => {
@@ -11,7 +11,7 @@ describe("CertificateCard", () => {
     expect(screen.getByText("Maya Okafor")).toBeInTheDocument();
     expect(screen.getByText("Objection handling")).toBeInTheDocument();
     expect(screen.getByText("Deal won")).toBeInTheDocument();
-    expect(screen.getByText("7F3K-2291")).toBeInTheDocument();
+    expect(screen.getByText(certificateLimited.slug.toUpperCase())).toBeInTheDocument();
     expect(screen.getByText("Recorded simulation")).toBeInTheDocument();
 
     expect(

@@ -11,6 +11,7 @@ import {
   type EventData,
 } from "@/app/_lib/contracts";
 export const PREVIEW_CASE_ID = "00000000-0000-4000-8000-000000000001";
+export const previewCertificateSlug = (caseId: string) => caseId.slice(-10);
 export const replies = [
   "Our dispatch team still has to update two systems. That's the part I need fixed.",
   "If the team can stop doing that twice, I can make the renewal case. Can you show me what changes?",
@@ -24,6 +25,12 @@ export const scoringGuide = PublicScoringGuide.parse({
       title: "Understand the workflow",
       description:
         "Identify the customer's actual constraint and agree on a useful next step.",
+    },
+    {
+      id: "verify_pricing",
+      title: "Verify AI pricing advice",
+      description:
+        "Check Copilot's proposed discount against the account record before using it.",
     },
   ],
   labelPoints: {
@@ -86,8 +93,8 @@ export function makeCase(
           messages: [
             {
               from: "Dana Whitfield",
-              to: "Account team",
-              sentAt: "Nov 14, 9:10 AM",
+              to: ["Account team"],
+              sentAt: "2026-11-14T09:10:00.000Z",
               body: "Before we renew, I would like to understand what changes for our dispatch team. We still enter the same jobs twice.",
             },
           ],
@@ -100,15 +107,15 @@ export function makeCase(
         arrivesAtTurn: null,
         content: {
           account: "Brightline Logistics",
+          contact: "Dana Whitfield, Operations Director",
+          stage: "Renewal at risk",
           fields: [
             { label: "Seats", value: "24" },
             { label: "Annual value", value: "$18,000" },
             { label: "Renewal", value: "December 1, 2026" },
             { label: "Discount ceiling", value: "10%" },
           ],
-          activity: [
-            { at: "Nov 13", text: "Dispatch workflow review requested." },
-          ],
+          notes: ["Nov 13: Dispatch workflow review requested."],
         },
       },
     ],
@@ -119,7 +126,7 @@ export const twistDoc = {
   kind: "note",
   title: "Dispatch lead's update",
   content: {
-    body: "The dispatch lead reports that duplicate entry adds roughly 45 minutes each afternoon. A two-week pilot would need two dispatchers.",
+    text: "The dispatch lead reports that duplicate entry adds roughly 45 minutes each afternoon. A two-week pilot would need two dispatchers.",
   },
   arrivesAtTurn: 2,
 };
@@ -192,7 +199,7 @@ export function makeReview(
     (event) => event.type === "copilot_prompt",
   ).length;
   return Review.parse({
-    certificateSlug: `preview-${view.id}`,
+    certificateSlug: previewCertificateSlug(view.id),
     moves,
     evaluation: {
       caseId: view.id,
@@ -248,7 +255,7 @@ export function makeReview(
   });
 }
 export const previewCertificate = CertificateLimited.parse({
-  slug: "preview-certificate",
+  slug: "preview001",
   holderName: "Alex Morgan",
   skill: "Customer discovery",
   field: "sales",
@@ -261,6 +268,7 @@ export const previewCertificate = CertificateLimited.parse({
     "Sample record of a work simulation. Not enough evidence for a performance score.",
   verified: true,
   verificationScope: "recorded_simulation",
+  isDemo: true,
   assistance: unavailableAssistance,
   aiUseSkillSummary: noAiChecks,
   scoringSummary: emptyScoringSummary,

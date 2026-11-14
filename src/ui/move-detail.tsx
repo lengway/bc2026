@@ -67,7 +67,8 @@ export function MoveDetail({
           {move.assessmentStatus === "assessed" ? (
             <MoveLabelBadge label={move.label} />
           ) : (
-            <span className="text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+              <MoveLabelBadge label={null} variant="glyph" />
               Not enough evidence
             </span>
           )}

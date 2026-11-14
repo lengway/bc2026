@@ -2,9 +2,11 @@ import { http, HttpResponse, delay } from "msw";
 import { z } from "zod";
 import {
   CaseView,
-  CaseType,
-  Field,
-  Level,
+  GenerateCaseRequest,
+  IntakeRequest,
+  MagicLinkRequest,
+  MoveRequest,
+  CopilotRequest,
   MoveResponse,
   CopilotResponse,
   PublicEvent,
@@ -19,6 +21,7 @@ import {
   newEvent,
   PREVIEW_CASE_ID,
   previewCertificate,
+  previewCertificateSlug,
   replies,
   twistDoc,
 } from "./scenarios/sales";
@@ -33,13 +36,6 @@ const StoredCase = z.object({
   copilot: z.record(z.string(), CopilotResponse),
 });
 type StoredCaseData = z.infer<typeof StoredCase>;
-const moveInput = z.object({
-  clientMsgId: z.string().uuid(),
-  personaId: z.literal("dana"),
-  text: z.string().trim().min(1).max(5000),
-  draftId: z.string().uuid().nullable(),
-});
-const copilotInput = moveInput.omit({ personaId: true, draftId: true });
 const storageKey = "bc2026.preview.cases.v2";
 const sessionKey = "bc2026.preview.authenticated";
 const error = (code: string, message: string, status = 400) =>
@@ -168,9 +164,7 @@ export function createMockHandlers({
         return error("UNAUTHORIZED", "Sign in to continue.", 401);
     }),
     http.post("*/api/auth/magic-link", async ({ request }) => {
-      const input = z
-        .object({ email: z.string().email() })
-        .safeParse(await request.json());
+      const input = MagicLinkRequest.safeParse(await request.json());
       if (!input.success)
         return error("VALIDATION", "Enter a valid email address.");
       magicLinkAvailable = true;
@@ -201,6 +195,7 @@ export function createMockHandlers({
                 id: "20000000-0000-4000-8000-000000000001",
                 email: "alex@example.com",
                 displayName: "Alex Morgan",
+                isGuest: false,
               },
               expiresAt: new Date(Date.now() + 3600_000).toISOString(),
             }
@@ -214,12 +209,13 @@ export function createMockHandlers({
       return HttpResponse.json({ ok: true });
     }),
     http.post("*/api/intake", async ({ request }) => {
-      const input = z
-        .object({ text: z.string(), field: Field, level: Level })
-        .safeParse(await request.json());
+      const input = IntakeRequest.safeParse(await request.json());
       if (!input.success)
         return error("VALIDATION", "Please check your profile details.");
       return HttpResponse.json({
+        userId: "20000000-0000-4000-8000-000000000001",
+        intakeText: input.data.text,
+        updatedAt: new Date().toISOString(),
         field: input.data.field,
         level: input.data.level,
         subfield: "account_management",
@@ -229,9 +225,7 @@ export function createMockHandlers({
       });
     }),
     http.post("*/api/cases", async ({ request }) => {
-      const input = z
-        .object({ type: CaseType })
-        .safeParse(await request.json());
+      const input = GenerateCaseRequest.safeParse(await request.json());
       if (!input.success) return error("VALIDATION", "Choose a case type.");
       if (input.data.type === "weekly")
         return error("PAYWALL", "Weekly cases are included in Pro.", 403);
@@ -257,41 +251,6 @@ export function createMockHandlers({
       return item
         ? HttpResponse.json(publicPage(item, request.url))
         : error("NOT_FOUND", "We couldn't find this case.", 404);
-    }),
-    // Proposed event-write endpoint: see docs/INTEGRATION.md.
-    http.post("*/api/cases/:id/events", async ({ params, request }) => {
-      const item = getCase(String(params.id));
-      if (!item) return error("NOT_FOUND", "Case unavailable.", 404);
-      const input = z
-        .object({
-          type: z.literal("doc_open"),
-          documentId: z.string(),
-          clientMsgId: z.string().uuid(),
-        })
-        .safeParse(await request.json());
-      if (
-        !input.success ||
-        !item.view.docs.some((doc) => doc.id === input.data.documentId)
-      )
-        return error("VALIDATION", "Document unavailable.");
-      if (!canWrite(item))
-        return error("VALIDATION", "This case has ended.", 409);
-      if (
-        !item.events.some(
-          (event) => event.clientMsgId === input.data.clientMsgId,
-        )
-      ) {
-        item.events.push(
-          newEvent(item.view, item.events, {
-            actor: "user",
-            type: "doc_open",
-            content: input.data.documentId,
-            clientMsgId: input.data.clientMsgId,
-          }),
-        );
-        persistCases();
-      }
-      return HttpResponse.json({ accepted: true });
     }),
     http.get("*/api/cases/:id/stream", ({ params, request }) => {
       const item = getCase(String(params.id));
@@ -321,12 +280,18 @@ export function createMockHandlers({
     http.post("*/api/cases/:id/move", async ({ params, request }) => {
       const item = getCase(String(params.id));
       if (!item) return error("NOT_FOUND", "We couldn't find this case.", 404);
-      const input = moveInput.safeParse(await request.json());
+      const input = MoveRequest.safeParse(await request.json());
       if (!input.success)
         return error(
           "VALIDATION",
-          "Write a message of up to 5,000 characters.",
+          "Write a message of up to 8,000 characters.",
         );
+      if (
+        !item.view.personas.some(
+          (persona) => persona.id === input.data.personaId,
+        )
+      )
+        return error("VALIDATION", "Choose a person in this case.");
       if (persist)
         try {
           if (
@@ -470,11 +435,11 @@ export function createMockHandlers({
     http.post("*/api/cases/:id/copilot", async ({ params, request }) => {
       const item = getCase(String(params.id));
       if (!item) return error("NOT_FOUND", "We couldn't find this case.", 404);
-      const input = copilotInput.safeParse(await request.json());
+      const input = CopilotRequest.safeParse(await request.json());
       if (!input.success)
         return error(
           "VALIDATION",
-          "Write a question of up to 5,000 characters.",
+          "Write a question of up to 8,000 characters.",
         );
       const cached = item.copilot[input.data.clientMsgId];
       if (cached) return HttpResponse.json(cached);
@@ -544,11 +509,13 @@ export function createMockHandlers({
     }),
     http.get("*/api/certificates/:slug", ({ params }) => {
       const slug = String(params.slug);
-      if (slug === "preview-certificate")
+      if (slug === previewCertificate.slug)
         return HttpResponse.json(previewCertificate);
-      const item = slug.startsWith("preview-")
-        ? getCase(slug.slice(8))
-        : undefined;
+      getCase(PREVIEW_CASE_ID);
+      const match = [...cases.values()].find(
+        (record) => previewCertificateSlug(record.view.id) === slug,
+      );
+      const item = match && getCase(match.view.id);
       if (!item || item.view.status !== "evaluated")
         return error("NOT_FOUND", "We could not find this certificate.", 404);
       const evaluation = makeReview(
@@ -609,7 +576,9 @@ export function createMockHandlers({
           caseId: item.view.id,
           title: item.view.brief.title,
           accuracy: makeReview(item.view, item.events).evaluation.accuracy,
-          date: new Date(item.evaluatedAt ?? Date.now()).toISOString(),
+          date: new Date(item.evaluatedAt ?? Date.now())
+            .toISOString()
+            .slice(0, 10),
         })),
       });
     }),

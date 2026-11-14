@@ -1,0 +1,108 @@
+[
+  {
+    "draftId": "22000000-4100-4810-8260-000000000001",
+    "batchId": "52000000-4100-4810-8260-000000000001",
+    "events": [],
+    "interactionWindows": [
+      {
+        "id": "42000000-4100-4810-8260-000000000001",
+        "startedAt": "2026-03-12T15:00:03.000Z",
+        "endedAt": "2026-03-12T15:00:12.900Z",
+        "durationMs": 9900,
+        "pointerTypes": [],
+        "pointerMoveSamples": null,
+        "pointerDownCount": 0,
+        "clickCount": 0,
+        "wheelCount": 0,
+        "pathLengthNormalized": null,
+        "directionChanges": null,
+        "movementIntervalSummary": null,
+        "inputIntervalSummary": {
+          "sampleCount": 69,
+          "minMs": 43,
+          "medianMs": 98,
+          "maxMs": 431
+        },
+        "editCount": 70,
+        "focusTransitionCount": 0,
+        "visibleDurationMs": 9900,
+        "trustedEventCount": 70,
+        "untrustedEventCount": 0,
+        "webdriverReported": null,
+        "capabilityGaps": [
+          "No active pointer input in this window.",
+          "webdriver unavailable"
+        ]
+      }
+    ]
+  },
+  {
+    "draftId": "22000000-4100-4810-8260-000000000008",
+    "batchId": "52000000-4100-4810-8260-000000000002",
+    "events": [
+      {
+        "id": "62000000-4100-4810-8260-000000000001",
+        "draftId": "22000000-4100-4810-8260-000000000008",
+        "seq": 1,
+        "kind": "paste",
+        "inputMode": "unknown",
+        "clientAt": "2026-03-12T15:01:37.000Z",
+        "rangeStart": 0,
+        "rangeEnd": 0,
+        "insertedText": "I checked Sales Ops before quoting terms. The pilot is monthly only at $1,800 per month for four weeks.",
+        "sourceEventId": null,
+        "inputType": "insertFromPaste",
+        "isComposing": false,
+        "isTrusted": true
+      },
+      {
+        "id": "62000000-4100-4810-8260-000000000002",
+        "draftId": "22000000-4100-4810-8260-000000000008",
+        "seq": 2,
+        "kind": "insert",
+        "inputMode": "keyboard",
+        "clientAt": "2026-03-12T15:01:39.300Z",
+        "rangeStart": 103,
+        "rangeEnd": 103,
+        "insertedText": " Quarterly billing is available only after conversion to an annual contract.",
+        "sourceEventId": null,
+        "inputType": "insertText",
+        "isComposing": false,
+        "isTrusted": false
+      }
+    ],
+    "interactionWindows": [
+      {
+        "id": "42000000-4100-4810-8260-000000000002",
+        "startedAt": "2026-03-12T15:01:36.000Z",
+        "endedAt": "2026-03-12T15:01:43.000Z",
+        "durationMs": 7000,
+        "pointerTypes": [
+          "touch"
+        ],
+        "pointerMoveSamples": 1,
+        "pointerDownCount": 2,
+        "clickCount": 2,
+        "wheelCount": 0,
+        "pathLengthNormalized": 0,
+        "directionChanges": 0,
+        "movementIntervalSummary": null,
+        "inputIntervalSummary": {
+          "sampleCount": 1,
+          "minMs": 2300,
+          "medianMs": 2300,
+          "maxMs": 2300
+        },
+        "editCount": 2,
+        "focusTransitionCount": 0,
+        "visibleDurationMs": 7000,
+        "trustedEventCount": 6,
+        "untrustedEventCount": 1,
+        "webdriverReported": null,
+        "capabilityGaps": [
+          "webdriver unavailable"
+        ]
+      }
+    ]
+  }
+]
