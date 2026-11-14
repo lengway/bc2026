@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { afterAll,beforeAll,describe,expect,it } from 'vitest';
 import { Evaluation } from '@/contracts';
 import { createTestDatabase } from '../../../tests/backend/db-helper';
@@ -34,6 +35,25 @@ describe('practice progress',()=>{
     expect(path.history.map(item=>item.date)).toEqual(['2026-11-14','2026-11-13']);
     const later=createProgressService({db:state.db,now:()=>new Date('2026-11-17T12:00:00Z'),getCaseForUser:async()=>null,loadSubmission:async()=>null});
     expect((await later.getSkillPath(newest.userId)).streak).toEqual({current:0,best:2});
+  });
+  it('reports exact dashboard activity across the account week even when history is capped',async()=>{
+    const newest=await reviewedCase(state.db,{timezone:'America/Los_Angeles',submittedAt:'2026-11-10T06:30:00Z'});
+    const preceding=await reviewedCase(state.db,{userId:newest.userId,submittedAt:'2026-11-09T23:00:00Z'});
+    const monday=await reviewedCase(state.db,{userId:newest.userId,submittedAt:'2026-11-09T08:00:00Z'});
+    const sunday=await reviewedCase(state.db,{userId:newest.userId,submittedAt:'2026-11-09T07:59:59Z'});
+    const other=await reviewedCase(state.db,{submittedAt:'2026-11-10T06:30:00Z'});
+    const progress=service();
+    for(const sample of [newest,preceding,monday,sunday,other]) {
+      await state.db.transaction(tx=>progress.awardWithExecutor(tx,sample.snapshot,sample.review.evaluation));
+    }
+    await state.db.query(`INSERT INTO cases (id,user_id,field,subfield,level,type,workspace,status,brief,submitted_at)
+      SELECT id,$2,'sales','sdr_outbound','intermediate','daily','chat','evaluated',$3,'2026-10-01T20:00:00Z'::timestamptz
+      FROM unnest($1::uuid[]) AS id`,[Array.from({length:51},()=>randomUUID()),newest.userId,JSON.stringify(newest.snapshot.case.brief)]);
+    const path=await progress.getSkillPath(newest.userId);
+    expect(path.history).toHaveLength(50);
+    expect(path.activity).toEqual({
+      totalCompleted:55, completedThisWeek:3, today:'2026-11-14', practicedDates:['2026-11-08','2026-11-09'],
+    });
   });
   it('does not award XP for an unscored case; observed practice can still preserve a streak',async()=>{
     const sample=await reviewedCase(state.db);

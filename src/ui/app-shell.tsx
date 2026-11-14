@@ -40,7 +40,10 @@ function Navigation({
       }
     >
       {APP_NAVIGATION.map(({ href, label, Icon }) => {
-        const active = pathname === href || pathname.startsWith(href + "/");
+        const active =
+          pathname === href ||
+          pathname.startsWith(href + "/") ||
+          (href === "/history" && pathname.startsWith("/review/"));
         return (
           <Link
             key={href}
@@ -49,7 +52,7 @@ function Navigation({
             aria-label={label}
             title={collapsed ? label : undefined}
             className={cn(
-              "flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+              "flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium outline-none transition-colors duration-150 ease-out hover:bg-muted motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-ring",
               mobile
                 ? "flex-col justify-center gap-0.5 py-1 text-[0.6875rem]"
                 : collapsed
@@ -93,7 +96,7 @@ export function AppShell({
   return (
     <div
       className={cn(
-        "min-h-dvh lg:grid",
+        "flex-1 lg:grid",
         collapsed
           ? "lg:grid-cols-[64px_minmax(0,1fr)]"
           : "lg:grid-cols-[240px_minmax(0,1fr)]",
@@ -108,7 +111,7 @@ export function AppShell({
       <aside className="sticky top-0 hidden h-dvh min-h-0 flex-col overflow-y-auto border-r bg-surface lg:flex">
         <div
           className={cn(
-            "flex min-h-14 items-center",
+            "flex min-h-14 shrink-0 items-center",
             collapsed ? "justify-center" : "px-4",
           )}
         >
@@ -117,7 +120,7 @@ export function AppShell({
             aria-label="Gambit home"
             className="flex min-h-11 items-center rounded-md focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {collapsed ? <GambitMark /> : <GambitLogo size="sm" />}
+            {collapsed ? <GambitMark /> : <GambitLogo size="sm" sans />}
           </Link>
         </div>
         <Navigation pathname={pathname} collapsed={collapsed} />
@@ -148,7 +151,7 @@ export function AppShell({
             aria-label="Gambit home"
             className="flex min-h-11 items-center rounded-md focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
           >
-            <GambitLogo size="sm" />
+            <GambitLogo size="sm" sans />
           </Link>
           <nav
             aria-label="Breadcrumb"

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import {
   CASES_REQUIRED,
@@ -24,7 +25,7 @@ const situations = [
   "Certificate earned",
 ] as const;
 
-export function AppUxGallery() {
+function AppUxComponents() {
   const [situation, setSituation] =
     useState<(typeof situations)[number]>("Two cases counted");
   const [collapsed, setCollapsed] = useState(false);
@@ -130,5 +131,13 @@ export function AppUxGallery() {
         />
       </main>
     </AppShell>
+  );
+}
+
+export function AppUxGallery() {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AppUxComponents />
+    </ThemeProvider>
   );
 }

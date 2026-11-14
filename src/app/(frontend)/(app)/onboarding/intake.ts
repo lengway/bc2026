@@ -117,3 +117,58 @@ export function toggleFocus(list: FocusArea[], area: FocusArea): FocusArea[] {
   if (list.length >= MAX_FOCUS) return list;
   return [...list, area];
 }
+
+/** Restores onboarding's structured answers and retains older free-text profiles as notes. */
+export function readIntakeAnswers(
+  profile: Pick<
+    import("@/contracts").Profile,
+    "subfield" | "level" | "years" | "intakeText"
+  > | null,
+): IntakeAnswers {
+  if (!profile) return EMPTY_ANSWERS;
+  const { intakeText, level, subfield, years } = profile;
+  const [structured, notes] = intakeText.split(/\n?In their own words: /s, 2);
+  const lines = structured.split("\n");
+  const read = (prefix: string) =>
+    lines
+      .find((line) => line.startsWith(prefix))
+      ?.slice(prefix.length)
+      .replace(/\.$/, "") ?? "";
+  const customer = read("Sells to: ");
+  const segment = SEGMENTS.find(
+    ({ label }) =>
+      customer === label.toLowerCase() ||
+      customer.startsWith(`${label.toLowerCase()} in `),
+  );
+  const industry = (
+    segment ? customer.slice(segment.label.length).trimStart() : customer
+  ).replace(/^in /, "");
+  const choices = (prefix: string) => {
+    const selected = read(prefix).split(", ");
+    return FOCUS_CHOICES.filter((area) => selected.includes(label(area)));
+  };
+  const role =
+    ROLES.find(({ text }) => text === read("Role: ")) ??
+    ROLES.find(({ text }) => text.endsWith(`(${subfield})`));
+  const experience =
+    EXPERIENCE.find(({ label }) => label === read("Experience: ")) ??
+    (years === null
+      ? undefined
+      : EXPERIENCE.findLast((entry) => years >= entry.years));
+  return {
+    role: role?.id ?? null,
+    experience: experience?.id ?? null,
+    level,
+    segment: segment?.id ?? null,
+    industry,
+    strengths: choices("Strong at: "),
+    practice: choices("Wants to practice: "),
+    notes:
+      notes ??
+      (lines.some((line) =>
+        /^(Role|Experience|Sells to|Strong at|Wants to practice): /.test(line),
+      )
+        ? ""
+        : intakeText),
+  };
+}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { AppShell } from "@/ui/app-shell";
@@ -107,4 +107,23 @@ it("provides one clear action for an empty state", () => {
   );
   expect(screen.getByText("No cases yet.")).toBeVisible();
   expect(screen.getByRole("link", { name: "Start a case" })).toBeVisible();
+});
+
+it("uses the mouse wheel inside a scrollable carousel and releases it at the end", () => {
+  render(
+    <HorizontalScroller label="Practice skills" controls>
+      <p>Discovery</p>
+    </HorizontalScroller>,
+  );
+  const region = screen.getByRole("region", { name: "Practice skills" });
+  Object.defineProperties(region, {
+    scrollWidth: { value: 600 },
+    clientWidth: { value: 300 },
+    scrollLeft: { value: 0, writable: true },
+  });
+  fireEvent.wheel(region, { deltaY: 40 });
+  expect(region.scrollLeft).toBe(40);
+  region.scrollLeft = 300;
+  expect(fireEvent.wheel(region, { deltaY: 40 })).toBe(true);
+  expect(region.scrollLeft).toBe(300);
 });

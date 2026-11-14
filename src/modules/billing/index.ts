@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { BillingSummary } from '@/contracts';
 import type { Database, SqlExecutor } from '@/modules/database';
 import { AppError, systemClock, type Clock } from '@/modules/shared';
 import { BillingEvent, BillingSubscription, type BillingProvider } from './provider';
@@ -13,6 +14,27 @@ const isPro = (user: Awaited<ReturnType<typeof getUser>>, now: Date) => !user.is
 const availableError = () => new AppError('VALIDATION',503,'Billing is temporarily unavailable.');
 
 export function createBillingService({ db, provider, appUrl, monthlyPriceId, yearlyPriceId, now = systemClock }: BillingDeps) {
+  const freeQuotaUsed = (executor: SqlExecutor, userId: string, at: Date) =>
+    hasRecentDaily(executor,userId,new Date(at.getTime() - 7 * 86400000));
+  async function summary(userId: string): Promise<BillingSummary> {
+    const user = await getUser(db,userId), at = now();
+    const pro = isPro(user,at);
+    return {
+      plan: pro ? 'pro' : 'free',
+      periodEnd: user.periodEnd?.toISOString() ?? null,
+      freeDailyRemaining: pro || await freeQuotaUsed(db,userId,at) ? 0 : 1,
+      canManage: !user.isGuest && !!user.customerId,
+    };
+  }
+  async function portal(userId: string): Promise<{ url: string }> {
+    const user = await getUser(db,userId);
+    if (user.isGuest) throw new AppError('FORBIDDEN',403,'Sign in to manage a subscription.');
+    if (!user.customerId) throw new AppError('NOT_FOUND',404,'No subscription was found for this account.');
+    try {
+      const result = await provider.createPortal({ customerId: user.customerId, returnUrl: new URL('/settings/billing',appUrl).href });
+      return z.object({url:z.url({protocol:/^https$/})}).parse(result);
+    } catch { throw availableError(); }
+  }
   async function can(userId: string, action: BillingAction, executor: SqlExecutor = db): Promise<boolean> {
     if (!z.uuid().safeParse(userId).success || !BillingAction.safeParse(action).success) throw new AppError('VALIDATION',400,'Invalid billing request.');
     const user = await getUser(executor,userId);
@@ -20,7 +42,7 @@ export function createBillingService({ db, provider, appUrl, monthlyPriceId, yea
     if (action === 'start_case:onboarding') return true;
     if (isPro(user,instant)) return true;
     if (action !== 'start_case:daily') return false;
-    return !await hasRecentDaily(executor,userId,new Date(instant.getTime() - 7 * 86400000));
+    return !await freeQuotaUsed(executor,userId,instant);
   }
   async function checkout(userId: string, plan: BillingPlan): Promise<{ url: string }> {
     if (!z.uuid().safeParse(userId).success || !z.enum(['monthly','yearly']).safeParse(plan).success) throw new AppError('VALIDATION',400,'Invalid checkout request.');
@@ -97,6 +119,6 @@ export function createBillingService({ db, provider, appUrl, monthlyPriceId, yea
     });
     return { received: true };
   }
-  return { can, checkout, createCheckout: checkout, handleWebhook };
+  return { can, summary, portal, checkout, createCheckout: checkout, handleWebhook };
 }
 export type BillingService = ReturnType<typeof createBillingService>;

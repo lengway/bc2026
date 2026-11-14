@@ -6,7 +6,7 @@ import { AppError } from "@/modules/shared";
 import { mocksEnabled } from "./environment";
 
 export const getPublicSkillCertificate = cache(async (slug: string) => {
-  if (slug === "sample")
+  if (slug === "sample" || (mocksEnabled && slug === "Sample0001"))
     return (await import("@/mocks/scenarios/skill-certificate"))
       .sampleSkillCertificate;
 

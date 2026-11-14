@@ -167,7 +167,15 @@ export function SkillCard({
             size="sm"
             className="min-h-11 lg:min-h-8"
           >
-            <Link href={`/s/${series.certificate.slug}`}>View certificate</Link>
+            <Link
+              href={
+                series.certificate.revokedAt
+                  ? "/certificates"
+                  : `/s/${series.certificate.slug}`
+              }
+            >
+              View certificate
+            </Link>
           </Button>
         ) : (
           <Button

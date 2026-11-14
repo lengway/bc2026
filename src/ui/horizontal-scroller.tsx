@@ -36,14 +36,45 @@ export function HorizontalScroller({
           : { start, end },
       );
     };
+    const wheel = (event: WheelEvent) => {
+      if (
+        event.ctrlKey ||
+        event.shiftKey ||
+        Math.abs(event.deltaX) >= Math.abs(event.deltaY)
+      )
+        return;
+      const max = element.scrollWidth - element.clientWidth;
+      const direction = Math.sign(event.deltaY);
+      if (
+        max <= 0 ||
+        (direction < 0
+          ? element.scrollLeft <= 1
+          : element.scrollLeft >= max - 1)
+      )
+        return;
+      const amount =
+        event.deltaY *
+        (event.deltaMode === 1
+          ? 16
+          : event.deltaMode === 2
+            ? element.clientWidth
+            : 1);
+      event.preventDefault();
+      element.scrollLeft = Math.max(
+        0,
+        Math.min(max, element.scrollLeft + amount),
+      );
+    };
     update();
     element.addEventListener("scroll", update, { passive: true });
+    element.addEventListener("wheel", wheel, { passive: false });
     const observer =
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
     observer?.observe(element);
     if (content.current) observer?.observe(content.current);
     return () => {
       element.removeEventListener("scroll", update);
+      element.removeEventListener("wheel", wheel);
       observer?.disconnect();
     };
   }, []);

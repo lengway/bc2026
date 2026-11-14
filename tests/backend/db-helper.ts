@@ -4,7 +4,7 @@ import { parse } from 'dotenv';
 import { Pool } from 'pg';
 import { createDatabase, migrate, type Database } from '@/modules/database';
 
-export async function createTestDatabase(): Promise<{ db: Database; cleanup(): Promise<void> }> {
+export async function createTestDatabase(): Promise<{ db: Database; url: string; cleanup(): Promise<void> }> {
   const local: Record<string, string> = await readFile('.env.test.local', 'utf8').then(parse).catch((error: unknown) => {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return {};
     throw error;
@@ -32,7 +32,7 @@ export async function createTestDatabase(): Promise<{ db: Database; cleanup(): P
     target.pathname = `/${name}`;
     db = createDatabase(target.toString());
     await migrate(db);
-    return { db, cleanup };
+    return { db, url: target.toString(), cleanup };
   } catch (error) {
     await cleanup();
     throw error;

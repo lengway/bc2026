@@ -105,6 +105,18 @@ export function DesignGallery() {
           <Button asChild variant="outline">
             <Link href="/design/app-ux">Application components</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link href="/design/home">Home</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/design/skills">Skills</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/design/history">History</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/design/certificates">Certificates</Link>
+          </Button>
         </nav>
 
         <Section title="Color">

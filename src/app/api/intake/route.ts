@@ -5,3 +5,5 @@ export const dynamic='force-dynamic';
 export function POST(request:Request):Promise<Response> {
   return dispatch(api=>api.intake(request));
 }
+
+export function GET(request:Request):Promise<Response> { return dispatch(api=>api.getIntake(request)); }

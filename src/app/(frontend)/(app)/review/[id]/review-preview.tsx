@@ -80,8 +80,14 @@ export function ReviewPreview({ id }: { id: string }) {
     return (
       <ErrorPanel error={query.error} retry={() => void query.refetch()} />
     );
-  const { evaluation, moves, caseRecordSlug, certificateSlug, transcript } =
-    query.data;
+  const {
+    evaluation,
+    moves,
+    caseRecordSlug,
+    certificateSlug,
+    transcript,
+    caseRecordLinkDisabled,
+  } = query.data;
   const recordSlug = caseRecordSlug ?? certificateSlug;
   const countedSeries = path.data?.series.filter((series) =>
     series.casesCounted.some((item) => item.caseId === id),
@@ -126,7 +132,7 @@ export function ReviewPreview({ id }: { id: string }) {
               {countedSeries.map((series) => (
                 <li key={series.skill}>
                   <Link
-                    href={`/path#${series.skill}`}
+                    href={`/path/${series.skill}`}
                     className="underline underline-offset-4"
                   >
                     {formatSkill(series.skill)} · {series.casesCounted.length}{" "}
@@ -139,7 +145,9 @@ export function ReviewPreview({ id }: { id: string }) {
         )}
         {!recordSlug && (
           <p className="text-sm text-muted-foreground">
-            The case record link is not ready yet.
+            {caseRecordLinkDisabled
+              ? "Sharing is disabled for this case record."
+              : "The case record link is not ready yet."}
           </p>
         )}
         {create.isPending && (

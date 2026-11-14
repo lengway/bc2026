@@ -221,6 +221,20 @@ it('checks and forwards a targeted Daily Case request to the queued generation j
   expect(jobs.rows).toEqual([{ skill: 'discovery' }]);
 });
 
+it('preserves owner reviews and labels a disabled public case record', async () => {
+  const disabled = await api.disablePublicLink(request('/api/account/links', ownerCookie, {
+    kind: 'case_record', slug: caseRecordSlug,
+  }));
+  expect(disabled.status).toBe(200);
+  expect((await api.certificate(request(`/api/certificates/${caseRecordSlug}`), context({ slug: caseRecordSlug }))).status).toBe(404);
+  const id = caseIds.at(-1)!;
+  const response = await api.review(request(`/api/cases/${id}/review`, ownerCookie), context({ id }));
+  expect(response.status).toBe(200);
+  const payload = await response.json();
+  expect(payload.caseRecordLinkDisabled).toBe(true);
+  expect(payload).not.toHaveProperty('caseRecordSlug');
+});
+
 it('handles unknown slugs through the safe public error envelope', async () => {
   const slug = 'unknown000';
   const response = await api.skillCertificate(request(`/api/skill-certificates/${slug}`), context({ slug }));

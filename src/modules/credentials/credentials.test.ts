@@ -30,6 +30,18 @@ describe('public certificates',()=>{
     const serialized=JSON.stringify(full);
     for(const forbidden of ['processObservations','private-event-value','"hidden"','"realMotive"','"rubric"','"drafts"','tokenHash']) expect(serialized).not.toContain(forbidden);
   });
+  it('keeps a revoked case record private across repeated revocation and owner review reads',async()=>{
+    const sample=await reviewedCase(state.db);
+    const service=createCredentialsService({db:state.db,loadSubmission:async()=>sample.snapshot,getReview:async()=>sample.review,canFull:async()=>false});
+    const certificate=await service.issueCertificate(sample.snapshot);
+    await expect(service.disablePublicLink(randomUUID(),'case_record',certificate.slug)).rejects.toMatchObject({status:404});
+    await expect(service.getBySlug(certificate.slug)).resolves.toMatchObject({slug:certificate.slug});
+    await service.disablePublicLink(sample.userId,'case_record',certificate.slug);
+    await service.disablePublicLink(sample.userId,'case_record',certificate.slug);
+    await expect(service.getBySlug(certificate.slug)).rejects.toMatchObject({status:404});
+    expect(await service.getOwnedSlug(sample.caseId,sample.userId)).toBeUndefined();
+    expect(await service.issueCertificate(sample.snapshot)).toMatchObject({slug:certificate.slug});
+  });
   it('labels guests as demos and strips private inputs from both projection functions',async()=>{
     const sample=await reviewedCase(state.db,{guest:true});
     const service=createCredentialsService({db:state.db,loadSubmission:async()=>sample.snapshot,getReview:async()=>sample.review,canFull:async()=>true});

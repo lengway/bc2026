@@ -40,14 +40,17 @@ export function SkillCertificateCard({
               Demo
             </span>
           )}
-          {certificate.supersededBy && (
-            <Link
-              href={`/s/${certificate.supersededBy}`}
-              className="text-sm underline underline-offset-4"
-            >
-              Superseded · View newer certificate
-            </Link>
-          )}
+          {(certificate.superseded || certificate.supersededBy) &&
+            (certificate.supersededBy ? (
+              <Link
+                href={`/s/${certificate.supersededBy}`}
+                className="text-sm underline underline-offset-4"
+              >
+                Superseded · View newer certificate
+              </Link>
+            ) : (
+              <span className="text-sm text-muted-foreground">Superseded</span>
+            ))}
         </div>
       </header>
 

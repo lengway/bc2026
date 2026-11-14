@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import type { EventData, MoveInput } from "@/contracts";
@@ -193,6 +199,48 @@ it("keeps an accepted message locked for exact retry when the later LLM operatio
   expect(received[2]).toMatchObject({ text: "A new answer" });
   expect(received[2].clientMsgId).not.toBe(received[0].clientMsgId);
   expect(received[2].draftId).not.toBe(received[0].draftId);
+  mounted.unmount();
+  client.clear();
+});
+
+it("confirms leaving the case with a way home and keeps the workspace open on cancel", async () => {
+  vi.stubGlobal("matchMedia", (media: string) => ({
+    media,
+    matches: false,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+  vi.spyOn(api, "editorBatch").mockResolvedValue({
+    acceptedCount: 0,
+    acceptedWindowCount: 0,
+    lastDraftSeq: 0,
+  });
+  const client = new QueryClient();
+  const mounted = render(
+    <QueryClientProvider client={client}>
+      <ChatWorkspace
+        caseView={{
+          ...makeCase(),
+          status: "in_progress",
+          startedAt: new Date().toISOString(),
+        }}
+      />
+    </QueryClientProvider>,
+  );
+
+  const leave = screen.getByRole("button", { name: "Leave case" });
+  fireEvent.click(leave);
+  expect(
+    screen.getByRole("dialog", { name: "Leave this case?" }),
+  ).toBeVisible();
+  expect(screen.getByRole("link", { name: "Leave case" })).toHaveAttribute(
+    "href",
+    "/dashboard",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Stay" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  await waitFor(() => expect(leave).toHaveFocus());
+  expect(screen.getByRole("textbox", { name: "Message Dana" })).toBeEnabled();
   mounted.unmount();
   client.clear();
 });

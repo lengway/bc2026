@@ -24,6 +24,10 @@ export function createAccountApi(app:CoreRuntime, {csrf,respond,user,token,reque
       csrf(request);const input=await body(request,RegisterRequest);
       return json(MagicLinkResponse,await app.identity.register(input,requestKey(request)),202);
     }),
+    resendVerification:(request:Request)=>respond(request,async()=>{
+      csrf(request);await body(request,z.strictObject({}));await user(request);
+      return json(MagicLinkResponse,await app.identity.resendVerification(token(request),requestKey(request)),202);
+    }),
     login:(request:Request)=>respond(request,async()=>{
       csrf(request);const input=await body(request,LoginRequest);
       const result=await app.identity.login(input,requestKey(request),token(request));

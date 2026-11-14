@@ -4,6 +4,7 @@ import {
   EMPTY_ANSWERS,
   MAX_FOCUS,
   composeIntakeText,
+  readIntakeAnswers,
   toggleFocus,
 } from "./intake";
 
@@ -57,5 +58,47 @@ describe("toggleFocus", () => {
     );
     expect(full).toHaveLength(MAX_FOCUS);
     expect(toggleFocus(full, "discovery")).toBe(full);
+  });
+});
+
+describe("readIntakeAnswers", () => {
+  it("restores structured preferences and preserves multiline notes", () => {
+    const answers = {
+      ...EMPTY_ANSWERS,
+      role: "am",
+      experience: "3-5",
+      segment: "ent",
+      industry: "Medical devices",
+      practice: ["discovery"],
+      strengths: ["objection_handling"],
+      notes: "The first line.\nThe next line.",
+    } as const;
+    const editable = {
+      ...answers,
+      practice: [...answers.practice],
+      strengths: [...answers.strengths],
+    };
+    const profile = {
+      subfield: "account_management",
+      years: 3,
+      level: "intermediate" as const,
+      intakeText: composeIntakeText(editable),
+    };
+    expect(readIntakeAnswers(profile)).toEqual(editable);
+  });
+
+  it("preserves legacy free-text intake", () => {
+    expect(
+      readIntakeAnswers({
+        subfield: "sdr_outbound",
+        years: 2,
+        level: "beginner",
+        intakeText: "I sell financial software.",
+      }),
+    ).toMatchObject({
+      role: "sdr",
+      experience: "1-2",
+      notes: "I sell financial software.",
+    });
   });
 });

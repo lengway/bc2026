@@ -3,15 +3,20 @@ import AxeBuilder from "@axe-core/playwright";
 test.setTimeout(90_000);
 async function signIn(page: Page) {
   await page.goto("/login");
-  await page.getByLabel("Work or personal email").fill("alex@example.com");
+  await page.getByRole("tab", { name: "Email link" }).click();
+  await page
+    .getByRole("textbox", { name: "Email", exact: true })
+    .fill("alex@example.com");
   await page.getByRole("button", { name: "Send sign-in link" }).click();
   await page.getByRole("button", { name: "Open preview sign-in link" }).click();
   await expect(
-    page.getByRole("heading", { name: "Your practice", exact: true }),
+    page.getByRole("heading", { name: /^Good (morning|afternoon|evening)/ }),
   ).toBeVisible();
 }
 async function start(page: Page) {
-  await page.getByRole("button", { name: "Start daily case" }).click();
+  await page
+    .getByRole("button", { name: "Start today's case", exact: true })
+    .click();
   await expect(
     page.getByRole("button", { name: "Start case", exact: true }),
   ).toBeDisabled();
@@ -96,7 +101,7 @@ test("onboarding, three moves, twist, evidence review and matching limited case 
   await accessible(page);
   await page.screenshot({ path: "../frontend-landing.png", fullPage: true });
   await signIn(page);
-  await page.getByRole("link", { name: "Set up your practice" }).click();
+  await page.goto("/onboarding");
   await page.getByRole("radio", { name: /Account manager/ }).check();
   await page.getByRole("radio", { name: "3–5 years", exact: true }).check();
   await page
@@ -166,7 +171,7 @@ test("onboarding, three moves, twist, evidence review and matching limited case 
   await page.screenshot({ path: "../frontend-review.png", fullPage: true });
   await expect(
     page.getByRole("link", { name: "Discovery · 1 of 3 cases" }),
-  ).toHaveAttribute("href", "/path#discovery");
+  ).toHaveAttribute("href", "/path/discovery");
   await page
     .getByRole("button", { name: "Share case record", exact: true })
     .first()
@@ -184,32 +189,21 @@ test("onboarding, three moves, twist, evidence review and matching limited case 
     fullPage: true,
   });
   await page.goto("/path");
+  const discovery = page.getByRole("article").filter({
+    has: page.getByRole("link", { name: "Discovery", exact: true }),
+  });
   await expect(
-    page.getByRole("heading", {
-      name: "Discovery · 1 of 3 cases toward your certificate",
-    }),
+    discovery.getByText("1 of 3 cases", { exact: true }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
-test("weekly paywall restores keyboard focus and compares plans", async ({
-  page,
-}) => {
+test("weekly practice on Free links to plan information", async ({ page }) => {
   await signIn(page);
-  const trigger = page.getByRole("button", { name: "Open weekly case" });
-  await trigger.click();
-  const dialog = page.getByRole("dialog", { name: "More room to practice" });
-  await expect(dialog).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(dialog).not.toBeVisible();
-  await expect(trigger).toBeFocused();
-  await trigger.click();
-  await page.getByRole("link", { name: "Compare plans" }).click();
-  await expect(page).toHaveURL(/\/pricing/);
-  await page.getByRole("button", { name: /Yearly/ }).click();
-  await expect(page.getByRole("button", { name: /Yearly/ })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(
+    page.getByText("Included in Pro", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "See plans", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings\/billing/);
 });
 test("mobile documents, Copilot insertion, keyboard entry and accessible workspace", async ({
   page,
@@ -436,11 +430,12 @@ test("checkout preview and cancellation never claim a paid subscription", async 
 });
 test("logout prevents reopening a protected preview page", async ({ page }) => {
   await signIn(page);
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.getByRole("button", { name: "Profile menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/login/);
   await page.goto("/dashboard");
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByLabel("Work or personal email")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Password" })).toBeVisible();
 });
 test("designer gallery retains its independent layout", async ({ page }) => {
   await page.goto("/design");
@@ -451,9 +446,7 @@ test("designer gallery retains its independent layout", async ({ page }) => {
     page.getByRole("navigation", { name: "Main navigation" }),
   ).toHaveCount(0);
   await page.goto("/login");
-  await expect(
-    page.getByRole("navigation", { name: "Main navigation" }),
-  ).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Password" })).toBeVisible();
 });
 
 test("failed message survives in-app navigation and retries without duplication", async ({
@@ -471,10 +464,12 @@ test("failed message survives in-app navigation and retries without duplication"
   await expect(
     page.getByRole("button", { name: "Retry message", exact: true }).first(),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Practice", exact: true }).click();
+  await page.getByRole("button", { name: "Leave case", exact: true }).click();
   await page
-    .getByRole("button", { name: "Continue case", exact: true })
+    .getByRole("dialog", { name: "Leave this case?" })
+    .getByRole("link", { name: "Leave case", exact: true })
     .click();
+  await page.getByRole("link", { name: "Continue", exact: true }).click();
   await expect(page.getByLabel("Message Dana")).toHaveValue(
     "Please explain the dispatch workflow.",
   );

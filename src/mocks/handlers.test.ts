@@ -2,6 +2,8 @@ import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
 import { setupServer } from "msw/node";
 import { createMockHandlers } from "./handlers";
 import { api } from "@/app/_lib/api";
+import { apiClient } from "@/app/_lib/api-client";
+import { CaseHistoryPage, OwnedCertificates } from "@/contracts";
 import { simulateBrowserOrigin } from "../../tests/browser-fetch";
 const server = setupServer();
 let restoreOrigin = () => {};
@@ -63,6 +65,25 @@ it("plays the Sales scenario and repeats a request without duplicating a turn", 
     accuracy: 80,
     isDemo: true,
   });
+  const historyPage = await apiClient(
+    "/api/me/history?skill=discovery",
+    CaseHistoryPage,
+  );
+  expect(historyPage.items).toEqual([
+    expect.objectContaining({
+      caseId: created.caseId,
+      accuracy: 80,
+      skill: "discovery",
+    }),
+  ]);
+  expect(
+    (await apiClient("/api/me/certificates", OwnedCertificates)).caseRecords,
+  ).toEqual([
+    expect.objectContaining({
+      caseId: created.caseId,
+      slug: review.caseRecordSlug,
+    }),
+  ]);
   expect((await api.path()).history[0]).toMatchObject({
     caseId: created.caseId,
     accuracy: 80,

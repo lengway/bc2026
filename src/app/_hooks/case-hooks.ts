@@ -14,6 +14,7 @@ import type {
   GenerateCaseRequest,
 } from "@/app/_lib/contracts";
 import { api } from "@/app/_lib/api";
+import { billingSummaryKey } from "./use-billing-summary";
 import { ApiError } from "@/app/_lib/api-client";
 import { mocksEnabled } from "@/app/_lib/environment";
 import { mergeEvents } from "@/workspaces/chat/events";
@@ -172,6 +173,7 @@ export function useStartCase(id: string) {
     mutationFn: () => api.start(id),
     onSuccess: (response) => {
       void client.invalidateQueries({ queryKey: ["skill-path"] });
+      void client.invalidateQueries({ queryKey: billingSummaryKey });
       client.setQueryData<CaseResponseData>(caseKey(id), (previous) =>
         previous && "brief" in previous
           ? {
@@ -224,14 +226,18 @@ export function useSkillPath(enabled = true) {
     staleTime: 0,
   });
 }
+export const createCaseMutationKey = ["create-case"] as const;
+
 export function useCreateCase() {
   const client = useQueryClient();
   return useMutation({
+    mutationKey: createCaseMutationKey,
     mutationFn: ({ type, skill }: GenerateCaseRequest) =>
       api.createCase(type, skill),
     retry: false,
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ["skill-path"] });
+      void client.invalidateQueries({ queryKey: billingSummaryKey });
     },
   });
 }

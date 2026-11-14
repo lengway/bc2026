@@ -12,10 +12,40 @@ type PracticeRecordProps = {
   /** Recent days, oldest first. Optional: the contract only guarantees the counts. */
   days?: ReadonlyArray<PracticeDay>;
   className?: string;
+  variant?: "default" | "compact";
 };
 
 /** The practice streak, stated like a record and not like a game mechanic. */
-export function PracticeRecord({ streak, days, className }: PracticeRecordProps) {
+export function PracticeRecord({
+  streak,
+  days,
+  className,
+  variant = "default",
+}: PracticeRecordProps) {
+  const compact = variant === "compact";
+  const strip = days?.length ? (
+    <ol
+      aria-label="Recent days"
+      className={cn("m-0 flex list-none gap-1 p-0", compact && className)}
+    >
+      {days.map((day, index) => (
+        <li key={`${day.label}-${index}`} className="flex-1">
+          <span
+            role="img"
+            aria-label={`${day.label}: ${day.practiced ? "practiced" : "no practice"}`}
+            title={day.label}
+            className={cn(
+              "block rounded-sm border",
+              compact ? "h-2.5" : "h-6",
+              day.practiced ? "border-ink bg-ink" : "border-border bg-surface",
+            )}
+          />
+        </li>
+      ))}
+    </ol>
+  ) : null;
+  if (compact) return strip;
+
   const dayWord = streak.current === 1 ? "day" : "days";
 
   return (
@@ -25,31 +55,21 @@ export function PracticeRecord({ streak, days, className }: PracticeRecordProps)
           <p className="m-0 text-xs text-muted-foreground">Practice record</p>
           <p className="m-0 text-2xl leading-none font-medium tracking-tight">
             <span className="font-mono tabular-nums">{streak.current}</span>
-            <span className="text-base font-normal text-muted-foreground"> {dayWord} in a row</span>
+            <span className="text-base font-normal text-muted-foreground">
+              {" "}
+              {dayWord} in a row
+            </span>
           </p>
         </div>
         <p className="m-0 text-xs text-muted-foreground">
-          Best <span className="font-mono text-foreground tabular-nums">{streak.best}</span>
+          Best{" "}
+          <span className="font-mono text-foreground tabular-nums">
+            {streak.best}
+          </span>
         </p>
       </div>
 
-      {days && days.length > 0 ? (
-        <ol aria-label="Recent days" className="m-0 flex list-none gap-1 p-0">
-          {days.map((day, index) => (
-            <li key={`${day.label}-${index}`} className="flex-1">
-              <span
-                role="img"
-                aria-label={`${day.label}: ${day.practiced ? "practiced" : "no practice"}`}
-                title={day.label}
-                className={cn(
-                  "block h-6 rounded-sm border",
-                  day.practiced ? "border-ink bg-ink" : "border-border bg-surface",
-                )}
-              />
-            </li>
-          ))}
-        </ol>
-      ) : null}
+      {strip}
     </div>
   );
 }

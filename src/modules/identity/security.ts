@@ -15,7 +15,7 @@ export function safeRedirect(target: string | null | undefined): string {
     const decoded = decodeURIComponent(target);
     if (decoded.startsWith('//') || /[\\\x00-\x1f]/.test(decoded)) return '/onboarding';
     const url = new URL(target, 'https://local.invalid');
-    if (url.origin !== 'https://local.invalid' || !/^\/(onboarding|dashboard|path|case|review|settings|billing)(\/|$)/.test(url.pathname)) return '/onboarding';
+    if (url.origin !== 'https://local.invalid' || !/^\/(onboarding|dashboard|path|case|review|settings|billing|history|certificates|help)(\/|$)/.test(url.pathname)) return '/onboarding';
     return url.pathname + url.search + url.hash;
   } catch { return '/onboarding'; }
 }

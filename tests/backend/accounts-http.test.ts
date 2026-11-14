@@ -9,13 +9,17 @@ import { createTestDatabase } from './db-helper';
 let state: Awaited<ReturnType<typeof createTestDatabase>>;
 const origin = 'https://gambit.example';
 const sent: { purpose: string; url: string | null }[] = [];
+let failNextMail = false;
 let api: ReturnType<typeof createApi>;
 beforeAll(async () => {
   state = await createTestDatabase();
   api = createApi(createCoreRuntime(readConfig({ APP_URL: origin, DATABASE_URL: 'unused', LLM_MODEL: 'test', OPENAI_API_KEY: 'unused', SMTP_HOST: 'unused', SMTP_FROM: 'test@example.com' }), {
     db: state.db, provider: new MockProvider({}), mailer: {
       async sendMagicLink(_email, url) { sent.push({ purpose: 'magic_link', url }); },
-      async sendAccountMail(_email, purpose, url) { sent.push({ purpose, url }); },
+      async sendAccountMail(_email, purpose, url) {
+        if (failNextMail) { failNextMail = false; throw new Error('SMTP transient failure'); }
+        sent.push({ purpose, url });
+      },
     },
   }));
 });
@@ -54,6 +58,21 @@ it('exposes cookie-based account HTTP endpoints without returning raw tokens or 
   const newCookie = rotated.headers.get('set-cookie')!.split(';')[0];
   expect((await api.logoutAll(req('/api/auth/logout-all', {}, newCookie))).headers.get('set-cookie')).toContain('Max-Age=0');
   expect(await (await api.session(req('/api/auth/session', undefined, newCookie, 'GET'))).json()).toBeNull();
+});
+
+it('resends proof to the signed-in account address and retires the previous confirmation link', async () => {
+  const email = `${randomUUID()}@example.com`, password = 'correct horse battery';
+  await api.register(req('/api/auth/register', { email, password, displayName: 'Jordan Doe' }));
+  const old = new URL(sent.at(-1)!.url!).searchParams.get('token');
+  const login = await api.login(req('/api/auth/login', { email, password }));
+  const cookie = login.headers.get('set-cookie')!.split(';')[0];
+  failNextMail = true;
+  expect((await api.resendVerification(req('/api/auth/resend-verification', {}, cookie))).status).toBe(503);
+  expect((await api.resendVerification(req('/api/auth/resend-verification', {}, cookie))).status).toBe(202);
+  const fresh = new URL(sent.at(-1)!.url!).searchParams.get('token');
+  expect(fresh).not.toEqual(old);
+  expect((await api.verifyEmail(req('/api/auth/verify-email', { token: old }))).status).toBe(401);
+  expect((await api.verifyEmail(req('/api/auth/verify-email', { token: fresh }))).status).toBe(200);
 });
 
 it('rejects cross-origin and non-JSON account mutations and does not emit a clearing cookie for authorization errors', async () => {
