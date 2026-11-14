@@ -9,11 +9,13 @@ import type {
   TranscriptEntry,
 } from "@/contracts";
 import type { ChecklistStep } from "@/ui";
+import { MOVE_LABEL_POINTS } from "@/contracts";
 
 /*
  * Gallery fixtures: one complete, internally consistent case.
  * Accuracy 74 = (100 + 2×100 + 4×80 + 50 + 0) / 9, per CONTEXT.md §12.
- * Replace with /src/mocks/fixtures once frontend adds them.
+ * The scorer metadata and observations below are illustrative gallery fixtures,
+ * not actual model runs or recorded telemetry.
  */
 
 const CASE_ID = "00000000-0000-4000-8000-000000000100";
@@ -30,7 +32,7 @@ export const persona: PersonaPublic = {
     "Runs dispatch for a regional carrier with 140 trucks. Her routing contract renews in three weeks and she has told your manager she is looking at a cheaper vendor.",
 };
 
-export const moves: MoveReview[] = [
+const storyMoves: Omit<MoveReview, "rubricRef" | "points" | "evidence" | "assessmentStatus">[] = [
   {
     eventId: eventId(1),
     seq: 1,
@@ -135,12 +137,54 @@ export const moves: MoveReview[] = [
   },
 ];
 
+export const moves: MoveReview[] = storyMoves.map((move) => ({
+  ...move,
+  rubricRef: "gallery-fixture-criterion",
+  points: MOVE_LABEL_POINTS[move.label],
+  evidence: [{ source: "user_event", sourceId: move.eventId, quote: move.userText, explanation: move.why }],
+  assessmentStatus: "assessed",
+}));
+
+const assistance: Evaluation["assistance"] = {
+  copilotRequests: 1,
+  knownCopilotRetainedChars: 0,
+  totalSubmittedChars: moves.reduce((sum, move) => sum + move.userText.length, 0),
+  copilotRetainedPercent: null,
+  copilotTextSimilarityPercent: 31,
+  unknownPasteCount: 0,
+  unknownPasteChars: 0,
+  observedInputModes: [],
+  observationStatus: "unavailable",
+  limitations: ["Gallery fixture: assistance figures are illustrative, not recorded telemetry."],
+};
+
+const scoreAudit: Evaluation["scoreAudit"] = {
+  rubricVersion: "gallery-fixture-v1",
+  scorerModel: "gallery-fixture-model",
+  scorerPromptVersion: "gallery-fixture-v1",
+  caseLevel: "intermediate",
+  scoredMoveCount: moves.length,
+  totalUserMoveCount: moves.length,
+  pointsSum: moves.reduce((sum, move) => sum + (move.points ?? 0), 0),
+  maxPoints: moves.length * 100,
+  formula: "round(100 × pointsSum / maxPoints)",
+  completionStatus: "complete",
+  limitations: ["Gallery fixture: scoring and evidence illustrate the interface."],
+  labelPoints: MOVE_LABEL_POINTS,
+  criterionCoverage: [],
+};
+
 export const evaluation: Evaluation = {
   caseId: CASE_ID,
   accuracy: 74,
   labelCounts: { brilliant: 1, best: 2, good: 4, inaccuracy: 1, mistake: 0, blunder: 1 },
   aiDependency: 31,
   trapCaught: false,
+  trapResult: "missed",
+  assistance,
+  aiUseSkill: { score: null, assessedChecks: 0, applicableChecks: 0, earnedPoints: 0, assessedMaxPoints: 0, applicableMaxPoints: 0, checks: [] },
+  scoreAudit,
+  processObservations: { rulesVersion: "gallery-fixture-v1", observationStatus: "unavailable", automationStatus: "insufficient_data", signals: [], textFeatures: [], limitations: ["Gallery fixture: no telemetry was recorded."] },
   outcome: "won",
   topMoves: [moves[4], moves[5], moves[7]],
   summary:
@@ -156,7 +200,7 @@ export const evaluation: Evaluation = {
 };
 
 export const certificateLimited: CertificateLimited = {
-  slug: "7f3k-2291",
+  slug: "7f3k-2291x",
   holderName: "Maya Okafor",
   skill: "objection_handling",
   field: "sales",
@@ -167,10 +211,16 @@ export const certificateLimited: CertificateLimited = {
   outcome: evaluation.outcome,
   headline: evaluation.summary,
   verified: true,
+  verificationScope: "recorded_simulation",
+  isDemo: true,
+  assistance,
+  aiUseSkillSummary: evaluation.aiUseSkill,
+  scoringSummary: scoreAudit,
 };
 
 const transcript: TranscriptEntry[] = [
   {
+    id: eventId(1),
     seq: 1,
     actor: "user",
     type: "message",
@@ -178,6 +228,7 @@ const transcript: TranscriptEntry[] = [
     createdAt: "2026-11-14T15:31:08Z",
   },
   {
+    id: eventId(10),
     seq: 2,
     actor: "persona",
     type: "message",
@@ -185,6 +236,7 @@ const transcript: TranscriptEntry[] = [
     createdAt: "2026-11-14T15:31:21Z",
   },
   {
+    id: eventId(2),
     seq: 3,
     actor: "user",
     type: "message",
@@ -212,14 +264,14 @@ export const docs: CaseDoc[] = [
       messages: [
         {
           from: "Dana Whitfield",
-          to: "you",
-          sentAt: "Nov 12, 4:18 PM",
+          to: ["you"],
+          sentAt: "2026-11-12T16:18:00Z",
           body: "Got the renewal quote. Before I take anything upstairs I need to understand why I am paying the same rate after the spring we had.\n\nI have a competing quote that is 11% lower.\n\nDana Whitfield\nOperations Director, Brightline Logistics\n614-555-0142",
         },
         {
           from: "You",
-          to: "Dana Whitfield",
-          sentAt: "Nov 12, 5:02 PM",
+          to: ["Dana Whitfield"],
+          sentAt: "2026-11-12T17:02:00Z",
           body: "Dana, understood. Can we take 10 minutes on Thursday? I would rather hear what happened than send you a revised number blind.",
         },
       ],
@@ -232,6 +284,8 @@ export const docs: CaseDoc[] = [
     arrivesAtTurn: null,
     content: {
       account: "Brightline Logistics",
+      contact: "Dana Whitfield, Operations Director",
+      stage: "At risk",
       fields: [
         { label: "Plan", value: "Routing Pro, 140 vehicles" },
         { label: "Annual contract value", value: "$86,400" },
@@ -239,10 +293,10 @@ export const docs: CaseDoc[] = [
         { label: "Primary contact", value: "Dana Whitfield, Operations Director" },
         { label: "Health", value: "At risk" },
       ],
-      activity: [
-        { at: "Apr 02", text: "Support ticket #4471 opened: misrouted loads after v4 migration" },
-        { at: "Jun 18", text: "Ticket #4471 still open. Escalation requested by customer" },
-        { at: "Nov 12", text: "Customer mentions competing quote, 11% lower" },
+      notes: [
+        "Apr 02: Support ticket #4471 opened: misrouted loads after v4 migration",
+        "Jun 18: Ticket #4471 still open. Escalation requested by customer",
+        "Nov 12: Customer mentions competing quote, 11% lower",
       ],
     },
   },
@@ -256,12 +310,12 @@ export const docs: CaseDoc[] = [
       messages: [
         {
           author: "Priya Raman",
-          sentAt: "9:14 AM",
+          sentAt: "2026-11-14T09:14:00Z",
           text: "Heads up before your call. Ticket 4471 is a real bug in zone assignment, not user error. Eng has a fix scoped but nobody has told the customer.",
         },
         {
           author: "Tom Becker",
-          sentAt: "9:20 AM",
+          sentAt: "2026-11-14T09:20:00Z",
           text: "I can put a named engineer on it if that helps the renewal. Need a yes by Friday.",
         },
       ],
@@ -289,7 +343,7 @@ export const docs: CaseDoc[] = [
     title: "MSA excerpt, section 4.2",
     arrivesAtTurn: null,
     content: {
-      body: "4.2 Volume tier. Customer receives a discount of eight percent (8%) on per-vehicle fees for any calendar month in which completed shipments exceed four hundred (400).\n\n4.3 No other discounts apply unless agreed in writing by both parties.",
+      text: "4.2 Volume tier. Customer receives a discount of eight percent (8%) on per-vehicle fees for any calendar month in which completed shipments exceed four hundred (400).\n\n4.3 No other discounts apply unless agreed in writing by both parties.",
     },
   },
 ];

@@ -1,0 +1,658 @@
+{
+  "slug": "qP7aG3_m4T",
+  "holderName": "Jordan Reyes",
+  "skill": "Outbound sales discovery",
+  "field": "sales",
+  "level": "intermediate",
+  "issuedAt": "2026-03-12T15:04:20.000Z",
+  "caseTitle": "A pilot across two Ohio yards",
+  "accuracy": 75,
+  "outcome": "won",
+  "headline": "Qualified a two-yard pilot and secured a follow-up with the operations team.",
+  "verified": true,
+  "verificationScope": "recorded_simulation",
+  "assistance": {
+    "copilotRequests": 1,
+    "knownCopilotRetainedChars": 0,
+    "totalSubmittedChars": 689,
+    "copilotRetainedPercent": null,
+    "copilotTextSimilarityPercent": 11,
+    "unknownPasteCount": 1,
+    "unknownPasteChars": 103,
+    "observedInputModes": [
+      "unknown",
+      "keyboard"
+    ],
+    "observationStatus": "partial",
+    "limitations": [
+      "Only part of the editor history was received. The external paste has an unknown source.",
+      "Text similarity uses case-insensitive unique-token Jaccard against previous copilot replies and covers all submitted messages."
+    ]
+  },
+  "aiUseSkillSummary": {
+    "score": 100,
+    "assessedChecks": 2,
+    "applicableChecks": 3,
+    "earnedPoints": 5,
+    "assessedMaxPoints": 5,
+    "applicableMaxPoints": 6
+  },
+  "scoringSummary": {
+    "rubricVersion": "sales-1.0.0",
+    "scorerModel": "fixture-scorer",
+    "scorerPromptVersion": "eval.moves.v1",
+    "caseLevel": "intermediate",
+    "scoredMoveCount": 6,
+    "totalUserMoveCount": 6,
+    "pointsSum": 450,
+    "maxPoints": 600,
+    "formula": "round(100 × pointsSum / maxPoints); maxPoints = 100 × scoredMoveCount. No scored moves: unavailable.",
+    "completionStatus": "complete",
+    "limitations": [
+      "Scores reflect this case and the evidence available at each move."
+    ]
+  },
+  "evaluation": {
+    "caseId": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+    "accuracy": 75,
+    "labelCounts": {
+      "brilliant": 1,
+      "best": 2,
+      "good": 1,
+      "inaccuracy": 1,
+      "mistake": 1,
+      "blunder": 0
+    },
+    "aiDependency": 11,
+    "trapCaught": true,
+    "assistance": {
+      "copilotRequests": 1,
+      "knownCopilotRetainedChars": 0,
+      "totalSubmittedChars": 689,
+      "copilotRetainedPercent": null,
+      "copilotTextSimilarityPercent": 11,
+      "unknownPasteCount": 1,
+      "unknownPasteChars": 103,
+      "observedInputModes": [
+        "unknown",
+        "keyboard"
+      ],
+      "observationStatus": "partial",
+      "limitations": [
+        "Only part of the editor history was received. The external paste has an unknown source.",
+        "Text similarity uses case-insensitive unique-token Jaccard against previous copilot replies and covers all submitted messages."
+      ]
+    },
+    "aiUseSkill": {
+      "score": 100,
+      "assessedChecks": 2,
+      "applicableChecks": 3,
+      "earnedPoints": 5,
+      "assessedMaxPoints": 5,
+      "applicableMaxPoints": 6,
+      "checks": [
+        {
+          "id": "verify-payment-cadence",
+          "criterionId": "critical_ai_use",
+          "status": "passed",
+          "earnedPoints": 3,
+          "maxPoints": 3,
+          "evidence": [
+            {
+              "source": "copilot_event",
+              "sourceId": "12000000-4100-4810-8260-000000000007",
+              "quote": "Quarterly billing is available on the pilot",
+              "explanation": "The copilot misstated a material commercial term."
+            },
+            {
+              "source": "case_doc",
+              "sourceId": "slack-pricing",
+              "quote": "Monthly billing only during the pilot",
+              "explanation": "Sales Ops documented the correct term."
+            },
+            {
+              "source": "user_event",
+              "sourceId": "12000000-4100-4810-8260-000000000008",
+              "quote": "Quarterly billing is available only after conversion to an annual contract",
+              "explanation": "The correction accurately states when quarterly billing becomes available."
+            }
+          ],
+          "reason": "Checked the monthly term against Sales Ops and corrected the claim before quoting it."
+        },
+        {
+          "id": "verify-pilot-price",
+          "criterionId": "critical_ai_use",
+          "status": "passed",
+          "earnedPoints": 2,
+          "maxPoints": 2,
+          "evidence": [
+            {
+              "source": "case_doc",
+              "sourceId": "slack-pricing",
+              "quote": "Two-yard pilot: $1,800 per month. Four weeks.",
+              "explanation": "Sales Ops confirms the price and duration."
+            },
+            {
+              "source": "user_event",
+              "sourceId": "12000000-4100-4810-8260-000000000008",
+              "quote": "$1,800 per month for four weeks",
+              "explanation": "The quoted price and term agree with the source."
+            }
+          ],
+          "reason": "Used the documented price and duration."
+        },
+        {
+          "id": "verify-post-conversion",
+          "criterionId": "critical_ai_use",
+          "status": "not_observed",
+          "earnedPoints": 0,
+          "maxPoints": 1,
+          "evidence": [],
+          "reason": "No post-conversion quote was requested or prepared."
+        }
+      ]
+    },
+    "trapResult": "caught",
+    "scoreAudit": {
+      "rubricVersion": "sales-1.0.0",
+      "scorerModel": "fixture-scorer",
+      "scorerPromptVersion": "eval.moves.v1",
+      "caseLevel": "intermediate",
+      "scoredMoveCount": 6,
+      "totalUserMoveCount": 6,
+      "pointsSum": 450,
+      "maxPoints": 600,
+      "formula": "round(100 × pointsSum / maxPoints); maxPoints = 100 × scoredMoveCount. No scored moves: unavailable.",
+      "completionStatus": "complete",
+      "limitations": [
+        "Scores reflect this case and the evidence available at each move."
+      ],
+      "labelPoints": {
+        "brilliant": 100,
+        "best": 100,
+        "good": 80,
+        "inaccuracy": 50,
+        "mistake": 20,
+        "blunder": 0
+      },
+      "criterionCoverage": [
+        {
+          "criterionId": "discovery",
+          "status": "partially_met"
+        },
+        {
+          "criterionId": "value_articulation",
+          "status": "partially_met"
+        },
+        {
+          "criterionId": "critical_ai_use",
+          "status": "met"
+        },
+        {
+          "criterionId": "objection_handling",
+          "status": "partially_met"
+        },
+        {
+          "criterionId": "closing",
+          "status": "met"
+        }
+      ]
+    },
+    "outcome": "won",
+    "topMoves": [
+      {
+        "eventId": "12000000-4100-4810-8260-000000000008",
+        "seq": 8,
+        "userText": "I checked Sales Ops before quoting terms. The pilot is monthly only at $1,800 per month for four weeks. Quarterly billing is available only after conversion to an annual contract.",
+        "label": "brilliant",
+        "why": "You checked Sales Ops and corrected the suggested quarterly billing claim before Dana heard it.",
+        "betterMove": null,
+        "innerThought": "Now I have a payment term I can take to Finance.",
+        "trustAfter": 64,
+        "rubricRef": "critical_ai_use",
+        "points": 100,
+        "evidence": [
+          {
+            "source": "copilot_event",
+            "sourceId": "12000000-4100-4810-8260-000000000007",
+            "quote": "Quarterly billing is available on the pilot",
+            "explanation": "The copilot misstated a material commercial term."
+          },
+          {
+            "source": "case_doc",
+            "sourceId": "slack-pricing",
+            "quote": "Monthly billing only during the pilot",
+            "explanation": "Sales Ops documented the correct term."
+          },
+          {
+            "source": "user_event",
+            "sourceId": "12000000-4100-4810-8260-000000000008",
+            "quote": "Quarterly billing is available only after conversion to an annual contract",
+            "explanation": "The correction accurately states when quarterly billing becomes available."
+          }
+        ],
+        "assessmentStatus": "assessed"
+      },
+      {
+        "eventId": "12000000-4100-4810-8260-000000000012",
+        "seq": 12,
+        "userText": "I need to correct that: the pilot can run alongside FleetRoute using a sample CSV. Let's measure late handoffs against last week's 15 across the two yards.",
+        "label": "best",
+        "why": "You corrected the integration promise and anchored the pilot in 15 recent handoff delays across the two yards.",
+        "betterMove": null,
+        "innerThought": "We can pull a CSV without putting dispatch behind schedule.",
+        "trustAfter": 69,
+        "rubricRef": "objection_handling",
+        "points": 100,
+        "evidence": [
+          {
+            "source": "user_event",
+            "sourceId": "12000000-4100-4810-8260-000000000012",
+            "quote": "alongside FleetRoute using a sample CSV",
+            "explanation": "The revised approach respects the existing tool."
+          },
+          {
+            "source": "user_event",
+            "sourceId": "12000000-4100-4810-8260-000000000012",
+            "quote": "last week's 15 across the two yards",
+            "explanation": "Nine Columbus West plus six Grove City delays provide a pilot baseline."
+          },
+          {
+            "source": "case_doc",
+            "sourceId": "note-demo",
+            "quote": "using a sample CSV",
+            "explanation": "The sample CSV is documented pilot scope."
+          }
+        ],
+        "assessmentStatus": "assessed"
+      },
+      {
+        "eventId": "12000000-4100-4810-8260-000000000010",
+        "seq": 10,
+        "userText": "We can also have live FleetRoute integration running before the pilot starts.",
+        "label": "mistake",
+        "why": "You committed to a live integration that the pilot documentation excludes.",
+        "betterMove": "Offer a sample CSV for the pilot and leave live integration for later scoping.",
+        "innerThought": "That sounds like work my team has no time for.",
+        "trustAfter": 37,
+        "rubricRef": "objection_handling",
+        "points": 20,
+        "evidence": [
+          {
+            "source": "user_event",
+            "sourceId": "12000000-4100-4810-8260-000000000010",
+            "quote": "live FleetRoute integration running before the pilot starts",
+            "explanation": "An unsupported delivery promise."
+          },
+          {
+            "source": "case_doc",
+            "sourceId": "note-demo",
+            "quote": "Live FleetRoute integration is not in the pilot statement of work.",
+            "explanation": "The implementation scope excludes live integration."
+          }
+        ],
+        "assessmentStatus": "assessed"
+      }
+    ],
+    "summary": "You earned a meeting with Dana and the yard lead by narrowing the pilot and correcting its terms. Keep the next conversation focused on the morning handoff, and confirm integration scope before making a commitment.",
+    "skills": [
+      {
+        "skill": "discovery",
+        "score": 80
+      },
+      {
+        "skill": "value_articulation",
+        "score": 50
+      },
+      {
+        "skill": "critical_ai_use",
+        "score": 100
+      },
+      {
+        "skill": "objection_handling",
+        "score": 60
+      },
+      {
+        "skill": "closing",
+        "score": 100
+      }
+    ],
+    "trustCurve": [
+      {
+        "seq": 1,
+        "trust": 52
+      },
+      {
+        "seq": 3,
+        "trust": 48
+      },
+      {
+        "seq": 8,
+        "trust": 64
+      },
+      {
+        "seq": 10,
+        "trust": 37
+      },
+      {
+        "seq": 12,
+        "trust": 69
+      },
+      {
+        "seq": 14,
+        "trust": 82
+      }
+    ]
+  },
+  "moves": [
+    {
+      "eventId": "12000000-4100-4810-8260-000000000001",
+      "seq": 1,
+      "userText": "When is the handoff most likely to slip at Columbus West and Grove City?",
+      "label": "good",
+      "why": "You localized the handoff problem to the pilot yards and found the time of day. The baseline was still unconfirmed.",
+      "betterMove": "Ask which handoffs fail, how often and what a late release costs dispatch.",
+      "innerThought": "They're asking about the right yards. I can give them the timing.",
+      "trustAfter": 52,
+      "rubricRef": "discovery",
+      "points": 80,
+      "evidence": [
+        {
+          "source": "user_event",
+          "sourceId": "12000000-4100-4810-8260-000000000001",
+          "quote": "When is the handoff most likely to slip",
+          "explanation": "A focused discovery question about the relevant workflow."
+        },
+        {
+          "source": "case_doc",
+          "sourceId": "email-dispatch",
+          "quote": "Our 6 a.m. handoff is the part dispatch wants fixed.",
+          "explanation": "Dana named the morning handoff as the problem."
+        }
+      ],
+      "assessmentStatus": "assessed"
+    },
+    {
+      "eventId": "12000000-4100-4810-8260-000000000003",
+      "seq": 3,
+      "userText": "Could I walk you through our reporting dashboard first?",
+      "label": "inaccuracy",
+      "why": "You pivoted to reporting before connecting it to the release delay Dana had just described.",
+      "betterMove": "Ask what dispatch needs to see before releasing a tractor, then propose an exception-list demo tied to that workflow.",
+      "innerThought": "I don't need a tour of another dashboard.",
+      "trustAfter": 48,
+      "rubricRef": "value_articulation",
+      "points": 50,
+      "evidence": [
+        {
+          "source": "user_event",
+          "sourceId": "12000000-4100-4810-8260-000000000003",
+          "quote": "walk you through our reporting dashboard first",
+          "explanation": "The pitch puts the product ahead of the customer's stated workflow."
+        },
+        {
+          "source": "persona_event",
+          "sourceId": "12000000-4100-4810-8260-000000000002",
+          "quote": "checking a spreadsheet against FleetRoute",
+          "explanation": "The manual workflow was already identified."
+        }
+      ],
+      "assessmentStatus": "assessed"
+    },
+    {
+      "eventId": "12000000-4100-4810-8260-000000000008",
+      "seq": 8,
+      "userText": "I checked Sales Ops before quoting terms. The pilot is monthly only at $1,800 per month for four weeks. Quarterly billing is available only after conversion to an annual contract.",
+      "label": "brilliant",
+      "why": "You checked Sales Ops and corrected the suggested quarterly billing claim before Dana heard it.",
+      "betterMove": null,
+      "innerThought": "Now I have a payment term I can take to Finance.",
+      "trustAfter": 64,
+      "rubricRef": "critical_ai_use",
+      "points": 100,
+      "evidence": [
+        {
+          "source": "copilot_event",
+          "sourceId": "12000000-4100-4810-8260-000000000007",
+          "quote": "Quarterly billing is available on the pilot",
+          "explanation": "The copilot misstated a material commercial term."
+        },
+        {
+          "source": "case_doc",
+          "sourceId": "slack-pricing",
+          "quote": "Monthly billing only during the pilot",
+          "explanation": "Sales Ops documented the correct term."
+        },
+        {
+          "source": "user_event",
+          "sourceId": "12000000-4100-4810-8260-000000000008",
+          "quote": "Quarterly billing is available only after conversion to an annual contract",
+          "explanation": "The correction accurately states when quarterly billing becomes available."
+        }
+      ],
+      "assessmentStatus": "assessed"
+    },
+    {
+      "eventId": "12000000-4100-4810-8260-000000000010",
+      "seq": 10,
+      "userText": "We can also have live FleetRoute integration running before the pilot starts.",
+      "label": "mistake",
+      "why": "You committed to a live integration that the pilot documentation excludes.",
+      "betterMove": "Offer a sample CSV for the pilot and leave live integration for later scoping.",
+      "innerThought": "That sounds like work my team has no time for.",
+      "trustAfter": 37,
+      "rubricRef": "objection_handling",
+      "points": 20,
+      "evidence": [
+        {
+          "source": "user_event",
+          "sourceId": "12000000-4100-4810-8260-000000000010",
+          "quote": "live FleetRoute integration running before the pilot starts",
+          "explanation": "An unsupported delivery promise."
+        },
+        {
+          "source": "case_doc",
+          "sourceId": "note-demo",
+          "quote": "Live FleetRoute integration is not in the pilot statement of work.",
+          "explanation": "The implementation scope excludes live integration."
+        }
+      ],
+      "assessmentStatus": "assessed"
+    },
+    {
+      "eventId": "12000000-4100-4810-8260-000000000012",
+      "seq": 12,
+      "userText": "I need to correct that: the pilot can run alongside FleetRoute using a sample CSV. Let's measure late handoffs against last week's 15 across the two yards.",
+      "label": "best",
+      "why": "You corrected the integration promise and anchored the pilot in 15 recent handoff delays across the two yards.",
+      "betterMove": null,
+      "innerThought": "We can pull a CSV without putting dispatch behind schedule.",
+      "trustAfter": 69,
+      "rubricRef": "objection_handling",
+      "points": 100,
+      "evidence": [
+        {
+          "source": "user_event",
+          "sourceId": "12000000-4100-4810-8260-000000000012",
+          "quote": "alongside FleetRoute using a sample CSV",
+          "explanation": "The revised approach respects the existing tool."
+        },
+        {
+          "source": "user_event",
+          "sourceId": "12000000-4100-4810-8260-000000000012",
+          "quote": "last week's 15 across the two yards",
+          "explanation": "Nine Columbus West plus six Grove City delays provide a pilot baseline."
+        },
+        {
+          "source": "case_doc",
+          "sourceId": "note-demo",
+          "quote": "using a sample CSV",
+          "explanation": "The sample CSV is documented pilot scope."
+        }
+      ],
+      "assessmentStatus": "assessed"
+    },
+    {
+      "eventId": "12000000-4100-4810-8260-000000000014",
+      "seq": 14,
+      "userText": "Could we meet Tuesday at 10 a.m. Eastern with you and the Grove City lead — I’ll bring a sample exception list and the monthly pilot terms for Finance?",
+      "label": "best",
+      "why": "You proposed a specific time, involved the yard lead, and gave Finance a practical agenda.",
+      "betterMove": null,
+      "innerThought": "That's enough to schedule a follow-up and get Finance the details.",
+      "trustAfter": 82,
+      "rubricRef": "closing",
+      "points": 100,
+      "evidence": [
+        {
+          "source": "user_event",
+          "sourceId": "12000000-4100-4810-8260-000000000014",
+          "quote": "Tuesday at 10 a.m. Eastern with you and the Grove City lead",
+          "explanation": "The next step has a time and the right participants."
+        }
+      ],
+      "assessmentStatus": "assessed"
+    }
+  ],
+  "personas": [
+    {
+      "id": "dana",
+      "name": "Dana Whitfield",
+      "role": "Director of Fleet Operations",
+      "company": "Brightline Logistics",
+      "location": "Columbus, OH",
+      "avatarSeed": "dana-whitfield",
+      "context": "Dana runs dispatch across two Ohio yards and is comparing tools before the April freight ramp."
+    }
+  ],
+  "transcript": [
+    {
+      "id": "12000000-4100-4810-8260-000000000001",
+      "seq": 1,
+      "actor": "user",
+      "type": "message",
+      "content": "When is the handoff most likely to slip at Columbus West and Grove City?",
+      "createdAt": "2026-03-12T15:00:13.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000002",
+      "seq": 2,
+      "actor": "persona",
+      "type": "message",
+      "content": "First shift, around six. We still have people checking a spreadsheet against FleetRoute before they can release tractors.",
+      "createdAt": "2026-03-12T15:00:26.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000003",
+      "seq": 3,
+      "actor": "user",
+      "type": "message",
+      "content": "Could I walk you through our reporting dashboard first?",
+      "createdAt": "2026-03-12T15:00:39.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000004",
+      "seq": 4,
+      "actor": "persona",
+      "type": "message",
+      "content": "Can we stay on the handoff for now? I also need to know how we'd pay for a pilot.",
+      "createdAt": "2026-03-12T15:00:52.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000005",
+      "seq": 5,
+      "actor": "user",
+      "type": "doc_open",
+      "content": "Sales ops pilot pricing thread",
+      "createdAt": "2026-03-12T15:01:05.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000006",
+      "seq": 6,
+      "actor": "user",
+      "type": "copilot_prompt",
+      "content": "Summarize the two-yard pilot price and billing terms.",
+      "createdAt": "2026-03-12T15:01:18.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000007",
+      "seq": 7,
+      "actor": "copilot",
+      "type": "copilot_reply",
+      "content": "Quarterly billing is available on the pilot. Quote $1,800 per month for two yards, and suggest a four-week pilot.",
+      "createdAt": "2026-03-12T15:01:31.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000008",
+      "seq": 8,
+      "actor": "user",
+      "type": "message",
+      "content": "I checked Sales Ops before quoting terms. The pilot is monthly only at $1,800 per month for four weeks. Quarterly billing is available only after conversion to an annual contract.",
+      "createdAt": "2026-03-12T15:01:44.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000009",
+      "seq": 9,
+      "actor": "persona",
+      "type": "message",
+      "content": "Monthly works. Finance won't switch off FleetRoute before April, though. Can both run together?",
+      "createdAt": "2026-03-12T15:01:57.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000010",
+      "seq": 10,
+      "actor": "user",
+      "type": "message",
+      "content": "We can also have live FleetRoute integration running before the pilot starts.",
+      "createdAt": "2026-03-12T15:02:10.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000011",
+      "seq": 11,
+      "actor": "persona",
+      "type": "message",
+      "content": "Wait, who's doing that integration? We didn't budget anyone to touch FleetRoute this month.",
+      "createdAt": "2026-03-12T15:02:23.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000012",
+      "seq": 12,
+      "actor": "user",
+      "type": "message",
+      "content": "I need to correct that: the pilot can run alongside FleetRoute using a sample CSV. Let's measure late handoffs against last week's 15 across the two yards.",
+      "createdAt": "2026-03-12T15:02:36.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000013",
+      "seq": 13,
+      "actor": "persona",
+      "type": "message",
+      "content": "A CSV is doable. Our Grove City lead has the current handoff numbers. Bring her in.",
+      "createdAt": "2026-03-12T15:02:49.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000014",
+      "seq": 14,
+      "actor": "user",
+      "type": "message",
+      "content": "Could we meet Tuesday at 10 a.m. Eastern with you and the Grove City lead — I’ll bring a sample exception list and the monthly pilot terms for Finance?",
+      "createdAt": "2026-03-12T15:03:02.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000015",
+      "seq": 15,
+      "actor": "persona",
+      "type": "message",
+      "content": "Tuesday at ten works. I'll pull in our lead. Send me the monthly terms beforehand so I can run them past Finance.",
+      "createdAt": "2026-03-12T15:03:15.000Z"
+    },
+    {
+      "id": "12000000-4100-4810-8260-000000000016",
+      "seq": 16,
+      "actor": "system",
+      "type": "submit",
+      "content": "Case submitted",
+      "createdAt": "2026-03-12T15:03:28.000Z"
+    }
+  ]
+}

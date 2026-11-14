@@ -32,7 +32,7 @@ function EmailThread({ content }: { content: EmailThreadContent }) {
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <p className="m-0 text-sm">
                 <span className="font-medium">{message.from}</span>
-                <span className="text-muted-foreground"> to {message.to}</span>
+                <span className="text-muted-foreground"> to {message.to.join(", ")}</span>
               </p>
               <span className="font-mono text-xs text-muted-foreground tabular-nums">
                 {message.sentAt}
@@ -51,9 +51,9 @@ function CrmRecord({ content }: { content: CrmRecordContent }) {
     <div className="flex flex-col">
       <p className="m-0 border-b px-5 py-3 text-[15px] font-medium">{content.account}</p>
       <dl className="m-0 grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-4 px-5 py-2 text-sm">
-        {content.fields.map((field) => (
+        {[{ label: "Contact", value: content.contact }, { label: "Stage", value: content.stage }, ...content.fields].map((field, index) => (
           <div
-            key={field.label}
+            key={`${field.label}-${index}`}
             className="col-span-2 grid grid-cols-subgrid border-b py-2 last:border-b-0"
           >
             <dt className="text-muted-foreground">{field.label}</dt>
@@ -61,17 +61,12 @@ function CrmRecord({ content }: { content: CrmRecordContent }) {
           </div>
         ))}
       </dl>
-      {content.activity.length > 0 ? (
+      {content.notes.length > 0 ? (
         <div className="border-t bg-surface px-5 py-4">
-          <p className="m-0 mb-3 text-xs font-medium text-muted-foreground">Activity</p>
+          <p className="m-0 mb-3 text-xs font-medium text-muted-foreground">Notes</p>
           <ol className="m-0 flex list-none flex-col gap-2.5 p-0 text-sm">
-            {content.activity.map((entry, index) => (
-              <li key={index} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3">
-                <span className="font-mono text-xs leading-5 text-muted-foreground tabular-nums">
-                  {entry.at}
-                </span>
-                <span>{entry.text}</span>
-              </li>
+            {content.notes.map((entry, index) => (
+              <li key={index}>{entry}</li>
             ))}
           </ol>
         </div>
@@ -134,10 +129,10 @@ function DataTable({ content }: { content: TableContent }) {
                   key={cellIndex}
                   className={cn(
                     "px-5 py-2.5 whitespace-nowrap",
-                    NUMERIC_CELL.test(cell.trim()) && "font-mono tabular-nums",
+                    cell !== null && NUMERIC_CELL.test(String(cell).trim()) && "font-mono tabular-nums",
                   )}
                 >
-                  {cell}
+                  {cell ?? "—"}
                 </td>
               ))}
             </tr>
@@ -150,7 +145,7 @@ function DataTable({ content }: { content: TableContent }) {
 
 function Note({ content }: { content: NoteContent }) {
   return (
-    <p className="m-0 px-5 py-4 text-sm leading-relaxed whitespace-pre-line">{content.body}</p>
+    <p className="m-0 px-5 py-4 text-sm leading-relaxed whitespace-pre-line">{content.text}</p>
   );
 }
 

@@ -1,4 +1,4 @@
-import type { Evaluation, MoveReview, PersonaPublic } from "@/contracts";
+import type { PublicEvaluation, MoveReview, PersonaPublic } from "@/contracts";
 import {
   AccuracyStat,
   LabelCounts,
@@ -13,7 +13,7 @@ export type ReviewPreviewData = {
   /** Short public reference, e.g. "7F3K-2291". */
   reference: string;
   persona: PersonaPublic;
-  evaluation: Evaluation;
+  evaluation: PublicEvaluation;
   moves: ReadonlyArray<MoveReview>;
 };
 
@@ -47,10 +47,10 @@ export function ReviewPreview({
           <dt className="text-muted-foreground">Outcome</dt>
           <dd className="m-0 text-right font-medium">{formatOutcome(evaluation.outcome)}</dd>
           <dt className="text-muted-foreground">AI dependency</dt>
-          <dd className="m-0 text-right font-mono tabular-nums">{evaluation.aiDependency}%</dd>
+          <dd className="m-0 text-right font-mono tabular-nums">{evaluation.aiDependency === null ? "Unavailable" : `${evaluation.aiDependency}%`}</dd>
           <dt className="text-muted-foreground">Copilot trap</dt>
           <dd className="m-0 text-right font-medium">
-            {evaluation.trapCaught ? "Caught" : "Missed"}
+            {{ caught: "Caught", missed: "Missed", not_presented: "Not presented", insufficient_evidence: "Insufficient evidence" }[evaluation.trapResult]}
           </dd>
         </dl>
       </div>

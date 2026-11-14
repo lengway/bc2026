@@ -1,0 +1,170 @@
+[
+  {
+    "eventId": "12000000-4100-4810-8260-000000000001",
+    "seq": 1,
+    "userText": "When is the handoff most likely to slip at Columbus West and Grove City?",
+    "label": "good",
+    "why": "You localized the handoff problem to the pilot yards and found the time of day. The baseline was still unconfirmed.",
+    "betterMove": "Ask which handoffs fail, how often and what a late release costs dispatch.",
+    "innerThought": "They're asking about the right yards. I can give them the timing.",
+    "trustAfter": 52,
+    "rubricRef": "discovery",
+    "points": 80,
+    "evidence": [
+      {
+        "source": "user_event",
+        "sourceId": "12000000-4100-4810-8260-000000000001",
+        "quote": "When is the handoff most likely to slip",
+        "explanation": "A focused discovery question about the relevant workflow."
+      },
+      {
+        "source": "case_doc",
+        "sourceId": "email-dispatch",
+        "quote": "Our 6 a.m. handoff is the part dispatch wants fixed.",
+        "explanation": "Dana named the morning handoff as the problem."
+      }
+    ],
+    "assessmentStatus": "assessed"
+  },
+  {
+    "eventId": "12000000-4100-4810-8260-000000000003",
+    "seq": 3,
+    "userText": "Could I walk you through our reporting dashboard first?",
+    "label": "inaccuracy",
+    "why": "You pivoted to reporting before connecting it to the release delay Dana had just described.",
+    "betterMove": "Ask what dispatch needs to see before releasing a tractor, then propose an exception-list demo tied to that workflow.",
+    "innerThought": "I don't need a tour of another dashboard.",
+    "trustAfter": 48,
+    "rubricRef": "value_articulation",
+    "points": 50,
+    "evidence": [
+      {
+        "source": "user_event",
+        "sourceId": "12000000-4100-4810-8260-000000000003",
+        "quote": "walk you through our reporting dashboard first",
+        "explanation": "The pitch puts the product ahead of the customer's stated workflow."
+      },
+      {
+        "source": "persona_event",
+        "sourceId": "12000000-4100-4810-8260-000000000002",
+        "quote": "checking a spreadsheet against FleetRoute",
+        "explanation": "The manual workflow was already identified."
+      }
+    ],
+    "assessmentStatus": "assessed"
+  },
+  {
+    "eventId": "12000000-4100-4810-8260-000000000008",
+    "seq": 8,
+    "userText": "I checked Sales Ops before quoting terms. The pilot is monthly only at $1,800 per month for four weeks. Quarterly billing is available only after conversion to an annual contract.",
+    "label": "brilliant",
+    "why": "You checked Sales Ops and corrected the suggested quarterly billing claim before Dana heard it.",
+    "betterMove": null,
+    "innerThought": "Now I have a payment term I can take to Finance.",
+    "trustAfter": 64,
+    "rubricRef": "critical_ai_use",
+    "points": 100,
+    "evidence": [
+      {
+        "source": "copilot_event",
+        "sourceId": "12000000-4100-4810-8260-000000000007",
+        "quote": "Quarterly billing is available on the pilot",
+        "explanation": "The copilot misstated a material commercial term."
+      },
+      {
+        "source": "case_doc",
+        "sourceId": "slack-pricing",
+        "quote": "Monthly billing only during the pilot",
+        "explanation": "Sales Ops documented the correct term."
+      },
+      {
+        "source": "user_event",
+        "sourceId": "12000000-4100-4810-8260-000000000008",
+        "quote": "Quarterly billing is available only after conversion to an annual contract",
+        "explanation": "The correction accurately states when quarterly billing becomes available."
+      }
+    ],
+    "assessmentStatus": "assessed"
+  },
+  {
+    "eventId": "12000000-4100-4810-8260-000000000010",
+    "seq": 10,
+    "userText": "We can also have live FleetRoute integration running before the pilot starts.",
+    "label": "mistake",
+    "why": "You committed to a live integration that the pilot documentation excludes.",
+    "betterMove": "Offer a sample CSV for the pilot and leave live integration for later scoping.",
+    "innerThought": "That sounds like work my team has no time for.",
+    "trustAfter": 37,
+    "rubricRef": "objection_handling",
+    "points": 20,
+    "evidence": [
+      {
+        "source": "user_event",
+        "sourceId": "12000000-4100-4810-8260-000000000010",
+        "quote": "live FleetRoute integration running before the pilot starts",
+        "explanation": "An unsupported delivery promise."
+      },
+      {
+        "source": "case_doc",
+        "sourceId": "note-demo",
+        "quote": "Live FleetRoute integration is not in the pilot statement of work.",
+        "explanation": "The implementation scope excludes live integration."
+      }
+    ],
+    "assessmentStatus": "assessed"
+  },
+  {
+    "eventId": "12000000-4100-4810-8260-000000000012",
+    "seq": 12,
+    "userText": "I need to correct that: the pilot can run alongside FleetRoute using a sample CSV. Let's measure late handoffs against last week's 15 across the two yards.",
+    "label": "best",
+    "why": "You corrected the integration promise and anchored the pilot in 15 recent handoff delays across the two yards.",
+    "betterMove": null,
+    "innerThought": "We can pull a CSV without putting dispatch behind schedule.",
+    "trustAfter": 69,
+    "rubricRef": "objection_handling",
+    "points": 100,
+    "evidence": [
+      {
+        "source": "user_event",
+        "sourceId": "12000000-4100-4810-8260-000000000012",
+        "quote": "alongside FleetRoute using a sample CSV",
+        "explanation": "The revised approach respects the existing tool."
+      },
+      {
+        "source": "user_event",
+        "sourceId": "12000000-4100-4810-8260-000000000012",
+        "quote": "last week's 15 across the two yards",
+        "explanation": "Nine Columbus West plus six Grove City delays provide a pilot baseline."
+      },
+      {
+        "source": "case_doc",
+        "sourceId": "note-demo",
+        "quote": "using a sample CSV",
+        "explanation": "The sample CSV is documented pilot scope."
+      }
+    ],
+    "assessmentStatus": "assessed"
+  },
+  {
+    "eventId": "12000000-4100-4810-8260-000000000014",
+    "seq": 14,
+    "userText": "Could we meet Tuesday at 10 a.m. Eastern with you and the Grove City lead — I’ll bring a sample exception list and the monthly pilot terms for Finance?",
+    "label": "best",
+    "why": "You proposed a specific time, involved the yard lead, and gave Finance a practical agenda.",
+    "betterMove": null,
+    "innerThought": "That's enough to schedule a follow-up and get Finance the details.",
+    "trustAfter": 82,
+    "rubricRef": "closing",
+    "points": 100,
+    "evidence": [
+      {
+        "source": "user_event",
+        "sourceId": "12000000-4100-4810-8260-000000000014",
+        "quote": "Tuesday at 10 a.m. Eastern with you and the Grove City lead",
+        "explanation": "The next step has a time and the right participants."
+      }
+    ],
+    "assessmentStatus": "assessed"
+  }
+]

@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, ShieldAlert, ShieldCheck } from "lucide-react";
 import { MotionConfig, motion } from "motion/react";
 import { useState } from "react";
-import type { Evaluation, MoveReview, PersonaPublic } from "@/contracts";
+import type { PublicEvaluation, MoveReview, PersonaPublic } from "@/contracts";
 import {
   AccuracyStat,
   LabelCounts,
@@ -32,7 +32,7 @@ type ReviewReadyProps = {
   state: "ready";
   caseTitle: string;
   persona: PersonaPublic;
-  evaluation: Evaluation;
+  evaluation: PublicEvaluation;
   moves: ReadonlyArray<MoveReview>;
   /** Which move is open first. Defaults to the first key move. */
   defaultSelectedSeq?: number;
@@ -133,7 +133,13 @@ function ReviewReady({
   const selectedIndex = foundIndex === -1 ? 0 : foundIndex;
   const selectedMove = moves[selectedIndex];
   const trustBefore = selectedIndex > 0 ? moves[selectedIndex - 1].trustAfter : null;
-  const TrapIcon = evaluation.trapCaught ? ShieldCheck : ShieldAlert;
+  const TrapIcon = evaluation.trapResult === "caught" ? ShieldCheck : ShieldAlert;
+  const trapCopy = {
+    caught: ["Copilot trap caught", "Copilot gave one wrong answer. You did not pass it on."],
+    missed: ["Copilot trap missed", "Copilot gave one wrong answer. You passed it on."],
+    not_presented: ["Copilot trap not presented", "No Copilot trap was presented in this case."],
+    insufficient_evidence: ["Copilot trap: insufficient evidence", "There is not enough evidence to assess the trap."],
+  }[evaluation.trapResult];
 
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
@@ -182,8 +188,8 @@ function ReviewReady({
             <Meter
               label="AI dependency"
               value={evaluation.aiDependency}
-              valueLabel={`${evaluation.aiDependency}%`}
-              tone={evaluation.aiDependency >= 60 ? "warning" : "neutral"}
+              valueLabel={evaluation.aiDependency === null ? undefined : `${evaluation.aiDependency}%`}
+              tone={evaluation.aiDependency !== null && evaluation.aiDependency >= 60 ? "warning" : "neutral"}
               hint="How closely your messages follow Copilot's replies."
             />
             <div className="flex items-start gap-3">
@@ -192,17 +198,15 @@ function ReviewReady({
                 strokeWidth={1.5}
                 className={cn(
                   "mt-0.5 size-4 shrink-0",
-                  evaluation.trapCaught ? "text-label-brilliant" : "text-label-blunder",
+                  evaluation.trapResult === "caught" ? "text-label-brilliant" : evaluation.trapResult === "missed" ? "text-label-blunder" : "text-muted-foreground",
                 )}
               />
               <p className="m-0 text-sm">
                 <span className="font-medium">
-                  Copilot trap {evaluation.trapCaught ? "caught" : "missed"}
+                  {trapCopy[0]}
                 </span>
                 <span className="block text-xs text-muted-foreground">
-                  {evaluation.trapCaught
-                    ? "Copilot gave one wrong answer. You did not pass it on."
-                    : "Copilot gave one wrong answer. You passed it on."}
+                  {trapCopy[1]}
                 </span>
               </p>
             </div>

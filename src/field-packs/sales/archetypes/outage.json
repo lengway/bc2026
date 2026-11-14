@@ -1,0 +1,10 @@
+{
+  "id": "outage",
+  "subfield": "account_management",
+  "title": "Angry client after outage",
+  "setup": "A customer experienced an outage and wants a recovery plan.",
+  "difficulty": "intermediate",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

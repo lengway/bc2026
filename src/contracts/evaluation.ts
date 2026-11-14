@@ -1,42 +1,73 @@
-import { z } from "zod";
+import { z } from 'zod';
+import { Id, NonEmpty, NonNegativeInt, Percent, PositiveInt } from './primitives';
+import { AiUseSkill, AssistanceProfile, MoveLabel, MOVE_LABEL_POINTS, ScoreAudit, ScoreEvidence, TrapResult } from './scoring';
+import { ProcessObservations } from './telemetry';
 
-export const MoveLabel = z.enum([
-  "brilliant",
-  "best",
-  "good",
-  "inaccuracy",
-  "mistake",
-  "blunder",
-]);
-export type MoveLabel = z.infer<typeof MoveLabel>;
+export { MoveLabel } from './scoring';
+
+export const AssessmentStatus = z.enum(['assessed', 'insufficient_evidence']);
+export type AssessmentStatus = z.infer<typeof AssessmentStatus>;
 
 export const MoveReview = z.object({
-  eventId: z.string().uuid(),
-  seq: z.number().int(),
-  userText: z.string(),
+  eventId: Id,
+  seq: PositiveInt,
+  userText: NonEmpty,
   label: MoveLabel,
-  why: z.string(),
-  betterMove: z.string().nullable(),
+  why: NonEmpty,
+  betterMove: NonEmpty.nullable(),
   innerThought: z.string(),
-  trustAfter: z.number().int(),
-});
+  trustAfter: Percent,
+  rubricRef: NonEmpty.nullable(),
+  points: Percent.nullable(),
+  evidence: z.array(ScoreEvidence),
+  assessmentStatus: AssessmentStatus,
+}).refine(({ assessmentStatus, evidence, label, points, rubricRef }) => (
+  assessmentStatus === 'assessed'
+    ? points === MOVE_LABEL_POINTS[label] && rubricRef !== null && evidence.length > 0
+    : points === null
+), { path: ['points'], message: 'Assessed moves require criterion evidence and the points for their label' });
 export type MoveReview = z.infer<typeof MoveReview>;
 
-export const CaseOutcome = z.enum(["won", "lost", "left", "incomplete"]);
-export type CaseOutcome = z.infer<typeof CaseOutcome>;
+export const EvaluationOutcome = z.enum(['won', 'lost', 'left', 'incomplete']);
+export type EvaluationOutcome = z.infer<typeof EvaluationOutcome>;
 
-export const Evaluation = z.object({
-  caseId: z.string().uuid(),
-  accuracy: z.number().int().min(0).max(100),
-  labelCounts: z.record(MoveLabel, z.number().int()),
-  aiDependency: z.number().int().min(0).max(100),
+// Preserve the design layer's outcome import while sharing the canonical schema.
+export const CaseOutcome = EvaluationOutcome;
+export type CaseOutcome = EvaluationOutcome;
+
+export const PublicEvaluation = z.object({
+  caseId: Id,
+  accuracy: Percent.nullable(),
+  labelCounts: z.record(MoveLabel, NonNegativeInt),
+  aiDependency: Percent.nullable(),
   trapCaught: z.boolean(),
-  outcome: CaseOutcome,
+  assistance: AssistanceProfile,
+  aiUseSkill: AiUseSkill,
+  trapResult: TrapResult,
+  scoreAudit: ScoreAudit,
+  outcome: EvaluationOutcome,
   topMoves: z.array(MoveReview).max(3),
-  summary: z.string(),
-  skills: z.array(z.object({ skill: z.string(), score: z.number().int() })),
-  trustCurve: z.array(
-    z.object({ seq: z.number().int(), trust: z.number().int() }),
-  ),
+  summary: NonEmpty,
+  skills: z.array(z.object({ skill: NonEmpty, score: Percent })),
+  trustCurve: z.array(z.object({ seq: PositiveInt, trust: Percent })),
+}).refine(({ trapCaught, trapResult }) => trapCaught === (trapResult === 'caught'), {
+  path: ['trapCaught'],
+  message: 'The legacy trap flag must agree with trapResult',
+}).refine(({ aiDependency, assistance }) => aiDependency === assistance.copilotTextSimilarityPercent, {
+  path: ['aiDependency'],
+  message: 'The legacy assistance percentage represents copilot text similarity',
+}).refine(({ accuracy, scoreAudit }) => accuracy === (scoreAudit.maxPoints === 0
+  ? null
+  : Math.round(100 * scoreAudit.pointsSum / scoreAudit.maxPoints)), {
+  path: ['accuracy'],
+  message: 'Accuracy must come from scored move points and be null if there are no scored moves',
+}).refine(({ topMoves }) => topMoves.every((move) => move.assessmentStatus === 'assessed'), {
+  path: ['topMoves'],
+  message: 'Only assessed moves can appear among the top moves',
+});
+export type PublicEvaluation = z.infer<typeof PublicEvaluation>;
+
+export const Evaluation = PublicEvaluation.safeExtend({
+  processObservations: ProcessObservations,
 });
 export type Evaluation = z.infer<typeof Evaluation>;

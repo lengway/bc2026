@@ -1,0 +1,205 @@
+{
+  "case": {
+    "type": "onboarding",
+    "field": "sales",
+    "subfield": "account_executive",
+    "workspace": "chat",
+    "brief": {
+      "title": "Cedar Valley Foods: inventory forecasting proposal",
+      "mission": "Explore inventory forecasting proposal, validate the facts, and agree a practical next step.",
+      "yourRole": "Sales representative at StockSpan",
+      "successLooksLike": "A specific evidence-based next step with an owner and timing.",
+      "timeLimitSec": 480
+    },
+    "docs": [
+      {
+        "id": "email-context",
+        "kind": "email_thread",
+        "title": "Customer correspondence",
+        "arrivesAtTurn": null,
+        "content": {
+          "subject": "Next steps on inventory forecasting proposal",
+          "messages": [
+            {
+              "from": "Maya Chen <contact@customer.example>",
+              "to": [
+                "Alex Morgan <alex@stockspan.example>"
+              ],
+              "sentAt": "2026-03-10T16:13:00.000Z",
+              "body": "Alex,\nWe should discuss avoidable stockouts at two distribution centers. Please bring a concrete plan and do not assume our team can take on extra work this month.\n\nMaya Chen\nVP of Operations | Cedar Valley Foods"
+            }
+          ]
+        }
+      },
+      {
+        "id": "crm-context",
+        "kind": "crm_record",
+        "title": "Account handoff",
+        "arrivesAtTurn": null,
+        "content": {
+          "account": "Cedar Valley Foods",
+          "contact": "Maya Chen",
+          "stage": "Discovery",
+          "fields": [
+            {
+              "label": "Location",
+              "value": "Madison, WI"
+            },
+            {
+              "label": "Last recorded count",
+              "value": "14 stockouts"
+            },
+            {
+              "label": "Commercial terms",
+              "value": "The annual subscription costs $24,000 and implementation is $4,000."
+            }
+          ],
+          "notes": [
+            "Customer priority: avoidable stockouts at two distribution centers.",
+            "Confirm the count before relying on the account note."
+          ]
+        }
+      },
+      {
+        "id": "ops-note",
+        "kind": "note",
+        "title": "Recent operations note",
+        "arrivesAtTurn": null,
+        "content": {
+          "text": "Latest operational count is 13 stockouts; the older CRM record has not been reconciled. The annual subscription costs $24,000 and implementation is $4,000."
+        }
+      }
+    ]
+  },
+  "personas": [
+    {
+      "public": {
+        "id": "persona-2",
+        "name": "Maya Chen",
+        "role": "VP of Operations",
+        "company": "Cedar Valley Foods",
+        "location": "Madison, WI",
+        "avatarSeed": "maya-chen",
+        "context": "Maya Chen is reviewing inventory forecasting proposal and has a limited window to make a decision."
+      },
+      "hidden": {
+        "personality": "Practical and cautious about unsupported claims",
+        "style": "Direct and concise; busy during the workday",
+        "realMotive": "Improve avoidable stockouts at two distribution centers without creating more work for the team.",
+        "constraints": [
+          "No unsupported commitments",
+          "The team has limited capacity this month"
+        ],
+        "triggersOpen": [
+          "Specific questions about the workflow",
+          "A plan grounded in available documents"
+        ],
+        "triggersClose": [
+          "Pressure to sign immediately",
+          "Invented numbers or promises"
+        ],
+        "knows": [
+          "The annual subscription costs $24,000 and implementation is $4,000.",
+          "The current count may be 13 stockouts."
+        ],
+        "willNeverSayFirst": [
+          "An internal stakeholder questions whether the team can adopt the change."
+        ],
+        "patience": 6,
+        "initialTrust": 45
+      }
+    }
+  ],
+  "rubric": {
+    "version": "sales-1.0.0",
+    "criteria": [
+      {
+        "id": "discovery",
+        "title": "discovery",
+        "description": "Assess discovery using specific evidence.",
+        "required": true
+      },
+      {
+        "id": "objection_handling",
+        "title": "objection handling",
+        "description": "Assess objection handling using specific evidence.",
+        "required": true
+      },
+      {
+        "id": "value_articulation",
+        "title": "value articulation",
+        "description": "Assess value articulation using specific evidence.",
+        "required": true
+      },
+      {
+        "id": "critical_ai_use",
+        "title": "critical ai use",
+        "description": "Assess critical ai use using specific evidence.",
+        "required": false
+      },
+      {
+        "id": "closing",
+        "title": "closing",
+        "description": "Assess closing using specific evidence.",
+        "required": true
+      }
+    ],
+    "aiUseChecks": [
+      {
+        "id": "verify-term",
+        "criterionId": "critical_ai_use",
+        "description": "Check a proposed commercial term against the CRM record",
+        "maxPoints": 10,
+        "passConditions": [
+          "Correctly cite the CRM term before using it"
+        ],
+        "failureConditions": [
+          "Adopt an incompatible commercial term"
+        ],
+        "sourceRefs": [
+          "crm-context"
+        ]
+      }
+    ],
+    "keyMoments": [
+      {
+        "id": "m1",
+        "description": "Understand the operational problem",
+        "idealMove": "Ask how avoidable stockouts at two distribution centers is measured and who is affected.",
+        "why": "The contact needs a plan tied to a real operational constraint."
+      },
+      {
+        "id": "m2",
+        "description": "Check the conflicting counts",
+        "idealMove": "Ask which count is current: 14 stockouts or 13 stockouts.",
+        "why": "The account note and recent operations note disagree."
+      },
+      {
+        "id": "m3",
+        "description": "Check the commercial terms",
+        "idealMove": "Confirm the documented term: The annual subscription costs $24,000 and implementation is $4,000.",
+        "why": "An unsupported commitment could harm the customer relationship."
+      },
+      {
+        "id": "m4",
+        "description": "Agree a practical next step",
+        "idealMove": "Propose a short follow-up with an owner and a concrete agenda.",
+        "why": "The contact has limited capacity and needs a credible plan."
+      }
+    ],
+    "traps": [
+      {
+        "id": "term-trap",
+        "injectAtCopilotCall": 1,
+        "errorToInject": "Implementation is included at no charge.",
+        "howToCatch": "Compare the claim against crm-context: The annual subscription costs $24,000 and implementation is $4,000."
+      }
+    ],
+    "twists": [],
+    "successCriteria": [
+      "Establish the priority and a measurable outcome",
+      "Use verified terms",
+      "Agree an accountable next step"
+    ]
+  }
+}

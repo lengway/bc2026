@@ -1,27 +1,24 @@
-import { z } from "zod";
-import { CaseView } from "./case";
+import { z } from 'zod';
+import { CaseView } from './case';
+import { Id, NonEmpty, NonNegativeInt, Percent } from './primitives';
+
+export const SkillProgress = z.object({
+  skill: NonEmpty,
+  level: NonNegativeInt,
+  xp: NonNegativeInt,
+  nextLevelXp: NonNegativeInt,
+});
+export type SkillProgress = z.infer<typeof SkillProgress>;
 
 export const SkillPath = z.object({
-  skills: z.array(
-    z.object({
-      skill: z.string(),
-      level: z.number().int(),
-      xp: z.number().int(),
-      nextLevelXp: z.number().int(),
-    }),
-  ),
-  streak: z.object({ current: z.number().int(), best: z.number().int() }),
-  today: z.object({
-    daily: CaseView.nullable(),
-    weekly: CaseView.nullable(),
-  }),
-  history: z.array(
-    z.object({
-      caseId: z.string(),
-      title: z.string(),
-      accuracy: z.number().int(),
-      date: z.string(),
-    }),
-  ),
+  skills: z.array(SkillProgress),
+  streak: z.object({ current: NonNegativeInt, best: NonNegativeInt }),
+  today: z.object({ daily: CaseView.nullable(), weekly: CaseView.nullable() }),
+  history: z.array(z.object({
+    caseId: Id,
+    title: NonEmpty,
+    accuracy: Percent.nullable(),
+    date: z.iso.date(),
+  })),
 });
 export type SkillPath = z.infer<typeof SkillPath>;

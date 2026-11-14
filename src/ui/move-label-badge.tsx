@@ -3,7 +3,7 @@ import { cn } from "@/ui/lib/utils";
 import { MOVE_LABEL_META } from "@/ui/move-labels";
 
 type MoveLabelBadgeProps = {
-  label: MoveLabel;
+  label: MoveLabel | null;
   /** `full` shows glyph and name, `glyph` only the glyph (name stays in aria-label). */
   variant?: "full" | "glyph";
   size?: "sm" | "md";
@@ -17,13 +17,18 @@ export function MoveLabelBadge({
   size = "md",
   className,
 }: MoveLabelBadgeProps) {
-  const meta = MOVE_LABEL_META[label];
+  const meta = label === null ? {
+    name: "Unassessed",
+    glyph: "?",
+    badgeClassName: "bg-muted text-muted-foreground",
+  } : MOVE_LABEL_META[label];
 
   return (
     <span
       role="img"
       aria-label={`${meta.name} move`}
-      data-label={label}
+      title={label === null ? "Unassessed: insufficient evidence" : undefined}
+      data-label={label ?? "unassessed"}
       className={cn(
         "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap",
         size === "sm" ? "px-1.5 py-0.5 text-xs" : "px-2.5 py-1 text-[13px]",

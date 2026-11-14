@@ -1,0 +1,10 @@
+{
+  "id": "cold-discovery",
+  "subfield": "sdr_outbound",
+  "title": "Cold discovery call",
+  "setup": "A prospect agreed to a short call but has not confirmed a problem.",
+  "difficulty": "beginner",
+  "suggestedTwists": [
+    "A stakeholder adds a constraint before the decision."
+  ]
+}

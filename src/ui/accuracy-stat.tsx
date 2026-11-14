@@ -1,12 +1,12 @@
 "use client";
 
-import { useReducedMotion } from "motion/react";
+import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import { cn } from "@/ui/lib/utils";
 import { NumberTicker } from "@/ui/primitives/number-ticker";
 
 type AccuracyStatProps = {
   /** 0–100 */
-  accuracy: number;
+  accuracy: number | null;
   /** Count up on reveal. Skipped when the user prefers reduced motion. */
   animate?: boolean;
   size?: "md" | "lg" | "xl";
@@ -29,22 +29,28 @@ export function AccuracyStat({
   className,
 }: AccuracyStatProps) {
   const prefersReducedMotion = useReducedMotion();
-  const value = Math.round(Math.min(100, Math.max(0, accuracy)));
+  const value = accuracy === null ? null : Math.round(Math.min(100, Math.max(0, accuracy)));
   const shouldAnimate = animate && !prefersReducedMotion;
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="sr-only">{value}%</span>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "font-mono leading-none font-medium tracking-tight tabular-nums",
-          SIZE_CLASS[size],
-        )}
-      >
-        {shouldAnimate ? <NumberTicker value={value} /> : value}%
-      </span>
+      {value === null ? (
+        <span className="text-sm text-muted-foreground">Unavailable</span>
+      ) : (
+        <>
+          <span className="sr-only">{value}%</span>
+          <span
+            aria-hidden="true"
+            className={cn(
+              "font-mono leading-none font-medium tracking-tight tabular-nums",
+              SIZE_CLASS[size],
+            )}
+          >
+            {shouldAnimate ? <NumberTicker value={value} /> : value}%
+          </span>
+        </>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducedMotion } from "motion/react";
+import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import { BlurFade } from "@/ui/primitives/blur-fade";
 
 type RevealProps = {

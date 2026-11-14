@@ -1,0 +1,205 @@
+{
+  "case": {
+    "type": "onboarding",
+    "field": "sales",
+    "subfield": "sdr_outbound",
+    "workspace": "chat",
+    "brief": {
+      "title": "Brightline Logistics: dispatch visibility pilot",
+      "mission": "Explore dispatch visibility pilot, validate the facts, and agree a practical next step.",
+      "yourRole": "Sales representative at RelayGrid",
+      "successLooksLike": "A specific evidence-based next step with an owner and timing.",
+      "timeLimitSec": 480
+    },
+    "docs": [
+      {
+        "id": "email-context",
+        "kind": "email_thread",
+        "title": "Customer correspondence",
+        "arrivesAtTurn": null,
+        "content": {
+          "subject": "Next steps on dispatch visibility pilot",
+          "messages": [
+            {
+              "from": "Dana Whitfield <contact@customer.example>",
+              "to": [
+                "Alex Morgan <alex@relaygrid.example>"
+              ],
+              "sentAt": "2026-03-10T16:13:00.000Z",
+              "body": "Alex,\nWe should discuss 6 a.m. dispatch handoff. Please bring a concrete plan and do not assume our team can take on extra work this month.\n\nDana Whitfield\nDirector of Fleet Operations | Brightline Logistics"
+            }
+          ]
+        }
+      },
+      {
+        "id": "crm-context",
+        "kind": "crm_record",
+        "title": "Account handoff",
+        "arrivesAtTurn": null,
+        "content": {
+          "account": "Brightline Logistics",
+          "contact": "Dana Whitfield",
+          "stage": "Discovery",
+          "fields": [
+            {
+              "label": "Location",
+              "value": "Columbus, OH"
+            },
+            {
+              "label": "Last recorded count",
+              "value": "62 tractors"
+            },
+            {
+              "label": "Commercial terms",
+              "value": "A four-week pilot costs $1,800 per month, billed monthly."
+            }
+          ],
+          "notes": [
+            "Customer priority: 6 a.m. dispatch handoff.",
+            "Confirm the count before relying on the account note."
+          ]
+        }
+      },
+      {
+        "id": "ops-note",
+        "kind": "note",
+        "title": "Recent operations note",
+        "arrivesAtTurn": null,
+        "content": {
+          "text": "Latest operational count is 61 tractors; the older CRM record has not been reconciled. A four-week pilot costs $1,800 per month, billed monthly."
+        }
+      }
+    ]
+  },
+  "personas": [
+    {
+      "public": {
+        "id": "persona-1",
+        "name": "Dana Whitfield",
+        "role": "Director of Fleet Operations",
+        "company": "Brightline Logistics",
+        "location": "Columbus, OH",
+        "avatarSeed": "dana-whitfield",
+        "context": "Dana Whitfield is reviewing dispatch visibility pilot and has a limited window to make a decision."
+      },
+      "hidden": {
+        "personality": "Practical and cautious about unsupported claims",
+        "style": "Direct and concise; busy during the workday",
+        "realMotive": "Improve 6 a.m. dispatch handoff without creating more work for the team.",
+        "constraints": [
+          "No unsupported commitments",
+          "The team has limited capacity this month"
+        ],
+        "triggersOpen": [
+          "Specific questions about the workflow",
+          "A plan grounded in available documents"
+        ],
+        "triggersClose": [
+          "Pressure to sign immediately",
+          "Invented numbers or promises"
+        ],
+        "knows": [
+          "A four-week pilot costs $1,800 per month, billed monthly.",
+          "The current count may be 61 tractors."
+        ],
+        "willNeverSayFirst": [
+          "An internal stakeholder questions whether the team can adopt the change."
+        ],
+        "patience": 6,
+        "initialTrust": 45
+      }
+    }
+  ],
+  "rubric": {
+    "version": "sales-1.0.0",
+    "criteria": [
+      {
+        "id": "discovery",
+        "title": "discovery",
+        "description": "Assess discovery using specific evidence.",
+        "required": true
+      },
+      {
+        "id": "objection_handling",
+        "title": "objection handling",
+        "description": "Assess objection handling using specific evidence.",
+        "required": true
+      },
+      {
+        "id": "value_articulation",
+        "title": "value articulation",
+        "description": "Assess value articulation using specific evidence.",
+        "required": true
+      },
+      {
+        "id": "critical_ai_use",
+        "title": "critical ai use",
+        "description": "Assess critical ai use using specific evidence.",
+        "required": false
+      },
+      {
+        "id": "closing",
+        "title": "closing",
+        "description": "Assess closing using specific evidence.",
+        "required": true
+      }
+    ],
+    "aiUseChecks": [
+      {
+        "id": "verify-term",
+        "criterionId": "critical_ai_use",
+        "description": "Check a proposed commercial term against the CRM record",
+        "maxPoints": 10,
+        "passConditions": [
+          "Correctly cite the CRM term before using it"
+        ],
+        "failureConditions": [
+          "Adopt an incompatible commercial term"
+        ],
+        "sourceRefs": [
+          "crm-context"
+        ]
+      }
+    ],
+    "keyMoments": [
+      {
+        "id": "m1",
+        "description": "Understand the operational problem",
+        "idealMove": "Ask how 6 a.m. dispatch handoff is measured and who is affected.",
+        "why": "The contact needs a plan tied to a real operational constraint."
+      },
+      {
+        "id": "m2",
+        "description": "Check the conflicting counts",
+        "idealMove": "Ask which count is current: 62 tractors or 61 tractors.",
+        "why": "The account note and recent operations note disagree."
+      },
+      {
+        "id": "m3",
+        "description": "Check the commercial terms",
+        "idealMove": "Confirm the documented term: A four-week pilot costs $1,800 per month, billed monthly.",
+        "why": "An unsupported commitment could harm the customer relationship."
+      },
+      {
+        "id": "m4",
+        "description": "Agree a practical next step",
+        "idealMove": "Propose a short follow-up with an owner and a concrete agenda.",
+        "why": "The contact has limited capacity and needs a credible plan."
+      }
+    ],
+    "traps": [
+      {
+        "id": "term-trap",
+        "injectAtCopilotCall": 1,
+        "errorToInject": "The pilot costs $1,800 per quarter.",
+        "howToCatch": "Compare the claim against crm-context: A four-week pilot costs $1,800 per month, billed monthly."
+      }
+    ],
+    "twists": [],
+    "successCriteria": [
+      "Establish the priority and a measurable outcome",
+      "Use verified terms",
+      "Agree an accountable next step"
+    ]
+  }
+}

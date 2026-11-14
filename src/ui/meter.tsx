@@ -3,7 +3,7 @@ import { cn } from "@/ui/lib/utils";
 type MeterProps = {
   label: string;
   /** 0–100 */
-  value: number;
+  value: number | null;
   /** Shown at the right, defaults to the value. */
   valueLabel?: string;
   /** Short explanation under the bar. */
@@ -20,8 +20,8 @@ const TONE_CLASS = {
 
 /** A labeled 0–100 bar: skill scores, AI dependency. */
 export function Meter({ label, value, valueLabel, hint, tone = "ink", className }: MeterProps) {
-  const clamped = Math.round(Math.min(100, Math.max(0, value)));
-  const text = valueLabel ?? String(clamped);
+  const clamped = value === null ? null : Math.round(Math.min(100, Math.max(0, value)));
+  const text = clamped === null ? "Unavailable" : valueLabel ?? String(clamped);
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -29,17 +29,19 @@ export function Meter({ label, value, valueLabel, hint, tone = "ink", className 
         <span>{label}</span>
         <span className="font-mono tabular-nums">{text}</span>
       </div>
-      <div
-        role="meter"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={clamped}
-        aria-valuetext={text}
-        className="h-1.5 overflow-hidden rounded-sm bg-muted"
-      >
-        <div className={cn("h-full rounded-sm", TONE_CLASS[tone])} style={{ width: `${clamped}%` }} />
-      </div>
+      {clamped !== null ? (
+        <div
+          role="meter"
+          aria-label={label}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={clamped}
+          aria-valuetext={text}
+          className="h-1.5 overflow-hidden rounded-sm bg-muted"
+        >
+          <div className={cn("h-full rounded-sm", TONE_CLASS[tone])} style={{ width: `${clamped}%` }} />
+        </div>
+      ) : null}
       {hint ? <p className="m-0 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );

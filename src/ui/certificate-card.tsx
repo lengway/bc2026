@@ -1,7 +1,7 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
-import { useReducedMotion } from "motion/react";
+import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import type { CertificateFull, CertificateLimited } from "@/contracts";
 import { AccuracyStat } from "@/ui/accuracy-stat";
 import {
@@ -42,7 +42,7 @@ function Seal({ className }: { className?: string }) {
   return (
     <svg
       role="img"
-      aria-label="Seal of verification"
+      aria-label="Recorded simulation seal"
       viewBox="0 0 64 64"
       fill="none"
       strokeWidth="1.5"
@@ -61,7 +61,7 @@ function VerifiedMark() {
   return (
     <span className="relative inline-flex h-7 w-fit items-center gap-1.5 rounded-md border border-ink-border bg-ink-soft px-2.5 text-xs font-medium text-ink">
       <ShieldCheck aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
-      Verified
+      Verified simulation record
       {prefersReducedMotion ? null : (
         <BorderBeam
           size={28}
@@ -122,9 +122,14 @@ export function CertificateCard({
             {issuer} · Record of work
           </p>
           <Title className="m-0 font-serif text-display-sm font-normal tracking-tight">
-            Certificate of demonstrated skill
+            Certificate of simulated work
           </Title>
-          <VerifiedMark />
+          <div className="flex flex-wrap items-center gap-2">
+            <VerifiedMark />
+            {certificate.isDemo ? (
+              <span className="inline-flex h-7 items-center rounded-md border bg-surface px-2.5 text-xs font-medium text-muted-foreground">Demo</span>
+            ) : null}
+          </div>
         </div>
         <Seal className="shrink-0" />
       </header>
@@ -189,13 +194,8 @@ export function CertificateCard({
 
       <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t bg-surface px-6 py-4 sm:px-8">
         <p className="m-0 min-w-0 text-xs text-muted-foreground">
-          {verifyUrl ? (
-            <>
-              Verify at <span className="font-mono text-foreground">{verifyUrl}</span>
-            </>
-          ) : (
-            "Issued after a live, timed case. Every move was written by the holder."
-          )}
+          <span>Verification covers the recorded simulation, not identity or independent skill.</span>
+          {verifyUrl ? <> {" "}Verify at <span className="font-mono text-foreground">{verifyUrl}</span></> : null}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {full && onViewFullReview ? (

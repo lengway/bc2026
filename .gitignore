@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Backend and local verification artifacts
+node_modules/
+.next/
+dist/
+coverage/
+.tmp/
+.superpowers/
+.env*
+!.env.example
+*.tsbuildinfo
+test-results/
+playwright-report/
+*.log

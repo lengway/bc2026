@@ -56,7 +56,7 @@ export function MoveDetail({
     >
       <header className="flex items-center justify-between gap-4 border-b px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <MoveLabelBadge label={move.label} />
+          <MoveLabelBadge label={move.assessmentStatus === "assessed" ? move.label : null} />
           <h3 className="m-0 text-sm font-medium">
             Move {moveNumber} of {totalMoves}
           </h3>

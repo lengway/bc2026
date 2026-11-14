@@ -1,0 +1,200 @@
+{
+  "id": "767ddd1d-8ccc-40c9-bbc0-f6e678e04d01",
+  "type": "onboarding",
+  "workspace": "chat",
+  "status": "ready",
+  "startedAt": null,
+  "field": "sales",
+  "subfield": "sdr_outbound",
+  "brief": {
+    "title": "A pilot across two Ohio yards",
+    "mission": "Qualify Brightline Logistics for a dispatch visibility pilot before their April peak. Learn the operating constraints, verify any commitments, and agree on a useful next step.",
+    "yourRole": "SDR at RelayGrid, a dispatch visibility software provider",
+    "successLooksLike": "A short pilot proposal that Dana can bring to operations and Finance, with an agreed next meeting.",
+    "timeLimitSec": 480
+  },
+  "personas": [
+    {
+      "id": "dana",
+      "name": "Dana Whitfield",
+      "role": "Director of Fleet Operations",
+      "company": "Brightline Logistics",
+      "location": "Columbus, OH",
+      "avatarSeed": "dana-whitfield",
+      "context": "Dana runs dispatch across two Ohio yards and is comparing tools before the April freight ramp."
+    }
+  ],
+  "docs": [
+    {
+      "id": "email-dispatch",
+      "kind": "email_thread",
+      "title": "March checkpoint with Dana",
+      "arrivesAtTurn": null,
+      "content": {
+        "subject": "Re: March dispatch checkpoint",
+        "messages": [
+          {
+            "from": "Jordan Reyes <jordan@relaygrid.example>",
+            "to": [
+              "Dana Whitfield <dana@brightline.example>"
+            ],
+            "sentAt": "2026-03-09T14:45:00.000Z",
+            "body": "Dana,\nSaw you’re adding a second shift in April. Is it worth putting 15 minutes on the calendar to compare dispatch workflows?\n\nJordan Reyes\nRelayGrid"
+          },
+          {
+            "from": "Dana Whitfield <dana@brightline.example>",
+            "to": [
+              "Jordan Reyes <jordan@relaygrid.example>"
+            ],
+            "sentAt": "2026-03-10T16:13:00.000Z",
+            "body": "We can talk Thursday. West yards are the priority. Our 6 a.m. handoff is the part dispatch wants fixed.\n\nDana Whitfield\nDirector of Fleet Operations | Brightline Logistics"
+          }
+        ]
+      }
+    },
+    {
+      "id": "crm-brightline",
+      "kind": "crm_record",
+      "title": "Brightline account handoff",
+      "arrivesAtTurn": null,
+      "content": {
+        "account": "Brightline Logistics",
+        "contact": "Dana Whitfield",
+        "stage": "Discovery",
+        "fields": [
+          {
+            "label": "HQ",
+            "value": "Columbus, OH"
+          },
+          {
+            "label": "Pilot target",
+            "value": "Two Ohio yards"
+          },
+          {
+            "label": "Fleet estimate",
+            "value": "62 tractors (February account note)"
+          },
+          {
+            "label": "Current tool",
+            "value": "FleetRoute + morning spreadsheet"
+          }
+        ],
+        "notes": [
+          "Dana asked whether RelayGrid can run alongside FleetRoute.",
+          "The Newark warehouse lease renews in June."
+        ]
+      }
+    },
+    {
+      "id": "slack-pricing",
+      "kind": "slack_thread",
+      "title": "Sales ops pilot pricing thread",
+      "arrivesAtTurn": null,
+      "content": {
+        "channel": "sales-ops",
+        "messages": [
+          {
+            "author": "Morgan Ellis",
+            "sentAt": "2026-03-11T13:06:00.000Z",
+            "text": "Monthly billing only during the pilot. Quarterly billing can start after the pilot converts to annual."
+          },
+          {
+            "author": "Nina Patel",
+            "sentAt": "2026-03-11T13:15:00.000Z",
+            "text": "Two-yard pilot: $1,800 per month. Four weeks. Do not offer a FleetRoute replacement or commitment to an integration date."
+          }
+        ]
+      }
+    },
+    {
+      "id": "yard-baseline",
+      "kind": "table",
+      "title": "Morning handoff baseline",
+      "arrivesAtTurn": null,
+      "content": {
+        "columns": [
+          "Yard",
+          "Active tractors",
+          "Late handoffs last week",
+          "Included in pilot"
+        ],
+        "rows": [
+          [
+            "Columbus West",
+            34,
+            9,
+            "Yes"
+          ],
+          [
+            "Grove City",
+            27,
+            6,
+            "Yes"
+          ],
+          [
+            "Newark",
+            19,
+            2,
+            "No"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "note-demo",
+      "kind": "note",
+      "title": "Solutions consultant handoff",
+      "arrivesAtTurn": null,
+      "content": {
+        "text": "Show a daily exception list for unassigned or late tractors using a sample CSV. Our onboarding lead can scope file exchange in discovery. Live FleetRoute integration is not in the pilot statement of work."
+      }
+    }
+  ],
+  "scoringGuide": {
+    "version": "sales-1.0.0",
+    "criteria": [
+      {
+        "id": "discovery",
+        "title": "Discovery",
+        "description": "Identify a concrete operational problem and how the customer measures it."
+      },
+      {
+        "id": "value_articulation",
+        "title": "Value articulation",
+        "description": "Connect the proposed pilot to the customer's priorities and evidence."
+      },
+      {
+        "id": "critical_ai_use",
+        "title": "Critical use of AI",
+        "description": "Check material copilot claims against available documents before relying on them."
+      },
+      {
+        "id": "objection_handling",
+        "title": "Objection handling",
+        "description": "Address constraints without promising unsupported terms or scope."
+      },
+      {
+        "id": "closing",
+        "title": "Closing",
+        "description": "Agree on a practical next step with owners, timing, and a clear agenda."
+      }
+    ],
+    "labelPoints": {
+      "brilliant": 100,
+      "best": 100,
+      "good": 80,
+      "inaccuracy": 50,
+      "mistake": 20,
+      "blunder": 0
+    },
+    "accuracyFormula": "round(100 × pointsSum / maxPoints); maxPoints = 100 × scoredMoveCount. No scored moves: unavailable.",
+    "aiUseFormula": "round(100 × earnedPoints / assessedMaxPoints). No assessed checks: unavailable.",
+    "requiredCheckCount": 4,
+    "allowedTools": [
+      "Workspace copilot",
+      "Case documents",
+      "Personal notes"
+    ],
+    "observationNotice": "During the case, this workspace records editor changes and interaction aggregates. The review describes what was observed and where data is missing."
+  }
+}

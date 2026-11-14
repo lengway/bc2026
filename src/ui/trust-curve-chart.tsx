@@ -8,7 +8,7 @@ type TrustCurveChartProps = {
   /** Trust after each move, in order. */
   curve: Evaluation["trustCurve"];
   /** Reviewed moves; matched to curve points by `seq` to color them. */
-  moves: ReadonlyArray<Pick<MoveReview, "seq" | "label">>;
+  moves: ReadonlyArray<Pick<MoveReview, "seq" | "label" | "assessmentStatus">>;
   selectedSeq?: number | null;
   /** Called with the move's `seq`. Omit for a read-only chart. */
   onSelectMove?: (seq: number) => void;
@@ -55,17 +55,18 @@ export function TrustCurveChart({
     );
   }
 
-  const labelBySeq = new Map(moves.map((move) => [move.seq, move.label]));
+  const moveBySeq = new Map(moves.map((move) => [move.seq, move]));
   const lastIndex = curve.length - 1;
   const points = curve.map((point, index) => {
-    const label = labelBySeq.get(point.seq) ?? null;
+    const move = moveBySeq.get(point.seq);
     return {
       seq: point.seq,
       moveNumber: index + 1,
       trust: clampTrust(point.trust),
       x: lastIndex === 0 ? 50 : (index / lastIndex) * 100,
       y: 100 - clampTrust(point.trust),
-      meta: label ? MOVE_LABEL_META[label] : null,
+      meta: move?.assessmentStatus === "assessed" ? MOVE_LABEL_META[move.label] : null,
+      unassessed: move?.assessmentStatus === "insufficient_evidence",
     };
   });
   const polyline = points.map((p) => `${p.x},${p.y}`).join(" ");
@@ -137,7 +138,7 @@ export function TrustCurveChart({
 
           {points.map((point) => {
             const selected = point.seq === selectedSeq;
-            const name = point.meta ? point.meta.name : "Unreviewed";
+            const name = point.meta ? point.meta.name : point.unassessed ? "Unassessed" : "Unreviewed";
             const description = `Move ${point.moveNumber}, ${name}, trust ${point.trust}`;
             return (
               <button
