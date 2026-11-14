@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Field, Level, PersonaPublic } from './case';
-import { EvaluationOutcome, MoveReview, PublicEvaluation } from './evaluation';
+import { EvaluationOutcome, MoveReview, PublicEvaluation, SkillCertificateMove } from './evaluation';
 import { Event } from './events';
 import { Id, NonEmpty, Percent, PositiveInt, Timestamp } from './primitives';
 import { AiUseSkillSummary, AssistanceProfile, ScoringSummary, TrapResult } from './scoring';
@@ -92,7 +92,7 @@ export const SkillCertificateLimited = CaseRecordLimited.pick({
 export type SkillCertificateLimited = z.infer<typeof SkillCertificateLimited>;
 
 export const SkillCertificateFull = SkillCertificateLimited.extend({
-  keyMoves: z.array(z.object({ caseId: Id, move: MoveReview })).length(CASES_REQUIRED),
+  keyMoves: z.array(z.object({ caseId: Id, move: SkillCertificateMove })).length(CASES_REQUIRED),
   trustCurves: z.array(z.object({
     caseId: Id,
     points: z.array(z.object({ seq: PositiveInt, trust: Percent })),

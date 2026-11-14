@@ -8,7 +8,7 @@ export { MoveLabel } from './scoring';
 export const AssessmentStatus = z.enum(['assessed', 'insufficient_evidence']);
 export type AssessmentStatus = z.infer<typeof AssessmentStatus>;
 
-export const MoveReview = z.object({
+const MoveReviewFields = z.object({
   eventId: Id,
   seq: PositiveInt,
   userText: NonEmpty,
@@ -21,12 +21,21 @@ export const MoveReview = z.object({
   points: Percent.nullable(),
   evidence: z.array(ScoreEvidence),
   assessmentStatus: AssessmentStatus,
-}).refine(({ assessmentStatus, evidence, label, points, rubricRef }) => (
+});
+
+export const MoveReview = MoveReviewFields.refine(({ assessmentStatus, evidence, label, points, rubricRef }) => (
   assessmentStatus === 'assessed'
     ? points === MOVE_LABEL_POINTS[label] && rubricRef !== null && evidence.length > 0
     : points === null
 ), { path: ['points'], message: 'Assessed moves require criterion evidence and the points for their label' });
 export type MoveReview = z.infer<typeof MoveReview>;
+
+export const SkillCertificateMove = MoveReviewFields.omit({
+  innerThought: true,
+  rubricRef: true,
+  evidence: true,
+});
+export type SkillCertificateMove = z.infer<typeof SkillCertificateMove>;
 
 export const EvaluationOutcome = z.enum(['won', 'lost', 'left', 'incomplete']);
 export type EvaluationOutcome = z.infer<typeof EvaluationOutcome>;
