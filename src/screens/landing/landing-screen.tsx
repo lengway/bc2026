@@ -4,6 +4,8 @@ import type { CertificateLimited } from "@/contracts";
 import { CertificateCard, Reveal } from "@/ui";
 import { cn } from "@/ui/lib/utils";
 import { Button } from "@/ui/primitives/button";
+import { GambitMark } from "@/ui/brand";
+import { ThemeToggle } from "@/ui/theme-toggle";
 import { LandingPricing } from "./landing-pricing";
 import { ReviewPreview, type ReviewPreviewData } from "./review-preview";
 
@@ -165,8 +167,8 @@ export function LandingScreen({
             href="/"
             className="flex min-h-11 items-center gap-2.5 text-[15px] font-semibold tracking-tight"
           >
-            <span aria-hidden="true" className="size-4.5 rounded-sm bg-ink" />
-            {productName}
+            <GambitMark className="size-5" />
+            <span className="font-serif text-2xl leading-none tracking-tight">{productName}</span>
           </Link>
           <nav
             aria-label="Primary"
@@ -183,6 +185,7 @@ export function LandingScreen({
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button asChild variant="ghost" size="lg">
               <Link href={hrefs.signIn}>Sign in</Link>
             </Button>
@@ -471,8 +474,8 @@ export function LandingScreen({
       <footer className="border-t">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-8 gap-y-3 px-4 py-8 text-sm text-muted-foreground sm:px-8">
           <p className="m-0 flex items-center gap-2.5 font-medium text-foreground">
-            <span aria-hidden="true" className="size-4 rounded-sm bg-ink" />
-            {productName}
+            <GambitMark className="size-4" />
+            <span className="font-serif text-lg leading-none tracking-tight">{productName}</span>
           </p>
           <nav
             aria-label="Footer"

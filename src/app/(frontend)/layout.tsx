@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${fontVariables} min-h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${fontVariables} min-h-full antialiased`}>
       <body className="flex min-h-dvh flex-col bg-background text-foreground">
         <TooltipProvider>
           <Providers>
