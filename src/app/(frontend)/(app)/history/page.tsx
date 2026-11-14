@@ -4,7 +4,9 @@ import { History } from "./history";
 export default function HistoryPage() {
   return (
     <ClientData>
-      <History />
+      <main>
+        <History />
+      </main>
     </ClientData>
   );
 }

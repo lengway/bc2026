@@ -34,6 +34,9 @@ async function openScreen(page: Page, path: string) {
   await expect(
     page.getByRole("heading", { name: /couldn.t|went wrong/i }),
   ).toHaveCount(0);
+  await expect(
+    page.getByRole("main").getByRole("status", { name: /^Loading/i }),
+  ).toHaveCount(0);
   await page.evaluate(async () => {
     await document.fonts.ready;
   });

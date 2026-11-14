@@ -4,7 +4,9 @@ import { Certificates } from "./certificates";
 export default function CertificatesPage() {
   return (
     <ClientData>
-      <Certificates />
+      <main>
+        <Certificates />
+      </main>
     </ClientData>
   );
 }
