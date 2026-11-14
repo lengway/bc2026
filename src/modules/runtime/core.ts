@@ -5,7 +5,7 @@ import { createCaseEngineService } from '@/modules/case-engine';
 import { createSimulationService } from '@/modules/simulation';
 import { createEvaluationService,type EvaluationService } from '@/modules/evaluation';
 import { createCredentialsService,type CredentialsService } from '@/modules/credentials';
-import { createProgressService } from '@/modules/progress';
+import { createProgressService,type ProgressService } from '@/modules/progress';
 import { createBillingService,createStripeProvider,type BillingProvider } from '@/modules/billing';
 import { createEventsService } from '@/modules/events';
 import { createJobsService } from '@/modules/jobs';
@@ -31,7 +31,8 @@ export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;pr
     provider:overrides.billingProvider??createStripeProvider({secretKey:config.STRIPE_SECRET_KEY,webhookSecret:config.STRIPE_WEBHOOK_SECRET})});
   const caseEngine=createCaseEngineService({db,jobs,llm,catalog,now,demoMode:config.DEMO_MODE,canStart:(userId,type,tx)=>billing.can(userId,`start_case:${type}`,tx)});
   const simulation=createSimulationService({db,caseEngine,events,jobs,llm,now,operationLeaseMs:Math.max(120_000,config.LLM_TIMEOUT_MS*3+30_000)});
-  const progress=createProgressService({db,catalog,loadSubmission:simulation.loadSubmission,getCaseForUser:caseEngine.getCaseForUser,now});
+  const progress:ProgressService=createProgressService({db,catalog,loadSubmission:simulation.loadSubmission,getCaseForUser:caseEngine.getCaseForUser,now,
+    issueSkillCertificatesWithExecutor:(tx,userId)=>credentials.issueSkillCertificatesWithExecutor(tx,userId)});
   const evaluation:EvaluationService=createEvaluationService({db,llm,simulation,jobs,now,onEvaluated:async(tx,snapshot,result)=>{
     await progress.awardWithExecutor(tx,snapshot,result);
     await credentials.issueCertificateWithExecutor(tx,snapshot);

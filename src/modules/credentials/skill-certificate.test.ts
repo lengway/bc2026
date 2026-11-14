@@ -12,7 +12,7 @@ let state: Awaited<ReturnType<typeof createTestDatabase>>;
 beforeAll(async () => { state = await createTestDatabase(); });
 afterAll(async () => { await state?.cleanup(); });
 
-function fixture() {
+function fixture({ catchUp = false } = {}) {
   const samples = new Map<string, Sample>();
   let pro = false;
   const service = createCredentialsService({
@@ -27,6 +27,7 @@ function fixture() {
     now,
     getCaseForUser: async () => null,
     loadSubmission: async () => null,
+    issueSkillCertificatesWithExecutor: catchUp ? service.issueSkillCertificatesWithExecutor : undefined,
   });
   async function add(archetype: string, options: {
     owner?: string; accuracy?: number | null; ageDays?: number; outcome?: 'won' | 'left';
@@ -93,6 +94,24 @@ describe('skill certificate integration', () => {
     expect(await demo.issue(owner)).toEqual([]);
     await demo.add('vendor', { owner, ageDays: 0.1, accuracy: 100, outcome: 'left' });
     expect((await demo.discovery(owner)).blockers).toContain('left_case');
+  });
+
+  it('catches up historical certificates on concurrent authenticated path reads', async () => {
+    const demo = fixture({ catchUp: true });
+    const first = await demo.add('cold-discovery', { accuracy: 82 });
+    const owner = first.userId;
+    await demo.add('demo-no-show', { owner, accuracy: 82 });
+    await demo.add('cold-discovery', { owner, accuracy: 82 });
+    const [left, right] = await Promise.all([demo.discovery(owner), demo.discovery(owner)]);
+    expect(left.certificate).toMatchObject({ level: 1, slug: expect.any(String) });
+    expect(right.certificate).toEqual(left.certificate);
+
+    await demo.add('vendor', { owner, accuracy: 83 });
+    const upgraded = await demo.discovery(owner);
+    expect(upgraded.certificate).toMatchObject({ level: 2, slug: expect.any(String) });
+    expect(await demo.service.getSkillCertificateBySlug(left.certificate!.slug))
+      .toMatchObject({ supersededBy: upgraded.certificate!.slug });
+    expect(await demo.issue(owner)).toEqual([]);
   });
 
   it('keeps previous slugs and replaces them only when a higher level is earned', async () => {

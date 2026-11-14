@@ -9,8 +9,17 @@ import { award,HistoryRows,SkillRows,StreakRow,timezoneFor,type CaseReader } fro
 import { dayNumber,levelForXp,localDate } from './math';
 import { readSkillSeries } from '@/modules/skill-series';
 
-export interface ProgressDeps {db:Database;getCaseForUser:CaseReader;loadSubmission:(caseId:string)=>Promise<SubmittedSnapshot|null>;now?:Clock;catalog?:CatalogService}
-export function createProgressService({db,getCaseForUser,loadSubmission,now=systemClock,catalog=createCatalogService()}:ProgressDeps) {
+export interface ProgressDeps {
+  db: Database;
+  getCaseForUser: CaseReader;
+  loadSubmission: (caseId: string) => Promise<SubmittedSnapshot | null>;
+  now?: Clock;
+  catalog?: CatalogService;
+  issueSkillCertificatesWithExecutor?: (tx: SqlExecutor, userId: string) => Promise<unknown>;
+}
+export function createProgressService({
+  db, getCaseForUser, loadSubmission, now = systemClock, catalog = createCatalogService(), issueSkillCertificatesWithExecutor,
+}: ProgressDeps) {
   async function getTodayCases(userId:string) {
     const timezone=await timezoneFor(db,userId),today=localDate(now(),timezone);
     const weekday=new Date(`${today}T00:00:00Z`).getUTCDay();
@@ -38,7 +47,7 @@ export function createProgressService({db,getCaseForUser,loadSubmission,now=syst
     getTodayCases,
     async getSkillPath(userId:string):Promise<SkillPath> {
       const timezone=await timezoneFor(db,userId),today=localDate(now(),timezone);
-      const [skillsResult,streakResult,historyResult,todayCases,assessments,certificates,verified]=await Promise.all([
+      const [skillsResult,streakResult,historyResult,todayCases,assessments,storedCertificates,verified]=await Promise.all([
         db.query('SELECT skill,xp FROM skill_progress WHERE user_id=$1 ORDER BY skill',[userId]),
         db.query('SELECT current,best,last_practice_date::text FROM streaks WHERE user_id=$1',[userId]),
         db.query(`SELECT c.id AS case_id,c.brief->>'title' AS title,e.accuracy,COALESCE(c.submitted_at,c.created_at) AS date
@@ -49,6 +58,13 @@ export function createProgressService({db,getCaseForUser,loadSubmission,now=syst
         currentCertificates(db,userId),
         canIssue(db,userId),
       ]);
+      let certificates = storedCertificates;
+      if (verified && issueSkillCertificatesWithExecutor && assessments.some(({ skill, level }) =>
+        level !== null && level > (storedCertificates.find((item) => item.skill === skill)?.level ?? 0))) {
+        // The issuer rereads the scored cases under the same owner lock used by the evaluation worker.
+        await db.transaction((tx) => issueSkillCertificatesWithExecutor(tx, userId));
+        certificates = await currentCertificates(db, userId);
+      }
       const stored=streakResult.rows[0]?StreakRow.parse(streakResult.rows[0]):{current:0,best:0,last_practice_date:null};
       const current=stored.last_practice_date&&dayNumber(today)-dayNumber(stored.last_practice_date)<=1?stored.current:0;
       return SkillPath.parse({
