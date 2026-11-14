@@ -1,6 +1,7 @@
 import { createDatabase, type Database } from '@/modules/database';
 import { createCatalogService } from '@/modules/catalog';
 import { createCaseEngineService } from '@/modules/case-engine';
+import { createSimulationService } from '@/modules/simulation';
 import { createEventsService } from '@/modules/events';
 import { createJobsService } from '@/modules/jobs';
 import { createIdentityService,createProfileService,createSmtpMailer,type MagicLinkMailer } from '@/modules/identity';
@@ -25,6 +26,7 @@ export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;pr
   const jobs=createJobsService({db,now});
   const events=createEventsService({db,now});
   const caseEngine=createCaseEngineService({db,jobs,llm,catalog,now,demoMode:config.DEMO_MODE});
-  return {config,db,identity,catalog,llm,jobs,events,caseEngine};
+  const simulation=createSimulationService({db,caseEngine,events,jobs,llm,now,operationLeaseMs:Math.max(120_000,config.LLM_TIMEOUT_MS*3+30_000)});
+  return {config,db,identity,catalog,llm,jobs,events,caseEngine,simulation};
 }
 export type CoreRuntime=ReturnType<typeof createCoreRuntime>;

@@ -129,10 +129,10 @@ export function createEventsService({ db, now = () => new Date() }: { db: Databa
     if (value.draftId) await closeDraftWithExecutor(tx, caseId, owner.user_id, value.draftId, event.id);
     return event;
   }
-  async function listByCase(caseId: string, afterSeq = 0) {
+  async function listByCaseWithExecutor(executor: SqlExecutor, caseId: string, afterSeq = 0) {
     validate(z.uuid(), caseId); validate(z.int().nonnegative(), afterSeq);
     // One statement takes a consistent snapshot of both records and the cursor.
-    const rows = await db.query(`SELECT c.last_event_seq,e.* FROM cases c LEFT JOIN events e
+    const rows = await executor.query(`SELECT c.last_event_seq,e.* FROM cases c LEFT JOIN events e
       ON e.case_id=c.id AND e.seq>$2 WHERE c.id=$1 ORDER BY e.seq`, [caseId,afterSeq]);
     if (!rows.rows.length) throw missing();
     const lastSeq = z.object({ last_event_seq: z.int().nonnegative() }).parse(rows.rows[0]).last_event_seq;
@@ -223,9 +223,26 @@ export function createEventsService({ db, now = () => new Date() }: { db: Databa
   }
   return {
     append: (caseId: string, input: AppendEvent) => db.transaction((tx) => appendWithExecutor(tx,caseId,input)),
-    appendWithExecutor, listByCase, appendEditorBatch, toPublicEvent, bindDraftWithExecutor, closeDraftWithExecutor,
+    appendWithExecutor, listByCase: (caseId: string, afterSeq = 0) => listByCaseWithExecutor(db,caseId,afterSeq),
+    listByCaseWithExecutor, appendEditorBatch, toPublicEvent, bindDraftWithExecutor, closeDraftWithExecutor,
+    async listDraftsByCaseWithExecutor(tx: SqlExecutor, caseId: string, userId: string) {
+      const ids = z.array(z.object({ id: z.uuid() })).parse((await tx.query(
+        'SELECT id FROM editor_drafts WHERE case_id=$1 AND user_id=$2 ORDER BY created_at,id',[caseId,userId],
+      )).rows);
+      const drafts: DraftObservations[] = [];
+      for (const { id } of ids) drafts.push(await draftObservations(tx,caseId,userId,id));
+      return drafts;
+    },
+    async setTrustAfterWithExecutor(tx: SqlExecutor, caseId: string, eventId: string, trust: number) {
+      validate(z.int().min(0).max(100),trust);
+      await lockCase(tx,caseId);
+      const result = await tx.query(`UPDATE events SET meta=jsonb_set(meta,'{trustAfter}',$3::jsonb)
+        WHERE case_id=$1 AND id=$2 AND actor='user' AND type='message' RETURNING *`,[caseId,eventId,JSON.stringify(trust)]);
+      if (!result.rows[0]) throw missing();
+      return stored(result.rows[0]);
+    },
     async listPublicByCase(caseId: string, afterSeq = 0) {
-      const page = await listByCase(caseId,afterSeq);
+      const page = await listByCaseWithExecutor(db,caseId,afterSeq);
       return { events: page.events.filter((event) => event.isPublic).map(toPublicEvent), lastSeq: page.lastSeq };
     },
     listEditorByDraft: (caseId: string, userId: string, draftId: string) => draftObservations(db,caseId,userId,draftId),
