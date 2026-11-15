@@ -10,6 +10,13 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 }
+export function isTransientApiError(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    (error.status === 0 || error.status >= 500) &&
+    ["NETWORK_ERROR", "TIMEOUT", "UNAVAILABLE"].includes(error.code)
+  );
+}
 export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   timeoutMs?: number;

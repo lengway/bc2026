@@ -150,7 +150,10 @@ export function createMockHandlers({
           .array(StoredCase)
           .safeParse(JSON.parse(sessionStorage.getItem(storageKey) ?? "[]"));
         if (stored.success)
-          for (const item of stored.data) cases.set(item.view.id, item);
+          for (const item of stored.data) {
+            if (item.scenario === "pressure") item.view.type = "pressure";
+            cases.set(item.view.id, item);
+          }
       } catch {
         /* Ignore incompatible preview state. */
       }

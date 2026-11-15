@@ -68,9 +68,22 @@ describe('semantic scoring proposals', () => {
       async complete(request) { instructions = request.instructions; return { text: JSON.stringify(response), model: request.model }; },
     } });
     const result = await llm.run('eval.moves', {}, schema);
-    expect(result.meta.promptVersion).toBe('4');
+    expect(result.meta.promptVersion).toBe('5');
     expect(instructions).toContain('rubric.criteria[].id');
     expect(instructions).toContain('"assessmentStatus":"assessed"');
     expect(instructions).toContain('"assessmentStatus":"insufficient_evidence"');
+  });
+
+  it('instructs the provider to address the learner directly throughout the summary', async () => {
+    const { snapshot, response } = snapshotFor(strong);
+    let instructions = '';
+    const llm = createLlmService({ defaultModel: 'mock-scorer', recordCall: async () => {}, provider: {
+      async complete(request) { instructions = request.instructions; return { text: JSON.stringify(response), model: request.model }; },
+    } });
+
+    await llm.run('eval.moves', {}, evaluationOutputSchema(prepareSubmission(snapshot)));
+
+    expect(instructions).toMatch(/write the entire summary in second person/i);
+    expect(instructions).toMatch(/avoid.*the learner/i);
   });
 });

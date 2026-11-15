@@ -1,4 +1,4 @@
-import type { CaseDoc } from "@/contracts";
+import type { CaseDoc, CaseView } from "@/contracts";
 import { makeCase, scoringGuide } from "./sales";
 
 export const cfoUpdate = {
@@ -29,9 +29,10 @@ export const pressureReplies = [
   "A one-clinic pilot sounds workable. Can you send an itemized proposal and describe how we'll measure missed appointments?",
 ];
 
-export function makePressureCase(id: string) {
+export function makePressureCase(id: string): CaseView {
   return {
     ...makeCase(id),
+    type: "pressure",
     scoringGuide: {
       ...scoringGuide,
       criteria: [

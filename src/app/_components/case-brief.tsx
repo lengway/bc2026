@@ -73,10 +73,11 @@ export function CaseBriefScreen({
   error?: Error | null;
 }) {
   const [noticeRead, setNoticeRead] = useState(false);
+  const caseLabel = view.type === "pressure" ? "Pressure" : view.type;
   return (
     <main className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-10 sm:px-8">
       <PageHeading
-        eyebrow={`Case brief · ${view.type} · Sales`}
+        eyebrow={`Case brief · ${caseLabel} · Sales`}
         title={view.brief.title}
       >
         {view.brief.mission}

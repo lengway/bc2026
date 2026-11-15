@@ -57,7 +57,8 @@ export type CaseBrief = z.infer<typeof CaseBrief>;
 
 export const CaseView = z.object({
   id: Id,
-  type: CaseType,
+  // Pressure is a curated case served through a dedicated endpoint.
+  type: CaseType.or(z.literal('pressure')),
   workspace: WorkspaceType,
   status: CaseStatus,
   startedAt: Timestamp.nullable(),

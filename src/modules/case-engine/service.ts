@@ -165,7 +165,7 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     }
     return CaseResponse.parse({
       id: record.id,
-      type: record.type,
+      type: record.type === 'onboarding' && record.seed === pressureScenario.seed ? 'pressure' : record.type,
       workspace: record.workspace,
       status: record.status === 'submitted' ? 'evaluating' : record.status,
       startedAt: record.startedAt,

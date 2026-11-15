@@ -15,7 +15,7 @@ import type {
 } from "@/app/_lib/contracts";
 import { api } from "@/app/_lib/api";
 import { billingSummaryKey } from "./use-billing-summary";
-import { ApiError } from "@/app/_lib/api-client";
+import { ApiError, isTransientApiError } from "@/app/_lib/api-client";
 import { mocksEnabled } from "@/app/_lib/environment";
 import { mergeEvents } from "@/workspaces/chat/events";
 import { subscribeCaseEvents } from "@/workspaces/chat/realtime";
@@ -70,16 +70,25 @@ function failed(client: QueryClient, id: string, clientMsgId: string) {
       ) ?? [],
   );
 }
-export function useCase(id: string, poll = true) {
+export function isTransientCaseReadError(error: unknown) {
+  return (
+    isTransientApiError(error) ||
+    (error instanceof ApiError && [500, 502, 503, 504].includes(error.status))
+  );
+}
+export function useCase(id: string, poll: boolean | number = true) {
+  const pollInterval = poll === true ? 2000 : poll;
   return useQuery({
     queryKey: caseKey(id),
     queryFn: ({ signal }) => api.case(id, signal),
     enabled: Boolean(id),
-    refetchInterval: (query) =>
-      poll &&
-      ["generating", "evaluating"].includes(query.state.data?.status ?? "")
-        ? 2000
-        : false,
+    refetchInterval: ({ state: { data, error } }) => {
+      if (error && !isTransientCaseReadError(error)) return false;
+      const pending = data
+        ? data.status === "generating" || data.status === "evaluating"
+        : Boolean(error);
+      return pending ? pollInterval : false;
+    },
   });
 }
 export function useCaseEvents(id: string) {
@@ -214,8 +223,9 @@ export function useReview(id: string, enabled = true) {
   return useQuery({
     queryKey: ["review", id],
     queryFn: ({ signal }) => api.review(id, signal),
-    retry: false,
     enabled,
+    refetchInterval: ({ state: { data, error } }) =>
+      !data && isTransientCaseReadError(error) ? 10_000 : false,
   });
 }
 export function useSkillPath(enabled = true) {

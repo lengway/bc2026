@@ -660,7 +660,12 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
                   <TwistNotice
                     key={event.id}
                     kind={event.meta.kind ?? "email"}
-                    from={event.meta.from ?? "Your case team"}
+                    from={
+                      view.personas.find(({ id }) => id === event.meta.from)
+                        ?.name ??
+                      event.meta.from ??
+                      "Your case team"
+                    }
                     content={event.content}
                     onOpen={
                       event.meta.documentIds?.[0]

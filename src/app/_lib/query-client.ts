@@ -1,5 +1,5 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
-import { ApiError } from "./api-client";
+import { ApiError, isTransientApiError } from "./api-client";
 export function makeQueryClient(onPaywall: () => void) {
   const handleError = (error: Error) => {
     if (error instanceof ApiError && error.code === "PAYWALL") onPaywall();
@@ -10,10 +10,7 @@ export function makeQueryClient(onPaywall: () => void) {
     defaultOptions: {
       queries: {
         staleTime: 15_000,
-        retry: (count, error) =>
-          count < 1 &&
-          error instanceof ApiError &&
-          ["NETWORK_ERROR", "TIMEOUT", "UNAVAILABLE"].includes(error.code),
+        retry: (count, error) => count < 1 && isTransientApiError(error),
       },
       mutations: { retry: false },
     },

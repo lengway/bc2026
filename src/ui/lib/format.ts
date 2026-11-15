@@ -71,9 +71,12 @@ export function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
-/** "Dana Whitfield" → "Dana". */
+const NAME_HONORIFIC = /^(?:dr|mr|mrs|ms|mx|prof)\.?$/i;
+
+/** "Dr. Morgan Lee" → "Morgan". */
 export function firstName(name: string): string {
-  return name.trim().split(/\s+/)[0] ?? name;
+  const parts = name.trim().split(/\s+/);
+  return parts.find((part) => !NAME_HONORIFIC.test(part)) ?? parts[0];
 }
 
 const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
