@@ -12,7 +12,7 @@ const questions = [
   {
     title: "How do I earn a skill certificate?",
     answer:
-      "A series uses your three most recent scored cases for the skill within 30 days. You qualify when the average is at least 70% and none of the counted cases ends with the client walking out. Confirm your email before publishing a certificate.",
+      "A series uses your three most recent scored cases for the skill within 30 days, across at least two different scenarios. Each case must show rubric evidence for the skill and score at least 70% in it. The series must average at least 70% case Accuracy, with no client walkouts. Confirm your email to receive a certificate.",
   },
   {
     title: "How does Copilot work?",

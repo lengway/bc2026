@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 import { CaseParams, CopilotRequest, CopilotResponse, MoveRequest, MoveResponse, StartCaseResponse, SubmitCaseResponse } from '@/contracts';
-import { availableDocuments, type CaseEngineService, type CaseRecord } from '@/modules/case-engine';
+import { availableDocuments, resolvePressureOutcome, type CaseEngineService, type CaseRecord } from '@/modules/case-engine';
 import type { Database, SqlExecutor } from '@/modules/database';
 import type { EventsService, StoredEvent } from '@/modules/events';
 import { consumeRateLimit } from '@/modules/identity';
@@ -121,17 +121,18 @@ export function createSimulationService({ db,caseEngine,events,jobs,llm,now = sy
     return result.value;
   }
   async function stage<T>(lease: Lease, promptId: string, input: Record<string,unknown>, schema: z.ZodType<T>, merge: (checkpoint: repo.Checkpoint, data: T) => repo.Checkpoint): Promise<T> {
-    await withLease(lease,async (tx,_record,operation) => {
+    const isPrep = await withLease(lease,async (tx,record,operation) => {
       // A resumed action can spend provider resources again even though its user event
       // already exists. Charge once per lease only when a missing stage needs the LLM;
       // saved-result replays and checkpoint-only publication never enter this path.
       if (!lease.providerAttemptCharged) await consumeRateLimit(tx,`simulation:attempt:${operation.kind}:${lease.caseId}`,
         operation.kind === 'move' ? 30 : 10,60_000,now());
       await repo.writeCheckpoint(tx,operation,operation.checkpoint,new Date(now().getTime()+operationLeaseMs),now());
+      return record.type === 'prep';
     });
     lease.providerAttemptCharged = true;
     let data: T;
-    try { data = (await llm.run(promptId,input,schema,{ caseId: lease.caseId })).data; }
+    try { data = (await llm.run(promptId,input,schema,{ caseId: lease.caseId, omitContentFromLogs: isPrep })).data; }
     catch { throw new AppError('LLM_FAILED',502,'The simulation response is unavailable. Retry the same clientMsgId.'); }
     await withLease(lease,async (tx,_record,operation) => {
       await repo.writeCheckpoint(tx,operation,merge(operation.checkpoint,data),new Date(now().getTime()+operationLeaseMs),now());
@@ -150,8 +151,8 @@ export function createSimulationService({ db,caseEngine,events,jobs,llm,now = sy
     },PersonaReply.refine((reply) => reply.reply.length<=32_000 && reply.typingMs<=120_000,'Reply is too large'),(checkpoint,personaReply) => ({ ...checkpoint,personaReply }));
     const trust = Math.min(100,Math.max(0,persona.state.trust+reply.trustDelta));
     const patience = Math.min(10,Math.max(0,persona.state.patience+reply.patienceDelta));
-    const outcome = patience === 0 ? 'left' as const : reply.outcome;
     const turn = currentTurn(initial.record)+1;
+    const outcome = resolvePressureOutcome(initial.record.seed,turn,patience === 0 ? 'left' : reply.outcome);
     const fired = new Set(initial.history.filter((event) => event.type === 'twist').map((event) => event.meta.twistId));
     const selected = initial.record.rubric.twists.filter((twist,index,array) => array.findIndex((item) => item.id === twist.id) === index && !fired.has(twist.id) &&
       ('afterUserTurn' in twist.trigger ? turn>=twist.trigger.afterUserTurn : trust<twist.trigger.trustBelow));

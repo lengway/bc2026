@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { Certificate } from "@/contracts";
+import { Certificate, CertificateSlug } from "@/contracts";
 import { apiClient, ApiError } from "./api-client";
 import { mocksEnabled } from "./environment";
 export const getPublicCertificate = cache(async (slug: string) => {
@@ -17,6 +17,7 @@ export const getPublicCertificate = cache(async (slug: string) => {
       );
     return null; // Browser-local MSW records cannot be read by a server or a link crawler.
   }
+  if (!CertificateSlug.safeParse(slug).success) return null;
   const configured = process.env.APP_URL;
   if (!configured)
     throw new ApiError(

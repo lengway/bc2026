@@ -101,8 +101,11 @@ export function Providers({ children }: { children: ReactNode }) {
     </ThemeProvider>
   );
 }
+export function usePreviewStatus() {
+  return useContext(PreviewContext);
+}
 export function ClientData({ children }: { children: ReactNode }) {
-  const preview = useContext(PreviewContext);
+  const preview = usePreviewStatus();
   if (preview.failed)
     return (
       <section

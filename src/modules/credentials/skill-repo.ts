@@ -4,7 +4,7 @@ import {
   AveragePercent, CaseRef, SkillCertificateLevel, SkillCertificateSlug, SkillId, TrapResult,
 } from '@/contracts';
 import type { SqlExecutor } from '@/modules/database';
-import type { SeriesCase } from '@/modules/skill-series';
+import { readSkillAssessment, StoredSkillEvidence, type SeriesCase } from '@/modules/skill-series';
 
 const CertificateRow = z.object({
   id: z.uuid(),
@@ -23,6 +23,7 @@ const CertificateRow = z.object({
 });
 
 const MemberRow = CaseRef.extend({
+  ...StoredSkillEvidence.shape,
   completedAt: z.coerce.date(),
   aiDependency: AveragePercent.nullable(),
   trapResult: TrapResult,
@@ -68,14 +69,18 @@ export async function findSkillCertificate(db: SqlExecutor, slug: string) {
   return rows[0] ? CertificateRow.parse(rows[0]) : null;
 }
 
-export async function skillCertificateMembers(db: SqlExecutor, id: string) {
+export async function skillCertificateMembers(db: SqlExecutor, id: string, skill: SkillId) {
   const { rows } = await db.query(`SELECT c.id AS "caseId",c.brief->>'title' AS title,c.archetype_id AS "archetypeId",
-    e.accuracy,e.outcome,c.submitted_at AS "completedAt",e.ai_dependency AS "aiDependency",e.trap_result AS "trapResult"
+    e.accuracy,e.outcome,c.submitted_at AS "completedAt",e.ai_dependency AS "aiDependency",e.trap_result AS "trapResult",
+    e.skills,e.score_audit->'criterionCoverage' AS "criterionCoverage"
     FROM skill_certificate_cases m JOIN cases c ON c.id=m.case_id JOIN evaluations e ON e.case_id=c.id
     WHERE m.certificate_id=$1 ORDER BY m.position`, [id]);
   return rows.map((row) => {
-    const member = MemberRow.parse(row);
-    return { ...member, completedAt: member.completedAt.toISOString() };
+    const { skills, criterionCoverage, ...member } = MemberRow.parse(row);
+    return {
+      ...member, completedAt: member.completedAt.toISOString(),
+      skillAssessment: readSkillAssessment(skill, { skills, criterionCoverage }),
+    };
   });
 }
 

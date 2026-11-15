@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PublicEvaluation } from '@/contracts';
+import { createCatalogService } from '@/modules/catalog';
+import { readSkillSeries } from '@/modules/skill-series';
 import { EvaluatedMoves } from '@/modules/llm';
 import { assessSubmission } from '../scoring';
 import { prepareSubmission } from '../observations';
@@ -16,6 +18,31 @@ describe('grounded score calculation', () => {
     const report = assessSubmission(prepareSubmission(snapshot), response, scorer);
     expect(report.evaluation).toMatchObject(fixture.expected);
     expect(report.moves.map(({ points }) => points)).toEqual(fixture.points);
+  });
+
+  it('rejects high Accuracy on a focus-matched case when the scorer did not observe the target skill', async () => {
+    const catalog = createCatalogService();
+    const now = new Date('2026-11-14T12:00:00Z');
+    const userId = '00000000-0000-4000-8000-000000000123';
+    const rows = ['demo-no-show', 'committee', 'procurement'].map((archetypeId, index) => {
+      const { snapshot, response } = snapshotFor(strong);
+      if (index === 0) {
+        response.moves = response.moves.filter(({ rubricRef }) => rubricRef !== 'closing');
+        response.skills = [{ skill: 'closing', score: 100 }];
+      }
+      const { evaluation } = assessSubmission(prepareSubmission(snapshot), response, { model: 'test', promptVersion: '1' });
+      return {
+        ...evaluation, caseId: `00000000-0000-4000-8000-00000000012${index}`,
+        archetypeId, title: snapshot.case.brief.title, completedAt: new Date(now.getTime() - index * 86_400_000),
+        isDemo: false, isSeededDemo: false, criterionCoverage: evaluation.scoreAudit.criterionCoverage,
+      };
+    });
+    const entries = await readSkillSeries({ query: async () => ({ rows, rowCount: rows.length }) }, catalog, userId, now);
+    const closing = entries.find(({ skill }) => skill === 'closing');
+    expect(rows[0].accuracy).toBeGreaterThanOrEqual(80);
+    expect(closing).toMatchObject({ level: null, blockers: ['skill_evidence_missing'] });
+    expect(closing?.counted[0].skillAssessment).toBeUndefined();
+    expect(closing?.counted[1].skillAssessment).toMatchObject({ score: 100, status: 'met' });
   });
 
   it('orders top moves by brilliant or blunder, then by the largest trust swing', () => {

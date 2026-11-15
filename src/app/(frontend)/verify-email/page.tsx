@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthCard } from "@/app/_components/auth-form";
 import { VerifyEmailForm } from "@/app/_components/account-entry-forms";
@@ -15,6 +16,8 @@ async function Content({ searchParams }: { searchParams: Search }) {
     />
   );
 }
+
+export const metadata: Metadata = { title: "Verify Email" };
 
 export default function Page({ searchParams }: { searchParams: Search }) {
   return (

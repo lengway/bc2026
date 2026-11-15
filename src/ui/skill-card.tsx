@@ -11,6 +11,7 @@ import {
   CASES_REQUIRED,
   LEVEL_MIN_ACCURACY,
   MIN_DISTINCT_ARCHETYPES,
+  MIN_CASE_SKILL_SCORE,
   type SkillId,
   type SkillProgressSeries,
 } from "@/contracts";
@@ -81,6 +82,10 @@ export function skillSeriesStatus(series: SkillProgressSeries) {
       text: `Practice ${MIN_DISTINCT_ARCHETYPES} different scenarios`,
       problem: true,
     };
+  if (series.blockers.includes("skill_evidence_missing"))
+    return { text: "Demonstrate the skill in a case", problem: true };
+  if (series.blockers.includes("skill_score_below_threshold"))
+    return { text: `Aim for ${MIN_CASE_SKILL_SCORE}% in the skill per case`, problem: true };
   if (remaining)
     return {
       text: `${remaining} more ${remaining === 1 ? "case" : "cases"} to certify`,

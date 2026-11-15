@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
+import { ArrowRight, Share2, Target } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import type {
   PublicEvaluation as Evaluation,
   MoveReview,
@@ -17,6 +25,8 @@ import {
   TrustCurveChart,
   type ChecklistStep,
 } from "@/ui";
+import { SKILL_IDS } from "@/contracts";
+import { formatSkill } from "@/ui/lib/format";
 import { Button } from "@/ui/primitives/button";
 import { Skeleton } from "@/ui/primitives/skeleton";
 import {
@@ -43,6 +53,8 @@ type ReviewReadyProps = {
   onShare?: () => void;
   sharePending?: boolean;
   onNextCase?: () => void;
+  suggestPractice?: boolean;
+  renderMovePractice?: (move: MoveReview) => ReactNode;
 };
 export type ReviewScreenProps = ReviewAnalyzingProps | ReviewReadyProps;
 const desktopQuery = "(min-width: 1024px)";
@@ -76,7 +88,7 @@ function ReviewAnalyzing({
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
       <header className="flex flex-col gap-2">
-        <p className="m-0 font-mono text-xs tracking-wider text-muted-foreground uppercase">
+        <p className="m-0 text-xs font-semibold text-muted-foreground">
           Case review
         </p>
         <h1 className="m-0 text-2xl font-medium tracking-tight">{caseTitle}</h1>
@@ -123,6 +135,8 @@ function ReviewReady({
   onShare,
   sharePending = false,
   onNextCase,
+  suggestPractice = true,
+  renderMovePractice,
 }: ReviewReadyProps) {
   const [selectedSeq, setSelectedSeq] = useState(
     defaultSelectedSeq ?? evaluation.topMoves[0]?.seq ?? moves[0]?.seq ?? null,
@@ -145,6 +159,12 @@ function ReviewReady({
   const hasScore =
     moves.some((move) => move.assessmentStatus === "assessed") &&
     evaluation.accuracy !== null;
+  const focusSkill =
+    hasScore && suggestPractice
+      ? evaluation.skills
+          .filter(({ skill }) => SKILL_IDS.some((id) => id === skill))
+          .toSorted((a, b) => a.score - b.score)[0]
+      : undefined;
   const trap =
     evaluation.trapResult === "caught" || evaluation.trapResult === "missed"
       ? evaluation.trapResult
@@ -189,21 +209,26 @@ function ReviewReady({
     setAllMovesOpen(false);
   }
   const detail = selectedMove ? (
-    <MoveDetail
-      move={selectedMove}
-      moveNumber={selectedIndex + 1}
-      totalMoves={moves.length}
-      personaName={persona.name}
-      trustBefore={trustBefore}
-      showUserText={false}
-      showEvidence={false}
-    />
+    <div className="space-y-3">
+      <MoveDetail
+        move={selectedMove}
+        moveNumber={selectedIndex + 1}
+        totalMoves={moves.length}
+        personaName={persona.name}
+        trustBefore={trustBefore}
+        showUserText={false}
+        showEvidence={false}
+      />
+      {hasScore &&
+        selectedMove.assessmentStatus === "assessed" &&
+        renderMovePractice?.(selectedMove)}
+    </div>
   ) : null;
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-8 sm:py-10">
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0 space-y-2">
-          <p className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-semibold text-muted-foreground">
             Case review
           </p>
           <h1 className="text-2xl font-medium tracking-tight">{caseTitle}</h1>
@@ -212,10 +237,12 @@ function ReviewReady({
           {hasScore && onNextCase && (
             <Button variant="outline" onClick={onNextCase}>
               Next case
+              <ArrowRight aria-hidden="true" />
             </Button>
           )}
           {onShare && (
-            <Button disabled={sharePending} onClick={onShare}>
+            <Button disabled={sharePending} variant="ghost" onClick={onShare}>
+              <Share2 aria-hidden="true" />
               {sharePending ? "Preparing case record" : "Share case record"}
             </Button>
           )}
@@ -256,6 +283,35 @@ function ReviewReady({
           {onNextCase && <Button onClick={onNextCase}>Try a new case</Button>}
         </section>
       )}
+      {focusSkill && (
+        <section
+          aria-labelledby="next-practice"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-surface p-4 sm:px-6"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink-soft text-ink">
+              <Target aria-hidden="true" className="size-4" />
+            </span>
+            <div>
+              <h2 id="next-practice" className="text-sm font-semibold">
+                Next practice
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {formatSkill(focusSkill.skill)} · {focusSkill.score}%
+              </p>
+            </div>
+          </div>
+          <Button asChild>
+            <Link href={`/path/${focusSkill.skill}#practice-skill`}>
+              Practice{" "}
+              {formatSkill(focusSkill.skill)
+                .toLowerCase()
+                .replace(/\bai\b/g, "AI")}
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+        </section>
+      )}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,1fr)]">
         <ReviewReplay
           transcript={transcript}
@@ -272,7 +328,7 @@ function ReviewReady({
         {desktop && (
           <aside className="min-w-0 space-y-5">
             <section aria-label="Selected move" className="space-y-3">
-              <h2 className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+              <h2 className="text-xs font-semibold text-muted-foreground">
                 Current move
               </h2>
               {detail ?? (
@@ -282,7 +338,7 @@ function ReviewReady({
               )}
             </section>
             <section aria-label="All moves" className="space-y-3">
-              <h2 className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+              <h2 className="text-xs font-semibold text-muted-foreground">
                 All moves
               </h2>
               <div className="max-h-80 overflow-y-auto">
@@ -300,7 +356,7 @@ function ReviewReady({
         aria-label="Trust curve"
         className="space-y-4 rounded-xl border bg-card p-5 sm:p-6"
       >
-        <h2 className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+        <h2 className="text-xs font-semibold text-muted-foreground">
           Trust through the conversation
         </h2>
         <TrustCurveChart

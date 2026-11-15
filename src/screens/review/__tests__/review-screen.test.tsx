@@ -54,6 +54,14 @@ describe("ReviewScreen", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("links to practice for the lowest scored skill", () => {
+    renderReady();
+
+    expect(
+      screen.getByRole("link", { name: "Practice critical AI use" }),
+    ).toHaveAttribute("href", "/path/critical_ai_use#practice-skill");
+  });
+
   it("opens on the first key move", () => {
     renderReady();
 

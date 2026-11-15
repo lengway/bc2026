@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthCard } from "@/app/_components/auth-form";
 import { LoadingState } from "@/app/_components/providers";
@@ -15,6 +16,8 @@ async function LoginContent({ searchParams }: { searchParams: Search }) {
     />
   );
 }
+
+export const metadata: Metadata = { title: "Sign In" };
 
 export default function LoginPage({ searchParams }: { searchParams: Search }) {
   return (

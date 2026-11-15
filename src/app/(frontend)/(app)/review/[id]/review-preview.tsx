@@ -11,6 +11,7 @@ import {
 import { ErrorPanel } from "@/app/_components/error-panel";
 import { LoadingState } from "@/app/_components/providers";
 import { Button } from "@/ui/primitives/button";
+import { RetakePanel } from "@/screens/review/retake-panel";
 import { ReviewScreen } from "@/screens/review/review-screen";
 import { formatSkill } from "@/ui/lib/format";
 import { Surface } from "@/app/_components/product";
@@ -88,7 +89,8 @@ export function ReviewPreview({ id }: { id: string }) {
     transcript,
     caseRecordLinkDisabled,
   } = query.data;
-  const recordSlug = caseRecordSlug ?? certificateSlug;
+  const recordSlug =
+    view.type === "prep" ? undefined : (caseRecordSlug ?? certificateSlug);
   const countedSeries = path.data?.series.filter((series) =>
     series.casesCounted.some((item) => item.caseId === id),
   );
@@ -108,6 +110,18 @@ export function ReviewPreview({ id }: { id: string }) {
         evaluation={evaluation}
         moves={moves}
         transcript={transcript}
+        suggestPractice={view.type !== "prep"}
+        renderMovePractice={
+          view.type === "prep"
+            ? undefined
+            : (move) => (
+                <RetakePanel
+                  key={move.eventId}
+                  caseId={id}
+                  eventId={move.eventId}
+                />
+              )
+        }
         onShare={
           recordSlug
             ? () => router.push(`/c/${encodeURIComponent(recordSlug)}`)
@@ -115,6 +129,10 @@ export function ReviewPreview({ id }: { id: string }) {
         }
         sharePending={!recordSlug}
         onNextCase={() => {
+          if (view.type === "prep") {
+            router.push("/prepare");
+            return;
+          }
           if (!create.isPending)
             create.mutate(
               { type: "daily" },
@@ -124,7 +142,7 @@ export function ReviewPreview({ id }: { id: string }) {
             );
         }}
       />
-      <div className="mx-auto max-w-6xl space-y-4 px-4 pb-10 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-10 sm:px-8">
         {!!countedSeries?.length && (
           <Surface className="space-y-3">
             <h2 className="font-medium">This case counts toward</h2>
@@ -145,9 +163,11 @@ export function ReviewPreview({ id }: { id: string }) {
         )}
         {!recordSlug && (
           <p className="text-sm text-muted-foreground">
-            {caseRecordLinkDisabled
-              ? "Sharing is disabled for this case record."
-              : "The case record link is not ready yet."}
+            {view.type === "prep"
+              ? "This practice and its review are private. It does not count toward a skill certificate."
+              : caseRecordLinkDisabled
+                ? "Sharing is disabled for this case record."
+                : "The case record link is not ready yet."}
           </p>
         )}
         {create.isPending && (

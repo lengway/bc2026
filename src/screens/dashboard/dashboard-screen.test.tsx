@@ -12,6 +12,7 @@ const props = {
     history: [],
   },
   hour: 8,
+  freeDailyRemaining: 1,
   name: "Maya Chen",
   subfield: "account_management",
   history: [],
@@ -26,14 +27,18 @@ it("shows plan details on Free and exposes a weekly start on Pro", async () => {
     "/settings/billing",
   );
   const weeklyCard = screen
-    .getByRole("heading", { name: "Weekly case" })
+    .getByRole("heading", { name: "Weekly simulation" })
     .closest("article")!;
   expect(
-    within(weeklyCard).queryByRole("button", { name: "Start" }),
+    within(weeklyCard).queryByRole("button", {
+      name: "Start weekly simulation",
+    }),
   ).toBeNull();
   rerender(<DashboardScreen {...props} plan="pro" />);
   expect(screen.queryByRole("link", { name: "See plans" })).toBeNull();
-  within(weeklyCard).getByRole("button", { name: "Start" }).click();
+  within(weeklyCard)
+    .getByRole("button", { name: "Start weekly simulation" })
+    .click();
   expect(props.onStart).toHaveBeenCalledWith({ type: "weekly" });
 });
 
@@ -43,7 +48,7 @@ it("routes a user without an intake profile to setup and gives empty stats guida
     screen.getByRole("heading", { name: "Good morning, Maya" }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("link", { name: "Start today's case" }),
+    screen.getByRole("link", { name: "Set up your profile" }),
   ).toHaveAttribute("href", "/onboarding");
   expect(screen.getAllByLabelText("No data")).toHaveLength(4);
 });
@@ -61,15 +66,13 @@ it("links the completed daily case to its review without another daily start", (
       }}
     />,
   );
-  expect(
-    screen.getByText("Done today. Next case tomorrow."),
-  ).toBeInTheDocument();
+  expect(screen.getByText("Renewal at risk")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Open review" })).toHaveAttribute(
     "href",
     "/review/case-1",
   );
   expect(
-    screen.queryByRole("button", { name: "Start today's case" }),
+    screen.queryByRole("button", { name: "Start practice case" }),
   ).toBeNull();
 });
 
@@ -127,9 +130,28 @@ it("shows each skill status and targets the suggested daily action", () => {
   expect(
     screen.getByRole("link", { name: "View certificate" }),
   ).toHaveAttribute("href", "/s/Sample0001");
-  screen.getByRole("button", { name: "Start today's case" }).click();
+  screen.getByRole("button", { name: "Start practice case" }).click();
   expect(onStart).toHaveBeenCalledWith({
     type: "daily",
     skill: "objection_handling",
   });
+});
+
+it("shows the rolling free allowance and routes to other practice when it is used", () => {
+  render(<DashboardScreen {...props} plan="free" freeDailyRemaining={0} />);
+  expect(
+    screen.getByText("Your free practice case is used for this 7-day period."),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Start practice case" }),
+  ).toBeNull();
+  expect(
+    screen.getByRole("link", { name: "Try the free challenge" }),
+  ).toHaveAttribute("href", "/challenge");
+  expect(
+    screen.getByRole("link", { name: /Rehearse a real conversation/ }),
+  ).toHaveAttribute("href", "/prepare");
+  expect(
+    screen.getByRole("link", { name: /Handle a CFO curveball/ }),
+  ).toHaveAttribute("href", "/pressure");
 });

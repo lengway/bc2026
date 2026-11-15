@@ -2,7 +2,7 @@ export * from './api';
 export * from './auth';
 export {
   CaseBrief, CaseResponse, CaseStatus, CaseType, CaseView, Field, Level,
-  PersonaOutcome, PersonaPublic, WorkspaceType,
+  PersonaOutcome, PersonaPublic, RecoverablePrep, RecoverablePrepResponse, RecoverablePrepStatus, WorkspaceType,
 } from './case';
 export * from './certificate';
 export * from './docs';
@@ -24,3 +24,5 @@ export { EvaluationOutcome as Outcome } from './evaluation';
 export * from './focus';
 export * from './skill-series';
 export * from './owner-activity';
+
+export * from './retake';

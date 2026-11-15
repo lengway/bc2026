@@ -69,7 +69,8 @@ export function makeCase(
       yourRole: "Account manager at Waypoint Systems",
       successLooksLike:
         "Agree on a concrete next step that addresses the dispatch team's concern.",
-      timeLimitSec: type === "weekly" ? 2400 : type === "daily" ? 600 : 480,
+      timeLimitSec:
+        type === "weekly" ? 2400 : type === "onboarding" ? 480 : 600,
     },
     personas: [
       {
@@ -201,7 +202,9 @@ export function makeReview(
   ).length;
   return Review.parse({
     caseRecordSlug: previewCertificateSlug(view.id),
-    certificateSlug: previewCertificateSlug(view.id),
+    ...(view.type === "prep"
+      ? { caseRecordLinkDisabled: true }
+      : { certificateSlug: previewCertificateSlug(view.id) }),
     transcript: CertificateTranscriptEvent.array().parse(
       events.filter(
         (event) =>

@@ -4,14 +4,16 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import type { EventData, MoveInput } from "@/contracts";
+import { CaseDoc } from "@/contracts";
 import { api } from "@/app/_lib/api";
 import { ApiError } from "@/app/_lib/api-client";
 import { eventKey, type DisplayEvent } from "@/app/_hooks/case-hooks";
-import { makeCase } from "@/mocks/scenarios/sales";
+import { makeCase, twistDoc } from "@/mocks/scenarios/sales";
 import type { EventStreamOptions } from "./realtime";
 import { ChatWorkspace } from "./workspace";
 
@@ -28,6 +30,58 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+it("makes the case mission available in a compact disclosure", () => {
+  vi.stubGlobal("matchMedia", (media: string) => ({
+    media,
+    matches: true,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+  const view = makeCase();
+  const client = new QueryClient();
+  render(
+    <QueryClientProvider client={client}>
+      <ChatWorkspace caseView={view} />
+    </QueryClientProvider>,
+  );
+  const objective = screen.getByText("Your objective").closest("details");
+  expect(objective).not.toHaveAttribute("open");
+  expect(objective).toHaveTextContent(view.brief.mission);
+});
+
+it("clears the unread marker when a new document is opened on mobile", async () => {
+  vi.stubGlobal("matchMedia", (media: string) => ({
+    media,
+    matches: media.includes("max-width"),
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+  const seed = makeCase();
+  const view = {
+    ...seed,
+    docs: [...seed.docs, CaseDoc.parse(twistDoc)],
+    status: "in_progress" as const,
+    startedAt: new Date().toISOString(),
+  };
+  const client = new QueryClient();
+  render(
+    <QueryClientProvider client={client}>
+      <ChatWorkspace caseView={view} />
+    </QueryClientProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Documents, 1 new" }));
+  const dialog = within(screen.getByRole("dialog", { name: "Case documents" }));
+  fireEvent.click(
+    dialog.getByRole("button", { name: `${twistDoc.title}, new` }),
+  );
+  await waitFor(() =>
+    expect(
+      dialog.getByRole("button", { name: twistDoc.title }),
+    ).toHaveAttribute("aria-pressed", "true"),
+  );
 });
 
 it("submits Copilot on Enter while preserving Shift+Enter, composition and pending guards", async () => {

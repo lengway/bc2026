@@ -1,12 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { CaseView, GenerateCaseRequest } from "@/contracts";
+import type { GenerateCaseRequest, RecoverablePrep } from "@/contracts";
 import { useCreateCase } from "./case-hooks";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/app/_lib/api";
 
-export function practiceCaseHref(item: Pick<CaseView, "id" | "status">) {
+export function practiceCaseHref(item: Pick<RecoverablePrep, "id" | "status">) {
   const review = item.status === "evaluated" || item.status === "evaluating";
   return `/${review ? "review" : "case"}/${item.id}`;
+}
+
+export function useRecoverablePrep() {
+  return useQuery({
+    queryKey: ["recoverable-prep"],
+    queryFn: ({ signal }) => api.recoverablePrep(signal),
+    staleTime: 30_000,
+  });
 }
 
 export function usePreparePracticeCase() {

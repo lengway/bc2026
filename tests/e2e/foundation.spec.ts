@@ -15,7 +15,7 @@ async function signIn(page: Page) {
 }
 async function start(page: Page) {
   await page
-    .getByRole("button", { name: "Start today's case", exact: true })
+    .getByRole("button", { name: "Start practice case", exact: true })
     .click();
   await expect(
     page.getByRole("button", { name: "Start case", exact: true }),
@@ -481,4 +481,18 @@ test("failed message survives in-app navigation and retries without duplication"
   await expect(
     page.getByText("Please explain the dispatch workflow.", { exact: true }),
   ).toHaveCount(1);
+});
+
+test("the landing page opens the free challenge at phone and desktop widths", async ({
+  page,
+}) => {
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/");
+    const trial = page.getByRole("link", { name: "Try the free challenge" });
+    await expect(trial).toBeInViewport();
+    await trial.click();
+    await expect(page).toHaveURL("/challenge");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
 });

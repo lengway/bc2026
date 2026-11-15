@@ -2,8 +2,15 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, LockKeyhole } from "lucide-react";
-import type { GenerateCaseRequest, SkillId, SkillPath } from "@/contracts";
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  FileText,
+  LockKeyhole,
+  MessageSquare,
+  Zap,
+} from "lucide-react";
+import type { GenerateCaseRequest, SkillPath } from "@/contracts";
 import {
   HorizontalScroller,
   PracticeRecord,
@@ -33,6 +40,7 @@ type DashboardProps = {
   name: string | null;
   hour: number | null;
   plan: "free" | "pro";
+  freeDailyRemaining: number;
   subfield: string | null;
   history: readonly { accuracy: number | null }[];
   recentCases: ReactNode;
@@ -44,7 +52,7 @@ type DashboardProps = {
 };
 
 export const dashboardContainer =
-  "mx-auto w-full max-w-6xl min-w-0 space-y-4 px-4 py-6 sm:px-8 sm:py-7";
+  "mx-auto w-full max-w-6xl min-w-0 space-y-6 px-4 py-6 sm:px-8 sm:py-8";
 
 function Sparkline({
   points,
@@ -89,15 +97,19 @@ function TodayCase({
   timing,
   action,
   locked,
+  featured,
 }: {
   title: string;
   summary: ReactNode;
   timing?: string;
   action: ReactNode;
   locked?: boolean;
+  featured?: boolean;
 }) {
   return (
-    <article className="flex min-w-0 flex-col justify-between gap-2 rounded-xl border bg-card px-4 py-3">
+    <article
+      className={`flex min-w-0 flex-col justify-between gap-3 rounded-xl border bg-card p-5 ${featured ? "border-ink-border" : ""}`}
+    >
       <div className="flex items-center gap-1.5">
         {locked && (
           <LockKeyhole
@@ -106,13 +118,20 @@ function TodayCase({
             className="size-4 text-muted-foreground"
           />
         )}
-        <h3 className="text-sm font-medium">{title}</h3>
+        {featured && (
+          <BriefcaseBusiness
+            aria-hidden="true"
+            className="size-4 text-ink"
+            strokeWidth={1.5}
+          />
+        )}
+        <h3 className="text-base font-medium">{title}</h3>
       </div>
       <p className="text-sm text-muted-foreground">{summary}</p>
       <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1">
         {action}
         {timing && (
-          <span className="font-mono text-xs text-muted-foreground tabular-nums">
+          <span className="text-xs text-muted-foreground tabular-nums">
             {timing}
           </span>
         )}
@@ -166,49 +185,39 @@ function CaseAction({
   );
 }
 
-const dailyLabel = (item?: ScheduledCase) => {
+function caseLabel(item: ScheduledCase | undefined, startLabel: string) {
   if (item?.kind === "done") return "Open review";
   if (item?.kind === "evaluating") return "View review status";
-  return item ? "Continue" : "Start";
-};
-
-const heroLabel = (item?: ScheduledCase) => {
-  if (item?.kind === "done" || item?.kind === "evaluating")
-    return "Review today's case";
-  return item ? "Continue today's case" : "Start today's case";
-};
-
-function dailySummary(
-  item: ScheduledCase | undefined,
-  subfield: string | null,
-  skills: readonly SkillId[],
-) {
-  if (item?.kind === "done") return "Done today. Next case tomorrow.";
-  if (item?.kind === "evaluating")
-    return "Submitted today. Your review is being prepared.";
-  if (!subfield && !item)
-    return "Set up your learning profile to prepare a daily case.";
-  const details = [
-    formatSkill(item?.subfield ?? subfield ?? ""),
-    skills.map(formatSkill).join(", "),
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return item ? (
-    <>
-      {item.title}
-      <span className="block text-xs">{details}</span>
-    </>
-  ) : (
-    details
-  );
+  return item ? "Resume case" : startLabel;
 }
+
+const activities = [
+  {
+    href: "/challenge",
+    title: "Check Copilot’s advice",
+    description: "Find the evidence before you answer a buyer.",
+    Icon: FileText,
+  },
+  {
+    href: "/prepare",
+    title: "Rehearse a real conversation",
+    description: "Practice for a sales conversation you have coming up.",
+    Icon: MessageSquare,
+  },
+  {
+    href: "/pressure",
+    title: "Handle a CFO curveball",
+    description: "Adjust your plan when the buyer changes the terms.",
+    Icon: Zap,
+  },
+] as const;
 
 export function DashboardScreen({
   path,
   name,
   hour,
   plan,
+  freeDailyRemaining,
   subfield,
   history,
   recentCases,
@@ -235,16 +244,24 @@ export function DashboardScreen({
     ...(target && { skill: target.skill }),
   };
   const headline = hour === null ? "Welcome" : greetingAt(hour);
-  const nextStep =
-    !subfield && !daily
-      ? "Set up your learning profile to start practicing."
-      : readyToFinish
-        ? `You're 1 case away from your ${formatSkill(target.skill)} certificate.`
-        : next
-          ? `Continue your ${formatSkill(next.skill)} series.`
-          : sortedSkills.some(({ certificate }) => certificate)
-            ? "Pick another skill to practice."
-            : "Pick a skill to start your first series.";
+  const free = plan === "free";
+  const allowanceUsed = free && freeDailyRemaining === 0;
+  const setup = !subfield && !daily;
+  const practiceTitle = daily?.title ?? "Sales practice case";
+  const practiceSummary =
+    daily?.kind === "done"
+      ? "Your review is ready."
+      : daily?.kind === "evaluating"
+        ? "Your review is being prepared."
+        : setup
+          ? "Tell us about your role to get a case tailored to you."
+          : allowanceUsed && !daily
+            ? "Your free practice case is used for this 7-day period."
+            : target
+              ? readyToFinish
+                ? `One qualifying case to earn your ${formatSkill(target.skill)} certificate.`
+                : `Practice ${formatSkill(target.skill).toLowerCase()}.`
+              : "Work through a buyer conversation using the case documents.";
   const { current, best } = path.streak;
   const activity = path.activity;
   const total = activity?.totalCompleted ?? path.history.length;
@@ -260,23 +277,112 @@ export function DashboardScreen({
 
   return (
     <main className={dashboardContainer}>
-      <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 pb-1">
-        <div className="min-w-0">
-          <h1 className="text-[2rem] font-medium leading-tight tracking-tight">
-            {name ? `${headline}, ${firstName(name)}` : headline}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{nextStep}</p>
-        </div>
-        <CaseAction
-          item={daily}
-          label={heroLabel(daily)}
-          input={dailyInput}
-          pending={pending}
-          onStart={onStart}
-          setup={!subfield}
-          primary
-        />
+      <header>
+        <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
+          {name ? `${headline}, ${firstName(name)}` : headline}
+        </h1>
       </header>
+
+      <section aria-label="Practice" className="space-y-3">
+        <SectionHeader title="Practice" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TodayCase
+            featured
+            title={practiceTitle}
+            summary={
+              <>
+                {practiceSummary}
+                {free && !daily && !setup && !allowanceUsed && (
+                  <span className="mt-1 block text-xs">
+                    One free practice case every 7 days
+                  </span>
+                )}
+              </>
+            }
+            timing={!daily && !setup && !allowanceUsed ? "10 min" : undefined}
+            action={
+              allowanceUsed && !daily && !setup ? (
+                <Button asChild>
+                  <Link href="/challenge">
+                    Try the free challenge
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </Button>
+              ) : (
+                <CaseAction
+                  item={daily}
+                  label={
+                    setup
+                      ? "Set up your profile"
+                      : caseLabel(daily, "Start practice case")
+                  }
+                  input={dailyInput}
+                  pending={pending}
+                  onStart={onStart}
+                  setup={setup}
+                  primary
+                />
+              )
+            }
+          />
+          <TodayCase
+            title="Weekly simulation"
+            locked={free}
+            timing="30–40 min"
+            summary={
+              weekly?.title ??
+              "A longer deal with multiple stakeholders and shifting priorities."
+            }
+            action={
+              free ? (
+                <Link
+                  href="/settings/billing"
+                  className="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-ink outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring lg:min-h-8"
+                >
+                  See plans
+                </Link>
+              ) : (
+                <CaseAction
+                  item={weekly}
+                  label={caseLabel(weekly, "Start weekly simulation")}
+                  input={{ type: "weekly" }}
+                  pending={pending}
+                  onStart={onStart}
+                  setup={!subfield}
+                />
+              )
+            }
+          />
+        </div>
+        {startError}
+        <ul className="grid gap-2 sm:grid-cols-3">
+          {activities.map(({ href, title, description, Icon }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                className="group flex h-full items-start gap-3 rounded-xl border bg-card p-4 transition-colors hover:border-ink-border focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <Icon
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 shrink-0 text-ink"
+                  strokeWidth={1.5}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">{title}</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                    {description}
+                  </span>
+                </span>
+                <ArrowRight
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 shrink-0 text-muted-foreground group-hover:text-ink"
+                  strokeWidth={1.5}
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section aria-label="Practice statistics">
         <HorizontalScroller
@@ -376,70 +482,6 @@ export function DashboardScreen({
         </HorizontalScroller>
       </section>
 
-      <section aria-label="Today" className="space-y-2">
-        <SectionHeader title="Today" />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TodayCase
-            title="Daily case"
-            timing={
-              daily?.kind === "done" || daily?.kind === "evaluating"
-                ? undefined
-                : "10 min"
-            }
-            summary={dailySummary(
-              daily,
-              subfield,
-              daily
-                ? (path.today.dailySkills ?? [])
-                : dailyInput.skill
-                  ? [dailyInput.skill]
-                  : [],
-            )}
-            action={
-              <CaseAction
-                item={daily}
-                label={dailyLabel(daily)}
-                input={dailyInput}
-                pending={pending}
-                onStart={onStart}
-                setup={!subfield}
-              />
-            }
-          />
-          <TodayCase
-            title="Weekly case"
-            locked={plan === "free"}
-            timing="30–40 min"
-            summary={
-              plan === "free"
-                ? "Included in Pro"
-                : (weekly?.title ??
-                  "A longer sales conversation with changing priorities.")
-            }
-            action={
-              plan === "free" ? (
-                <Link
-                  href="/settings/billing"
-                  className="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-ink outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring lg:min-h-8"
-                >
-                  See plans
-                </Link>
-              ) : (
-                <CaseAction
-                  item={weekly}
-                  label={dailyLabel(weekly)}
-                  input={{ type: "weekly" }}
-                  pending={pending}
-                  onStart={onStart}
-                  setup={!subfield}
-                />
-              )
-            }
-          />
-        </div>
-      </section>
-
-      {startError}
       <section aria-label="Skills">
         <HorizontalScroller
           label="Skill cards"
@@ -457,7 +499,7 @@ export function DashboardScreen({
               series={series}
               level={skillLevels.get(series.skill) ?? 1}
               className="w-[17.5rem]"
-              disabled={Boolean(pending)}
+              disabled={Boolean(pending) || allowanceUsed}
               pending={pending?.skill === series.skill}
               onPractice={(skill) => onStart({ type: "daily", skill })}
             />

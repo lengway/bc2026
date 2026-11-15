@@ -97,6 +97,12 @@ describe('shared fixtures', () => {
 });
 
 describe('wire boundaries', () => {
+  it('preserves the public sender and channel on incoming updates', () => {
+    const event = fixture.eventsPage.events[1];
+    const meta = { from: 'Priya Shah', kind: 'slack' };
+    expect(Event.parse({ ...event, type: 'twist', meta }).meta).toEqual(meta);
+  });
+
   it('strips private case, persona, scoring and event properties recursively', () => {
     const { caseView } = fixture;
     const publicCase = CaseView.parse({
@@ -109,6 +115,9 @@ describe('wire boundaries', () => {
     const event = fixture.eventsPage.events[1];
     expect(Event.parse({ ...event, meta: { ...event.meta, innerThought: 'private', trapId: 'private' } })).toEqual(event);
     expect(CaseResponse.parse({ ...caseView, status: 'generating' })).toEqual({ id: caseView.id, status: 'generating' });
+    expect(CaseResponse.parse({ ...caseView, status: 'failed', type: 'prep' })).toEqual({
+      id: caseView.id, status: 'failed', type: 'prep',
+    });
     expect(CaseResponse.safeParse({ ...caseView, status: 'submitted' }).success).toBe(false);
     expect(publicContracts).not.toHaveProperty('Rubric');
     expect(publicContracts).not.toHaveProperty('PersonaHidden');

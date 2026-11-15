@@ -53,6 +53,8 @@ export const config = {
     "/case/:path*",
     "/review/:path*",
     "/path/:path*",
+    "/prepare/:path*",
+    "/pressure/:path*",
     "/history/:path*",
     "/certificates/:path*",
     "/help/:path*",

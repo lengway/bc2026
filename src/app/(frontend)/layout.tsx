@@ -4,10 +4,12 @@ import { TooltipProvider } from "@/ui/primitives/tooltip";
 import { Toaster } from "@/ui/primitives/sonner";
 import { Providers } from "@/app/_components/providers";
 import { mocksEnabled } from "@/app/_lib/environment";
+import { noIndex, publicOrigin } from "@/app/_lib/seo";
 import "@/app/globals.css";
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.APP_URL ?? "http://127.0.0.1:3000"),
+  metadataBase: new URL(publicOrigin),
   title: { default: "Gambit", template: "%s · Gambit" },
+  robots: noIndex,
   description:
     "Practice realistic work conversations. Review your decisions and share a recorded simulation.",
 };

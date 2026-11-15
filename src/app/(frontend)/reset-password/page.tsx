@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthCard } from "@/app/_components/auth-form";
 import { ResetPasswordForm } from "@/app/_components/account-entry-forms";
@@ -13,6 +14,8 @@ async function Content({ searchParams }: { searchParams: Search }) {
     />
   );
 }
+
+export const metadata: Metadata = { title: "Reset Password" };
 
 export default function Page({ searchParams }: { searchParams: Search }) {
   return (

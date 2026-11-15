@@ -2,12 +2,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCheckout } from "@/app/_hooks/case-hooks";
+import { usePreviewStatus } from "@/app/_components/providers";
 import { mocksEnabled } from "@/app/_lib/environment";
 import { ErrorPanel } from "@/app/_components/error-panel";
 import { PageHeading, PublicShell } from "@/app/_components/product";
 import { PricingTable, type BillingPeriod } from "@/ui/pricing-table";
 export function PricingPreview() {
   const checkout = useCheckout();
+  const previewStatus = usePreviewStatus();
   const router = useRouter();
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
   const [error, setError] = useState("");
@@ -23,7 +25,8 @@ export function PricingPreview() {
         <PricingTable
           billing={billing}
           onBillingChange={setBilling}
-          pending={checkout.isPending}
+          titleAs="h2"
+          pending={!previewStatus.ready || checkout.isPending}
           planHrefs={{ free: "/login?next=/onboarding" }}
           onSelectPlan={() => {
             setError("");
@@ -52,7 +55,12 @@ export function PricingPreview() {
             });
           }}
         />
-        {checkout.isError && <ErrorPanel error={checkout.error} />}{" "}
+        {previewStatus.failed && (
+          <p role="alert" className="text-sm text-destructive">
+            Preview checkout is unavailable. Reload the page to try again.
+          </p>
+        )}
+        {checkout.isError && <ErrorPanel error={checkout.error} />}
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}

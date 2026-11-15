@@ -40,7 +40,7 @@ export function createEvaluationService({ db, llm, simulation, jobs, now = syste
       trustCurve: recordedTrustCurve(prepared),
       trapInfo: presentedTraps(prepared).map(({ trap, reply }) => ({ trapId: trap.id, eventId: reply.id, erroneousClaim: trap.errorToInject })),
       assistance: { copilotRequests: prepared.assistance.copilotRequests },
-    }, evaluationOutputSchema(prepared), { caseId }) : {
+    }, evaluationOutputSchema(prepared), { caseId, omitContentFromLogs: snapshot.case.type === 'prep' }) : {
       data: { moves: [], aiUseChecks: [], skills: [], summary: 'No submitted actions were available for assessment.' },
       meta: { model: 'not_run', promptVersion: 'not_run' },
     };

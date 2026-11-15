@@ -145,7 +145,7 @@ export function AppShell({
         </div>
       </aside>
       <div className="min-w-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b bg-background px-4 sm:px-8">
           <Link
             href="/dashboard"
             aria-label="Gambit home"

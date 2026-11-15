@@ -6,7 +6,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Copy,
+  ChevronDown,
+  ClipboardList,
+  FileSpreadsheet,
   FileText,
+  Hash,
+  LogOut,
+  Mail,
+  Target,
   MessageSquare,
   Send,
   ArrowDown,
@@ -15,7 +22,13 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { CaseView, CopilotInput, MoveInput, Outcome } from "@/contracts";
+import type {
+  CaseDocKind,
+  CaseView,
+  CopilotInput,
+  MoveInput,
+  Outcome,
+} from "@/contracts";
 import {
   CaseTimer,
   ChatMessage,
@@ -57,6 +70,14 @@ import { recordDocumentOpen } from "@/app/_lib/integration-api";
 import { useDeadline } from "./deadline";
 import { useRecorder } from "./use-recorder";
 
+const DOCUMENT_ICONS = {
+  email_thread: Mail,
+  crm_record: ClipboardList,
+  slack_thread: Hash,
+  table: FileSpreadsheet,
+  note: FileText,
+} satisfies Record<CaseDocKind, typeof FileText>;
+
 type CopilotPanelProps = {
   events: DisplayEvent[];
   question: string;
@@ -87,9 +108,6 @@ function CopilotPanel({
     <div className="flex h-full min-h-0 flex-col">
       <header className="space-y-2 border-b p-4">
         <h2 className="text-sm font-medium">Copilot</h2>
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Copilot is allowed. We review how you check and use its advice.
-        </p>
       </header>
       <div
         role="log"
@@ -100,8 +118,7 @@ function CopilotPanel({
       >
         {events.length === 0 && (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Ask for another perspective. Verify facts against your documents
-            before using a suggestion.
+            Ask for a second opinion and check its facts against your documents.
           </p>
         )}
         {events.map((event) => (
@@ -214,9 +231,7 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const focusEditor = useRef(false);
   const [selectedDoc, setSelectedDoc] = useState(view.docs[0]?.id ?? null);
-  const [openedDocs, setOpenedDocs] = useState<Set<string>>(
-    () => new Set(view.docs[0] ? [view.docs[0].id] : []),
-  );
+  const [openedDocs, setOpenedDocs] = useState(() => new Set<string>());
   const remaining = useDeadline(view.startedAt, view.brief.timeLimitSec);
   const active =
     view.status === "in_progress" &&
@@ -274,6 +289,11 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
       }
       if (documentId && visibleDocument.current !== documentId) {
         visibleDocument.current = documentId;
+        setOpenedDocs((previous) =>
+          previous.has(documentId)
+            ? previous
+            : new Set([...previous, documentId]),
+        );
         void recordDocumentOpen(view.id, documentId).catch(() =>
           reportGap("document_open_transport_unavailable"),
         );
@@ -400,29 +420,38 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
   }
   function openDoc(id: string) {
     setSelectedDoc(id);
-    setOpenedDocs((previous) => new Set([...previous, id]));
     if (window.matchMedia("(max-width: 1023px)").matches)
       setDocumentsOpen(true);
   }
   const documents = (suffix: string) => (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b p-4">
-        <h2 className="mb-3 text-sm font-medium">Documents</h2>
+        {suffix === "desktop" && (
+          <h2 className="mb-2 text-sm font-semibold">Documents</h2>
+        )}
         <div role="group" aria-label="Case documents" className="grid gap-1">
-          {view.docs.map((doc) => (
-            <button
-              aria-pressed={selected?.id === doc.id}
-              aria-controls={`document-panel-${suffix}`}
-              key={doc.id}
-              className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-3 text-left text-xs focus-visible:ring-2 focus-visible:ring-ring ${selected?.id === doc.id ? "bg-ink-soft text-ink" : "text-muted-foreground hover:bg-muted"}`}
-              onClick={() => openDoc(doc.id)}
-            >
-              {doc.title}
-              {newDocs.some((item) => item.id === doc.id) && (
-                <span className="font-mono text-[10px]">New</span>
-              )}
-            </button>
-          ))}
+          {view.docs.map((doc) => {
+            const Icon = DOCUMENT_ICONS[doc.kind];
+            const unread = newDocs.some((item) => item.id === doc.id);
+            return (
+              <button
+                aria-label={unread ? `${doc.title}, new` : undefined}
+                aria-pressed={selected?.id === doc.id}
+                aria-controls={`document-panel-${suffix}`}
+                key={doc.id}
+                className={`flex min-h-11 items-center gap-2 rounded-md px-2.5 text-left text-sm focus-visible:ring-2 focus-visible:ring-ring ${selected?.id === doc.id ? "bg-ink-soft text-ink" : "text-muted-foreground hover:bg-muted"}`}
+                onClick={() => openDoc(doc.id)}
+              >
+                <Icon aria-hidden="true" className="size-4 shrink-0" />
+                <span className="min-w-0 flex-1 leading-snug">{doc.title}</span>
+                {unread && (
+                  <span className="shrink-0 rounded-full bg-ink-soft px-2 py-0.5 text-[11px] font-semibold text-ink">
+                    New
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
       <div
@@ -432,7 +461,10 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
         className="min-h-0 flex-1 overflow-auto p-4"
       >
         {selected ? (
-          <DocViewer doc={selected} isNew={false} />
+          <DocViewer
+            doc={selected}
+            isNew={newDocs.some((item) => item.id === selected.id)}
+          />
         ) : (
           <p className="text-sm text-muted-foreground">
             No documents have been added to this case.
@@ -461,8 +493,8 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
       <div ref={bindRoot} className="flex min-h-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-6">
           <div className="min-w-0 space-y-1">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Sales · {view.type} case
+            <p className="text-xs font-medium text-muted-foreground">
+              Sales case
             </p>
             <h1 className="text-lg font-medium tracking-tight">
               {view.brief.title}
@@ -483,6 +515,7 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
                   variant="ghost"
                   disabled={submit.isPending}
                 >
+                  <LogOut aria-hidden="true" />
                   Leave case
                 </Button>
               </DialogTrigger>
@@ -510,20 +543,39 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
               disabled={busy}
               onClick={() => setConfirm(true)}
             >
+              <Check aria-hidden="true" />
               Submit case
             </Button>
           </div>
         </header>
+        <details className="group border-b bg-surface px-4 sm:px-6">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <Target aria-hidden="true" className="size-4 text-ink" />
+            Your objective
+            <ChevronDown
+              aria-hidden="true"
+              className="size-4 text-muted-foreground transition-transform motion-reduce:transition-none group-open:rotate-180"
+            />
+          </summary>
+          <p className="max-w-prose pb-3 text-sm leading-relaxed">
+            {view.brief.mission}
+          </p>
+        </details>
         <div className="flex items-center justify-between gap-2 border-b px-4 py-2 lg:hidden">
           <Button
             variant="ghost"
             size="sm"
+            aria-label={
+              newDocs.length ? `Documents, ${newDocs.length} new` : undefined
+            }
             onClick={() => setDocumentsOpen(true)}
           >
             <FileText aria-hidden="true" />
             Documents
             {newDocs.length > 0 && (
-              <span className="font-mono">({newDocs.length} new)</span>
+              <span className="rounded-full bg-ink-soft px-2 py-0.5 text-[11px] text-ink">
+                {newDocs.length} new
+              </span>
             )}
           </Button>
           <Button
@@ -607,8 +659,8 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
                 event.type === "twist" ? (
                   <TwistNotice
                     key={event.id}
-                    kind="email"
-                    from="Your case team"
+                    kind={event.meta.kind ?? "email"}
+                    from={event.meta.from ?? "Your case team"}
                     content={event.content}
                     onOpen={
                       event.meta.documentIds?.[0]
@@ -744,8 +796,8 @@ export function ChatWorkspace({ caseView: view }: { caseView: CaseView }) {
                 className="text-[11px] leading-relaxed text-muted-foreground"
               >
                 {recorder.partial
-                  ? "Some editing activity could not be recorded. You can continue your case."
-                  : "Editing activity and workspace interaction summaries are being recorded."}
+                  ? "Some editing activity could not be recorded."
+                  : "Editing activity is recorded."}
               </p>
             </form>
           </section>

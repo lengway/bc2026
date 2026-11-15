@@ -9,7 +9,7 @@ export { Level } from './primitives';
 export const Field = z.enum(['sales', 'project_management', 'software']);
 export type Field = z.infer<typeof Field>;
 
-export const CaseType = z.enum(['onboarding', 'daily', 'weekly']);
+export const CaseType = z.enum(['onboarding', 'daily', 'weekly', 'prep']);
 export type CaseType = z.infer<typeof CaseType>;
 
 export const WorkspaceType = z.enum(['chat', 'board', 'ide']);
@@ -72,6 +72,16 @@ export type CaseView = z.infer<typeof CaseView>;
 
 export const CaseResponse = z.union([
   CaseView,
-  z.object({ id: Id, status: z.enum(['generating', 'failed']) }),
+  z.object({ id: Id, status: z.enum(['generating', 'failed']), type: z.unknown().optional() })
+    .transform(({ id, status, type }) => ({
+      id, status, ...(type === 'prep' && { type }),
+    })),
 ]);
 export type CaseResponse = z.infer<typeof CaseResponse>;
+
+// A deliberately small, owner-only projection used to resume recent prep work.
+// It never includes the buyer, offering, objection, generated docs, or rubric.
+export const RecoverablePrepStatus = z.enum(['generating', 'ready', 'in_progress', 'evaluating', 'evaluated']);
+export const RecoverablePrep = z.object({ id: Id, status: RecoverablePrepStatus });
+export const RecoverablePrepResponse = RecoverablePrep.nullable();
+export type RecoverablePrep = z.infer<typeof RecoverablePrep>;

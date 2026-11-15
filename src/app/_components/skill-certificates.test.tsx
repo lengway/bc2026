@@ -110,6 +110,23 @@ describe("Public skill certificate", () => {
     expect(screen.queryByText("Key move")).not.toBeInTheDocument();
   });
 
+  it("shows skill scores and rubric coverage on the shared Limited certificate", () => {
+    render(
+      <SkillCertificateCard
+        certificate={{
+          ...certificate,
+          cases: results.map((item) => ({
+            ...item,
+            skillAssessment: { score: 90, status: "met" },
+          })),
+        }}
+      />,
+    );
+    expect(screen.getAllByText("90% Objection handling")).toHaveLength(3);
+    expect(screen.getAllByText("Rubric criterion met")).toHaveLength(3);
+    expect(screen.queryByText("Key move")).not.toBeInTheDocument();
+  });
+
   it("marks an older certificate even when its replacement link is disabled", () => {
     render(
       <SkillCertificateCard

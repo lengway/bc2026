@@ -12,8 +12,8 @@ export async function getUser(db: SqlExecutor, userId: string, lock = false): Pr
   if (!rows[0]) throw new AppError('NOT_FOUND',404,'User account not found.');
   return User.parse(rows[0]);
 }
-export async function hasRecentDaily(db: SqlExecutor, userId: string, since: Date): Promise<boolean> {
-  const { rows } = await db.query(`SELECT c.id FROM cases c WHERE c.user_id=$1 AND c.type='daily' AND c.created_at>$2
+export async function hasRecentFreeCase(db: SqlExecutor, userId: string, since: Date): Promise<boolean> {
+  const { rows } = await db.query(`SELECT c.id FROM cases c WHERE c.user_id=$1 AND c.type IN ('daily','prep') AND c.created_at>$2
     AND (c.started_at IS NOT NULL OR c.submitted_at IS NOT NULL OR (c.status<>'failed' AND NOT EXISTS(
       SELECT 1 FROM jobs j WHERE j.case_id=c.id AND j.kind='case.generate' AND j.status='failed'
     ))) LIMIT 1`, [userId,since]);

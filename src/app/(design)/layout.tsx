@@ -5,6 +5,7 @@ import "@/app/globals.css";
 
 export const metadata: Metadata = {
   title: "Gambit",
+  robots: { index: false, follow: false },
   description:
     "Work a real case, get a move-by-move review, and share a certificate an employer can verify.",
 };

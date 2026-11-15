@@ -27,10 +27,15 @@ export const api = {
     }),
   intake: (body: C.IntakeRequest) =>
     apiClient("/api/intake", C.Profile, { method: "POST", body }),
-  createCase: (type: C.CaseKind, skill?: C.SkillId) =>
+  createCase: (type: C.CaseKind, skill?: C.SkillId, prep?: C.SalesCallPrep) =>
     apiClient("/api/cases", C.CreateCaseResponse, {
       method: "POST",
-      body: { type, skill },
+      body: { type, skill, prep },
+    }),
+  createPressureCase: () =>
+    apiClient("/api/cases/pressure", C.CreateCaseResponse, {
+      method: "POST",
+      body: {},
     }),
   case: (id: string, signal?: AbortSignal) =>
     apiClient(casePath(id), C.CaseResponse, { signal }),
@@ -58,6 +63,8 @@ export const api = {
     }),
   path: (signal?: AbortSignal) =>
     apiClient("/api/me/path", C.SkillPath, { signal }),
+  recoverablePrep: (signal?: AbortSignal) =>
+    apiClient("/api/me/prep", C.RecoverablePrepResponse, { signal }),
   checkout: (billing: "monthly" | "yearly" = "monthly") =>
     apiClient("/api/billing/checkout", C.CheckoutResponse, {
       method: "POST",

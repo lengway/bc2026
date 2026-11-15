@@ -1,6 +1,7 @@
 import { http, HttpResponse, delay } from "msw";
 import { z } from "zod";
 import type { HistoryCase, OwnedCaseRecord } from "@/contracts";
+import { RetakeRequest, RetakeStatus } from "@/contracts/retake";
 import { createActivityHandlers } from "./app-activity-handlers";
 import { createAppAccountHandlers } from "./app-account-handlers";
 import { representativeSkillPath } from "./scenarios/app-ux";
@@ -36,10 +37,16 @@ import {
   replies,
   twistDoc,
 } from "./scenarios/sales";
+import {
+  cfoUpdate,
+  makePressureCase,
+  pressureReplies,
+} from "./scenarios/pressure";
 const StoredCase = z.object({
   view: CaseView,
   readyAt: z.number(),
   targetSkill: z.enum(SKILL_IDS).optional(),
+  scenario: z.literal("pressure").optional(),
   evaluatedAt: z.number().optional(),
   events: z.array(PublicEvent),
   trust: z.number(),
@@ -52,6 +59,18 @@ const storageKey = "bc2026.preview.cases.v2";
 const sessionKey = "bc2026.preview.authenticated";
 const error = (code: string, message: string, status = 400) =>
   HttpResponse.json({ error: { code, message } }, { status });
+function hasRetakeSource(item: StoredCaseData, eventId: string) {
+  return (
+    item.view.type !== "prep" &&
+    item.view.status === "evaluated" &&
+    item.events.some(
+      (event) =>
+        event.id === eventId &&
+        event.actor === "user" &&
+        event.type === "message",
+    )
+  );
+}
 export function createMockHandlers({
   typingMs = 800,
   generationMs = 900,
@@ -197,7 +216,10 @@ export function createMockHandlers({
         hasPublicLink: true,
         revokedAt: null,
       };
-      return { history, certificate };
+      return {
+        history,
+        certificate: item.view.type === "prep" ? null : certificate,
+      };
     });
   }
   return [
@@ -234,8 +256,8 @@ export function createMockHandlers({
           ? activityCertificates
           : {
               skills: [],
-              caseRecords: ownerActivity().map(
-                ({ certificate }) => certificate,
+              caseRecords: ownerActivity().flatMap(({ certificate }) =>
+                certificate ? [certificate] : [],
               ),
             },
     }),
@@ -269,6 +291,25 @@ export function createMockHandlers({
       setSession(false);
       return HttpResponse.json({ ok: true });
     }),
+    http.get("*/api/me/prep", () => {
+      const item = [...cases.values()]
+        .reverse()
+        .find((entry) => entry.view.type === "prep");
+      if (!item) return HttpResponse.json(null);
+      return HttpResponse.json({
+        id: item.view.id,
+        status: Date.now() < item.readyAt ? "generating" : item.view.status,
+      });
+    }),
+    http.post("*/api/cases/pressure", () => {
+      const view = makePressureCase(crypto.randomUUID());
+      cases.set(view.id, { ...createRecord(view), scenario: "pressure" });
+      persistCases();
+      return HttpResponse.json(
+        { caseId: view.id, status: "generating" },
+        { status: 202 },
+      );
+    }),
     http.post("*/api/cases", async ({ request }) => {
       const input = GenerateCaseRequest.safeParse(await request.json());
       if (!input.success) return error("VALIDATION", "Choose a case type.");
@@ -290,7 +331,11 @@ export function createMockHandlers({
       if (!item) return error("NOT_FOUND", "We couldn't find this case.", 404);
       return HttpResponse.json(
         Date.now() < item.readyAt
-          ? { id: item.view.id, status: "generating" }
+          ? {
+              id: item.view.id,
+              status: "generating",
+              ...(item.view.type === "prep" && { type: "prep" }),
+            }
           : item.view,
       );
     }),
@@ -374,7 +419,7 @@ export function createMockHandlers({
         actor: "user",
         type: "message",
         content: input.data.text,
-        personaId: "dana",
+        personaId: input.data.personaId,
         clientMsgId: input.data.clientMsgId,
         draftId: input.data.draftId,
       });
@@ -383,26 +428,35 @@ export function createMockHandlers({
         (event) => event.actor === "user" && event.type === "message",
       ).length;
       const events = [user];
+      const isPressure = item.scenario === "pressure";
       if (turn === 2) {
+        const document = isPressure ? cfoUpdate.document : twistDoc;
         const twist = newEvent(item.view, item.events, {
           actor: "system",
           type: "twist",
-          content: "A new update from the dispatch lead is available.",
-          meta: { documentIds: [twistDoc.id] },
+          content: isPressure
+            ? cfoUpdate.notice
+            : "A new update from the dispatch lead is available.",
+          meta: {
+            documentIds: [document.id],
+            ...(isPressure && { kind: "email", from: "Priya Shah, CFO" }),
+          },
         });
         item.events.push(twist);
         events.push(twist);
         item.view.docs = CaseView.shape.docs.parse([
           ...item.view.docs,
-          twistDoc,
+          document,
         ]);
       }
       item.trust = Math.min(90, 44 + turn * 11);
+      const scenarioReplies = isPressure ? pressureReplies : replies;
       const reply = newEvent(item.view, item.events, {
         actor: "persona",
-        personaId: "dana",
+        personaId: input.data.personaId,
         type: "message",
-        content: replies[Math.min(turn - 1, replies.length - 1)],
+        content:
+          scenarioReplies[Math.min(turn - 1, scenarioReplies.length - 1)],
         meta: { typingMs, trustAfter: item.trust },
       });
       item.events.push(reply);
@@ -509,7 +563,9 @@ export function createMockHandlers({
         actor: "copilot",
         type: "copilot_reply",
         content:
-          "For this renewal, offer a 30% discount to remove the price objection. Check the account record before making any commitment.",
+          item.scenario === "pressure"
+            ? "Check the latest finance guidance before quoting a pilot. The earlier planning amount does not establish an approved purchase."
+            : "For this renewal, offer a 30% discount to remove the price objection. Check the account record before making any commitment.",
       });
       item.events.push(event);
       const response = { event };
@@ -555,13 +611,49 @@ export function createMockHandlers({
         ),
       );
     }),
+    http.get("*/api/cases/:id/review/retake/:eventId", ({ params }) => {
+      const item = getCase(String(params.id));
+      if (!item) return error("NOT_FOUND", "We couldn't find this case.", 404);
+      return HttpResponse.json(
+        RetakeStatus.parse({
+          status: hasRetakeSource(item, String(params.eventId))
+            ? "upgrade"
+            : "unavailable",
+          remaining: 0,
+          nextAvailableAt: null,
+          result: null,
+        }),
+      );
+    }),
+    http.post(
+      "*/api/cases/:id/review/retake/:eventId",
+      async ({ params, request }) => {
+        const input = RetakeRequest.safeParse(
+          await request.json().catch(() => null),
+        );
+        if (!input.success)
+          return error("VALIDATION", "Write a new answer to retake this move.");
+        const item = getCase(String(params.id));
+        if (!item)
+          return error("NOT_FOUND", "We couldn't find this case.", 404);
+        if (!hasRetakeSource(item, String(params.eventId)))
+          return error(
+            "VALIDATION",
+            "This move does not have enough recorded context for a retake.",
+            409,
+          );
+        return error("PAYWALL", "Move retakes are available with Pro.", 403);
+      },
+    ),
     http.get("*/api/certificates/:slug", ({ params }) => {
       const slug = String(params.slug);
       if (slug === previewCertificate.slug)
         return HttpResponse.json(previewCertificate);
       getCase(PREVIEW_CASE_ID);
       const match = [...cases.values()].find(
-        (record) => previewCertificateSlug(record.view.id) === slug,
+        (record) =>
+          record.view.type !== "prep" &&
+          previewCertificateSlug(record.view.id) === slug,
       );
       const item = match && getCase(match.view.id);
       if (!item || item.view.status !== "evaluated")
