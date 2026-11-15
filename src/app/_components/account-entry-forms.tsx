@@ -81,7 +81,7 @@ export function SignupForm({ next }: { next: string }) {
         )}
         <Link
           className={textLinkClass}
-          href={{ pathname: "/login", query: { next } }}
+          href={{ pathname: "/login", query: { next, account: "1" } }}
         >
           Go to sign in
         </Link>
@@ -133,7 +133,7 @@ export function SignupForm({ next }: { next: string }) {
       </Button>
       <Link
         className={textLinkClass}
-        href={{ pathname: "/login", query: { next } }}
+        href={{ pathname: "/login", query: { next, account: "1" } }}
       >
         Already have an account? Sign in
       </Link>
@@ -158,7 +158,7 @@ export function ForgotPasswordForm() {
       <div className="grid gap-3 text-sm">
         <h2 className="text-lg font-medium">Check your inbox</h2>
         <p role="status">{genericEmailResponse}</p>
-        <Link className={textLinkClass} href="/login">
+        <Link className={textLinkClass} href="/login?account=1">
           Back to sign in
         </Link>
       </div>
@@ -180,7 +180,7 @@ export function ForgotPasswordForm() {
       <Button className="min-h-11" disabled={request.isPending}>
         {request.isPending ? "Sending…" : "Send reset link"}
       </Button>
-      <Link className={textLinkClass} href="/login">
+      <Link className={textLinkClass} href="/login?account=1">
         Back to sign in
       </Link>
     </form>
@@ -210,7 +210,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         <p role="status">
           Your password was reset. Sign in with your new password.
         </p>
-        <Link className={textLinkClass} href="/login">
+        <Link className={textLinkClass} href="/login?account=1">
           Sign in
         </Link>
       </div>
@@ -256,7 +256,7 @@ export function VerifyEmailForm({
         <p role="alert">
           This confirmation link has expired or was already used.
         </p>
-        <Link className={textLinkClass} href="/login">
+        <Link className={textLinkClass} href="/login?account=1">
           Sign in to resend confirmation
         </Link>
         <Link className={textLinkClass} href="/signup">

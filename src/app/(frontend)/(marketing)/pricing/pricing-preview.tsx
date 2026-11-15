@@ -16,7 +16,7 @@ export function PricingPreview() {
     checkout.mutate(billing, {
       onError: (error) => {
         if ("status" in error && error.status === 401)
-          router.push("/login?next=/pricing");
+          router.push("/login?account=1&next=/pricing");
       },
     });
   return (
