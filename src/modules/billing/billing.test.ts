@@ -204,7 +204,7 @@ describe('billing with PostgreSQL', () => {
 
   it('gives guests Pro entitlements in jury demo mode without letting them manage billing', async () => {
     const guest = await setup(true);
-    const demo = createBillingService({ db: fixture.db, provider: createStripeProvider({}), appUrl: 'http://localhost:3000', guestPro: true });
+    const demo = createBillingService({ db: fixture.db, provider: createStripeProvider({}), appUrl: 'http://localhost:3000', monthlyPriceId: 'price_test_monthly', guestPro: true });
     expect(await demo.can(guest.userId, 'start_case:weekly')).toBe(true);
     expect(await demo.can(guest.userId, 'practice_retake')).toBe(true);
     expect((await demo.summary(guest.userId)).plan).toBe('pro');
