@@ -13,6 +13,8 @@ const Env = z.object({
   LLM_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
   DEMO_MODE: Flag,
   GUEST_ACCESS_ENABLED: Flag,
+  /** Jury demo: guests get Pro. Only meaningful with GUEST_ACCESS_ENABLED. */
+  GUEST_PRO_ENABLED: Flag,
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
   SMTP_SECURE: Flag,

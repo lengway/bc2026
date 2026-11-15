@@ -10,16 +10,19 @@ export { createStripeProvider, type BillingProvider, type BillingEvent, type Bil
 export const BillingAction = z.enum(['start_case:onboarding','start_case:daily','start_case:weekly','start_case:prep','full_certificate','practice_retake']);
 export type BillingAction = z.infer<typeof BillingAction>;
 export type BillingPlan = 'monthly' | 'yearly';
-export interface BillingDeps { db: Database; provider: BillingProvider; appUrl: string; monthlyPriceId?: string; yearlyPriceId?: string; now?: Clock }
+export interface BillingDeps { db: Database; provider: BillingProvider; appUrl: string; monthlyPriceId?: string; yearlyPriceId?: string; now?: Clock;
+  /** Demo/jury mode: guest sessions get Pro entitlements. They still cannot check out or manage billing. */
+  guestPro?: boolean }
 const isPro = (user: Awaited<ReturnType<typeof getUser>>, now: Date) => !user.isGuest && user.status === 'pro' && user.periodEnd !== null && user.periodEnd > now;
 const availableError = () => new AppError('VALIDATION',503,'Billing is temporarily unavailable.');
 
-export function createBillingService({ db, provider, appUrl, monthlyPriceId, yearlyPriceId, now = systemClock }: BillingDeps) {
+export function createBillingService({ db, provider, appUrl, monthlyPriceId, yearlyPriceId, now = systemClock, guestPro = false }: BillingDeps) {
+  const entitledPro = (user: Awaited<ReturnType<typeof getUser>>, at: Date) => (guestPro && user.isGuest) || isPro(user, at);
   const freeQuotaUsed = (executor: SqlExecutor, userId: string, at: Date) =>
     hasRecentFreeCase(executor,userId,new Date(at.getTime() - 7 * 86400000));
   async function summary(userId: string): Promise<BillingSummary> {
     const user = await getUser(db,userId), at = now();
-    const pro = isPro(user,at);
+    const pro = entitledPro(user,at);
     return {
       plan: pro ? 'pro' : 'free',
       periodEnd: user.periodEnd?.toISOString() ?? null,
@@ -44,7 +47,7 @@ export function createBillingService({ db, provider, appUrl, monthlyPriceId, yea
     const user = await getUser(executor,userId);
     const instant = now();
     if (action === 'start_case:onboarding') return true;
-    if (isPro(user,instant)) return true;
+    if (entitledPro(user,instant)) return true;
     if (action !== 'start_case:daily' && action !== 'start_case:prep') return false;
     return !await freeQuotaUsed(executor,userId,instant);
   }
