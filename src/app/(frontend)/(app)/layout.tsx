@@ -1,6 +1,7 @@
 import { requireUser } from "@/app/_lib/auth/server";
 import { ClientData } from "@/app/_components/providers";
 import { SessionGate } from "@/app/_components/session-gate";
+import { CheckoutNotice } from "@/app/_components/checkout-notice";
 export const dynamic = "force-dynamic";
 export default async function AppLayout({
   children,
@@ -10,7 +11,10 @@ export default async function AppLayout({
   await requireUser();
   return (
     <ClientData>
-      <SessionGate>{children}</SessionGate>
+      <SessionGate>
+        <CheckoutNotice />
+        {children}
+      </SessionGate>
     </ClientData>
   );
 }

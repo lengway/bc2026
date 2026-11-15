@@ -57,7 +57,7 @@ export function createBillingService({ db, provider, appUrl, monthlyPriceId, yea
     if (isPro(user,now())) throw new AppError('VALIDATION',409,'An active subscription already exists.');
     const origin = new URL(appUrl).origin;
     let session: { id: string; url: string };
-    try { session = await provider.createCheckout({ userId,priceId,successUrl: `${origin}/?checkout=success`,cancelUrl: `${origin}/?checkout=cancelled`,customerId: user.customerId ?? undefined }); }
+    try { session = await provider.createCheckout({ userId,priceId,successUrl: `${origin}/dashboard?checkout=success`,cancelUrl: `${origin}/settings/billing?checkout=cancelled`,customerId: user.customerId ?? undefined }); }
     catch (error) {
       reportBillingProviderFailure('checkout', error);
       if (isAppError(error)) throw error;
