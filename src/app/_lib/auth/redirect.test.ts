@@ -9,7 +9,7 @@ describe("auth return navigation", () => {
     "/settings/learning",
     "/billing/success",
     "/help#scoring",
-  ])("returns to the protected page %s", (path) =>
+  ])("returns to the product page %s", (path) =>
     expect(safeNextPath(path)).toBe(path),
   );
   it.each([

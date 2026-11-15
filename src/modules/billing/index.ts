@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import type { BillingSummary } from '@/contracts';
 import type { Database, SqlExecutor } from '@/modules/database';
-import { AppError, systemClock, type Clock } from '@/modules/shared';
+import { AppError, isAppError, systemClock, type Clock } from '@/modules/shared';
 import { BillingEvent, BillingSubscription, type BillingProvider } from './provider';
 import { bindSubscription, eventProcessed, getBinding, getCheckout, getUser, hasRecentFreeCase, rememberEvent, saveCheckout, saveSubscription } from './repo';
+import { reportBillingProviderFailure } from './diagnostics';
 
 export { createStripeProvider, type BillingProvider, type BillingEvent, type BillingSubscription } from './provider';
 export const BillingAction = z.enum(['start_case:onboarding','start_case:daily','start_case:weekly','start_case:prep','full_certificate','practice_retake']);
@@ -33,7 +34,10 @@ export function createBillingService({ db, provider, appUrl, monthlyPriceId, yea
     try {
       const result = await provider.createPortal({ customerId: user.customerId, returnUrl: new URL('/settings/billing',appUrl).href });
       return z.object({url:z.url({protocol:/^https$/})}).parse(result);
-    } catch { throw availableError(); }
+    } catch (error) {
+      reportBillingProviderFailure('portal', error);
+      throw availableError();
+    }
   }
   async function can(userId: string, action: BillingAction, executor: SqlExecutor = db): Promise<boolean> {
     if (!z.uuid().safeParse(userId).success || !BillingAction.safeParse(action).success) throw new AppError('VALIDATION',400,'Invalid billing request.');
@@ -54,7 +58,11 @@ export function createBillingService({ db, provider, appUrl, monthlyPriceId, yea
     const origin = new URL(appUrl).origin;
     let session: { id: string; url: string };
     try { session = await provider.createCheckout({ userId,priceId,successUrl: `${origin}/?checkout=success`,cancelUrl: `${origin}/?checkout=cancelled`,customerId: user.customerId ?? undefined }); }
-    catch (error) { if (error instanceof AppError) throw error; throw availableError(); }
+    catch (error) {
+      reportBillingProviderFailure('checkout', error);
+      if (isAppError(error)) throw error;
+      throw availableError();
+    }
     const parsed = z.object({ id: z.string().min(1), url: z.url({ protocol: /^https$/ }) }).safeParse(session);
     if (!parsed.success) throw availableError();
     await saveCheckout(db,parsed.data.id,userId,priceId,now());
@@ -63,7 +71,7 @@ export function createBillingService({ db, provider, appUrl, monthlyPriceId, yea
   async function handleWebhook(rawBody: string, signature: string): Promise<{ received: true }> {
     let event: BillingEvent;
     try { event = BillingEvent.parse(provider.constructEvent(rawBody,signature)); }
-    catch (error) { if (error instanceof AppError && error.status === 503) throw error; throw new AppError('VALIDATION',400,'Invalid webhook signature or payload.'); }
+    catch (error) { if (isAppError(error) && error.status === 503) throw error; throw new AppError('VALIDATION',400,'Invalid webhook signature or payload.'); }
     if (event.livemode) throw new AppError('VALIDATION',400,'Live billing events are not accepted.');
     if (await eventProcessed(db,event.id)) return { received: true };
     const checkoutEvent = event.type === 'checkout.session.completed';

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { AppShell } from "@/ui/app-shell";
@@ -22,6 +22,22 @@ it("marks the active navigation destination and exposes breadcrumbs", () => {
     screen.getByRole("navigation", { name: "Breadcrumb" }),
   ).toHaveTextContent("Discovery");
   expect(screen.getByText("Content")).toBeVisible();
+});
+
+it("bounds the fixed mobile tab bar and its links independently of page content", () => {
+  render(
+    <AppShell pathname="/dashboard">
+      <div className="w-[827px]">Wide page content</div>
+    </AppShell>,
+  );
+
+  const navigation = screen.getByRole("navigation", {
+    name: "Mobile navigation",
+  });
+  expect(navigation).toHaveClass("fixed", "w-full", "max-w-dvw", "grid-cols-4");
+  for (const link of within(navigation).getAllByRole("link")) {
+    expect(link).toHaveClass("min-w-0");
+  }
 });
 
 it("renders an accessible empty stat and links its detail", () => {

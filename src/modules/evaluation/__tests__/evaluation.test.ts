@@ -68,7 +68,7 @@ describe('evaluation publication on PostgreSQL', () => {
     expect(callback).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledTimes(1);
     const review = await evalService.getReview(id, userId);
-    expect(review.evaluation).toMatchObject({ accuracy: 95, trapCaught: true, scoreAudit: { scorerPromptVersion: '3' } });
+    expect(review.evaluation).toMatchObject({ accuracy: 95, trapCaught: true, scoreAudit: { scorerPromptVersion: '4' } });
     expect(review.evaluation.trustCurve).toHaveLength(4);
     expect(review.moves.every(({ innerThought }) => innerThought === 'The operational details matter.')).toBe(true);
     expect(review.evaluation).toHaveProperty('processObservations');

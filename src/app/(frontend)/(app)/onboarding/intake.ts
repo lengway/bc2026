@@ -1,4 +1,9 @@
-import { FOCUS_AREAS, type FocusArea, type Level } from "@/contracts";
+import {
+  FOCUS_AREAS,
+  type FocusArea,
+  type IntakeRequest,
+  type Level,
+} from "@/contracts";
 
 export const ROLES = [
   {
@@ -111,10 +116,23 @@ export function composeIntakeText(answers: IntakeAnswers): string {
   return lines.join("\n");
 }
 
+export function composeIntakeRequest(answers: IntakeAnswers): IntakeRequest {
+  return {
+    field: "sales",
+    text: composeIntakeText(answers),
+    level: answers.level,
+    years: EXPERIENCE.find(({ id }) => id === answers.experience)?.years,
+  };
+}
+
 /** Adds or removes an area, keeping at most MAX_FOCUS and never the same area in both lists. */
-export function toggleFocus(list: FocusArea[], area: FocusArea): FocusArea[] {
+export function toggleFocus(
+  list: FocusArea[],
+  area: FocusArea,
+  blocked: readonly FocusArea[] = [],
+): FocusArea[] {
   if (list.includes(area)) return list.filter((a) => a !== area);
-  if (list.length >= MAX_FOCUS) return list;
+  if (list.length >= MAX_FOCUS || blocked.includes(area)) return list;
   return [...list, area];
 }
 
@@ -127,7 +145,13 @@ export function readIntakeAnswers(
 ): IntakeAnswers {
   if (!profile) return EMPTY_ANSWERS;
   const { intakeText, level, subfield, years } = profile;
-  const [structured, notes] = intakeText.split(/\n?In their own words: /s, 2);
+  const noteMarker = /(?:^|\n)In their own words: /.exec(intakeText);
+  const structured = noteMarker
+    ? intakeText.slice(0, noteMarker.index)
+    : intakeText;
+  const notes = noteMarker
+    ? intakeText.slice(noteMarker.index + noteMarker[0].length)
+    : undefined;
   const lines = structured.split("\n");
   const read = (prefix: string) =>
     lines

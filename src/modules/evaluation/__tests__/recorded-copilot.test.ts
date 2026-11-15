@@ -67,7 +67,7 @@ describe('recorded Copilot-reuse scoring failure', () => {
     expect(review.evaluation.aiDependency).toBeGreaterThan(0);
   });
 
-  it('explicitly permits copied Copilot advice without an originality condition in v3', async () => {
+  it('continues to permit copied Copilot advice without an originality condition', async () => {
     const { prepared, output } = recordedCase();
     let instructions = '';
     const llm = createLlmService({ defaultModel: 'mock-scorer', recordCall: async () => {}, provider: {

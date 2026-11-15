@@ -10,14 +10,14 @@ import { Button } from "@/ui/primitives/button";
 import { LEVEL_LABEL, formatSkill } from "@/ui/lib/format";
 import { inputClass, labelClass, Surface } from "@/app/_components/product";
 import { ErrorPanel } from "@/app/_components/error-panel";
-import { FOCUS_AREAS, type Level } from "@/contracts";
+import { FOCUS_AREAS, type FocusArea, type Level } from "@/contracts";
 import {
   EMPTY_ANSWERS,
   EXPERIENCE,
   MAX_FOCUS,
   ROLES,
   SEGMENTS,
-  composeIntakeText,
+  composeIntakeRequest,
   toggleFocus,
   type IntakeAnswers,
 } from "./intake";
@@ -53,8 +53,8 @@ export function Onboarding() {
   const client = useQueryClient();
   const intake = useMutation({
     mutationFn: api.intake,
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: learningProfileKey });
+    onSuccess: (profile) => {
+      client.setQueryData(learningProfileKey, profile);
       setStep(2);
     },
   });
@@ -66,6 +66,14 @@ export function Onboarding() {
     value: IntakeAnswers[K],
   ) => setAnswers((a) => ({ ...a, [key]: value }));
 
+  function focus(key: "strengths" | "practice", area: FocusArea) {
+    const other = key === "practice" ? "strengths" : "practice";
+    setAnswers((before) => ({
+      ...before,
+      [key]: toggleFocus(before[key], area, before[other]),
+    }));
+  }
+
   const missing = [
     !answers.role && "your role",
     !answers.experience && "your experience",
@@ -75,11 +83,7 @@ export function Onboarding() {
   function submit() {
     setTriedSubmit(true);
     if (missing.length) return;
-    intake.mutate({
-      field: "sales",
-      level: answers.level,
-      text: composeIntakeText(answers),
-    });
+    intake.mutate(composeIntakeRequest(answers));
   }
 
   function prepare() {
@@ -237,9 +241,7 @@ export function Onboarding() {
               label="What you want to practice"
               selected={answers.practice}
               blocked={answers.strengths}
-              onToggle={(area) =>
-                set("practice", toggleFocus(answers.practice, area))
-              }
+              onToggle={(area) => focus("practice", area)}
             />
           </Question>
 
@@ -251,9 +253,7 @@ export function Onboarding() {
               label="Where you are already strong"
               selected={answers.strengths}
               blocked={answers.practice}
-              onToggle={(area) =>
-                set("strengths", toggleFocus(answers.strengths, area))
-              }
+              onToggle={(area) => focus("strengths", area)}
             />
           </Question>
 

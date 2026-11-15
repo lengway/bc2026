@@ -68,7 +68,7 @@ describe('semantic scoring proposals', () => {
       async complete(request) { instructions = request.instructions; return { text: JSON.stringify(response), model: request.model }; },
     } });
     const result = await llm.run('eval.moves', {}, schema);
-    expect(result.meta.promptVersion).toBe('3');
+    expect(result.meta.promptVersion).toBe('4');
     expect(instructions).toContain('rubric.criteria[].id');
     expect(instructions).toContain('"assessmentStatus":"assessed"');
     expect(instructions).toContain('"assessmentStatus":"insufficient_evidence"');

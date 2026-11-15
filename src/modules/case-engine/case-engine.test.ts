@@ -304,36 +304,43 @@ describe('case engine on PostgreSQL', () => {
     await expect(engine.generateCase(userId, 'onboarding')).resolves.toMatchObject({ status: 'generating' });
   });
 
-  it('seeds three reusable onboarding templates per subfield and copies a matching unused template immediately', async () => {
+  it('seeds reusable variants per role and level, prefers focus, and queues when all variants have been used', async () => {
     const pack = await catalog.getPack('sales');
     const demo = await catalog.getDemoCase('sales', 'sdr_outbound');
-    const generated = pack.subfields.flatMap((subfield, index) => Array.from({ length: 3 }, (_, i) =>
+    const generated = pack.subfields.flatMap((subfield, index) => Array.from({ length: 9 }, (_, i) =>
       outputs(demo, `Robin Ward ${index}-${i}`, `Harbor Freight ${subfield}-${i}`)));
     const { engine, calls } = setup({
       'case.generate': generated.map(({ generated }) => generated),
       'case.rubric': generated.map(({ rubric }) => rubric),
     });
-    expect(await engine.seedOnboardingPool()).toEqual({ inserted: 9, existing: 0 });
-    expect(await engine.seedOnboardingPool()).toEqual({ inserted: 0, existing: 9 });
-    expect(calls).toHaveLength(18);
+    expect(await engine.seedOnboardingPool()).toEqual({ inserted: 27, existing: 0 });
+    expect(await engine.seedOnboardingPool()).toEqual({ inserted: 0, existing: 27 });
+    expect(calls).toHaveLength(54);
     const firstUser = await user();
     const secondUser = await user();
+    await fixture.db.query("UPDATE profiles SET intake_text='Wants to practice: Competitor deals.' WHERE user_id=ANY($1::uuid[])",
+      [[firstUser, secondUser]]);
     const first = await engine.generateCase(firstUser, 'onboarding');
     const second = await engine.generateCase(secondUser, 'onboarding');
     const third = await engine.generateCase(firstUser, 'onboarding');
+    const fourth = await engine.generateCase(firstUser, 'onboarding');
+    const fifth = await engine.generateCase(firstUser, 'onboarding');
+    const ids = [first.caseId, second.caseId, third.caseId, fourth.caseId, fifth.caseId];
     const rows = z.array(z.object({ id: z.uuid(), onboarding_pool_id: z.uuid().nullable(), status: z.string() })).parse(
-      (await fixture.db.query('SELECT id,onboarding_pool_id,status FROM cases WHERE id=ANY($1::uuid[])', [[first.caseId, second.caseId, third.caseId]])).rows,
+      (await fixture.db.query('SELECT id,onboarding_pool_id,status FROM cases WHERE id=ANY($1::uuid[])', [ids])).rows,
     );
-    const poolId = rows.find((row) => row.id === first.caseId)?.onboarding_pool_id;
+    const row = (id: string) => rows.find((result) => result.id === id);
+    const poolId = row(first.caseId)?.onboarding_pool_id;
     expect(poolId).toBeTruthy();
-    expect(rows).toEqual(expect.arrayContaining([
-      { id: first.caseId, onboarding_pool_id: poolId, status: 'ready' },
-      { id: second.caseId, onboarding_pool_id: poolId, status: 'ready' },
-      { id: third.caseId, onboarding_pool_id: null, status: 'generating' },
-    ]));
-    const queued = await fixture.db.query('SELECT case_id FROM jobs WHERE case_id=ANY($1::uuid[])', [[first.caseId, second.caseId, third.caseId]]);
-    expect(queued.rows).toEqual([{ case_id: third.caseId }]);
-    expect((await engine.getCaseRecord(first.caseId))?.personas[0].public.id)
-      .not.toBe((await engine.getCaseRecord(second.caseId))?.personas[0].public.id);
+    expect(row(second.caseId)).toMatchObject({ onboarding_pool_id: poolId, status: 'ready' });
+    expect(row(third.caseId)?.status).toBe('ready');
+    expect(row(fourth.caseId)?.status).toBe('ready');
+    expect(new Set([poolId, row(third.caseId)?.onboarding_pool_id, row(fourth.caseId)?.onboarding_pool_id]).size).toBe(3);
+    expect(row(fifth.caseId)).toMatchObject({ onboarding_pool_id: null, status: 'generating' });
+    const queued = await fixture.db.query('SELECT case_id FROM jobs WHERE case_id=ANY($1::uuid[])', [ids]);
+    expect(queued.rows).toEqual([{ case_id: fifth.caseId }]);
+    const firstRecord = await engine.getCaseRecord(first.caseId);
+    expect(firstRecord).toMatchObject({ archetypeId: 'vendor', status: 'ready' });
+    expect(firstRecord?.personas[0].public.id).not.toBe((await engine.getCaseRecord(second.caseId))?.personas[0].public.id);
   });
 });

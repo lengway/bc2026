@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRight, RotateCcw, Send } from "lucide-react";
+import { RotateCcw, Send } from "lucide-react";
 import { RetakeStatus, type RetakeResult } from "@/contracts/retake";
 import { apiClient } from "@/app/_lib/api-client";
+import { UpgradeCheckout } from "@/app/_components/upgrade-checkout";
 import { ErrorPanel } from "@/app/_components/error-panel";
 import { Button } from "@/ui/primitives/button";
 
@@ -116,12 +116,7 @@ export function RetakePanel({
           <p className="text-sm">
             Rewrite this move with Pro and compare the simulated response.
           </p>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/settings/billing">
-              Upgrade to Pro
-              <ArrowUpRight aria-hidden="true" />
-            </Link>
-          </Button>
+          <UpgradeCheckout />
         </>
       ) : data.status === "unavailable" ? (
         <p className="text-sm text-muted-foreground">

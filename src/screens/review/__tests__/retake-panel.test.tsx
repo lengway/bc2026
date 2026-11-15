@@ -83,9 +83,24 @@ it("offers an upgrade when the server denies Free access", async () => {
   );
   mount();
   expect(
-    await screen.findByRole("link", { name: "Upgrade to Pro" }),
+    await screen.findByRole("link", { name: "See plans" }),
   ).toHaveAttribute("href", "/settings/billing");
   expect(
     screen.queryByRole("button", { name: "Retake this move" }),
   ).not.toBeInTheDocument();
+});
+
+it("keeps the review open and retries a failed Pro checkout", async () => {
+  const checkout = vi.fn(async () => Response.json({ error: { code: "VALIDATION", message: "Billing is temporarily unavailable." } }, { status: 503 }));
+  vi.stubGlobal("fetch", vi.fn(async (url: URL) => {
+    if (url.pathname === "/api/billing/checkout") return checkout();
+    return Response.json({ ...base, status: "upgrade", remaining: 0 });
+  }));
+  mount();
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Upgrade to Pro" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Billing is temporarily unavailable. Try again in a minute.");
+  await user.click(within(alert).getByRole("button", { name: "Try again" }));
+  expect(checkout).toHaveBeenCalledTimes(2);
 });

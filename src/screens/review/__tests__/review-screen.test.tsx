@@ -26,7 +26,7 @@ afterEach(() => vi.unstubAllGlobals());
 const CASE_TITLE = "Renewal at risk: Brightline Logistics";
 
 function renderReady(
-  overrides: { onShare?: () => void; sharePending?: boolean } = {},
+  overrides: { onShare?: () => void; sharePending?: boolean; evaluation?: Evaluation } = {},
 ) {
   return render(
     <ReviewScreen
@@ -123,6 +123,16 @@ describe("ReviewScreen", () => {
     expect(
       screen.queryByRole("region", { name: "Observed assistance" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("explains an incomplete outcome without dismissing an agreed next step", () => {
+    renderReady({ evaluation: { ...evaluation, outcome: "incomplete" } });
+
+    const result = within(screen.getByRole("region", { name: "Result" }));
+    expect(result.getByText("Incomplete")).toBeInTheDocument();
+    expect(
+      result.getByText("The case ended without a final deal outcome. An agreed next step can still count toward your score."),
+    ).toBeInTheDocument();
   });
 
   it("calls onShare, and blocks it while the case record is being prepared", async () => {

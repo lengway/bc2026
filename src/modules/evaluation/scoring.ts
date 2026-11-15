@@ -1,4 +1,4 @@
-import { CertificateTranscriptEvent, Evaluation, MOVE_LABEL_POINTS, ReviewResponse, type AiUseSkill, type CriterionCoverage, type MoveReview, type TrapResult } from '@/contracts';
+import { CertificateTranscriptEvent, Evaluation, MOVE_LABEL_POINTS, ReviewResponse, type AiUseSkill, type CriterionCoverage, type MoveReview, type ScoreEvidence, type TrapResult } from '@/contracts';
 import { Percent } from '@/contracts/primitives';
 import type { EvaluatedMoves } from '@/modules/llm';
 import { createEvidenceValidator, looksLikeScorerInstruction, type EvidenceValidator } from './evidence';
@@ -43,15 +43,19 @@ function negatesDocumentCorrection(message: string, wrongClaim: string, document
   });
 }
 
-function classifyTrap(prepared: PreparedSubmission, proposal: EvaluatedMoves['trapAssessment'], evidence: EvidenceValidator): TrapResult {
+type TrapAssessment = { result: Exclude<TrapResult, 'caught'> } |
+  { result: 'caught'; moveId: string; claim: string; evidence: ScoreEvidence[] };
+
+function classifyTrap(prepared: PreparedSubmission, proposal: EvaluatedMoves['trapAssessment'], evidence: EvidenceValidator): TrapAssessment {
   const presented = presentedTraps(prepared);
-  if (presented.length === 0) return 'not_presented';
+  if (presented.length === 0) return { result: 'not_presented' };
   const latestDirect = prepared.messages.findLast((message) => !looksLikeScorerInstruction(message.content) && presented.some(({ trap, reply }) =>
     message.seq > reply.seq && commitsClaim(message.content, trap.errorToInject)));
-  const fallback = latestDirect ? 'missed' : 'insufficient_evidence';
+  const fallback: TrapAssessment = { result: latestDirect ? 'missed' : 'insufficient_evidence' };
   if (!proposal || proposal.status === 'insufficient_evidence') return fallback;
   const move = evidence.moveFor(proposal.evidence);
-  if (!move || (latestDirect && latestDirect.seq >= move.seq) || !proposal.evidence.every((item) => evidence.validates(item, move))) return fallback;
+  if (!move || looksLikeScorerInstruction(move.content) || (latestDirect && latestDirect.seq >= move.seq) ||
+    !proposal.evidence.every((item) => evidence.validates(item, move))) return fallback;
   const source = presented.find(({ reply, trap }) => reply.seq < move.seq && proposal.evidence.some((item) =>
     item.source === 'copilot_event' && item.sourceId === reply.id && item.quote.includes(trap.errorToInject)));
   if (!source) return fallback;
@@ -62,7 +66,7 @@ function classifyTrap(prepared: PreparedSubmission, proposal: EvaluatedMoves['tr
       sharedClaimTerms(quote, claim) >= 2 && !/[“”"]/.test(quote) &&
       !/\b(?:not|never|wrong|incorrect|false|instead|rather|verify|check|quoted|said)\b/i.test(move.content)
     ));
-    return adoptsClaim ? 'missed' : fallback;
+    return adoptsClaim ? { result: 'missed' } : fallback;
   }
   const docs = proposal.evidence.filter((item) => item.source === 'case_doc');
   const wrongTerms = wordSet(claim);
@@ -70,7 +74,7 @@ function classifyTrap(prepared: PreparedSubmission, proposal: EvaluatedMoves['tr
     sharedClaimTerms(quote, claim) > 0 && docs.some((doc) => (
       sharedClaimTerms(quote, doc.quote, wrongTerms) > 0 && !negatesDocumentCorrection(move.content, claim, doc.quote)
     )));
-  return citesCorrection ? 'caught' : fallback;
+  return citesCorrection ? { result: 'caught', moveId: move.id, claim, evidence: proposal.evidence } : fallback;
 }
 
 function uniqueProposals<T>(entries: T[], key: (entry: T) => string) {
@@ -104,7 +108,7 @@ export function recordedTrustCurve(prepared: PreparedSubmission) {
   });
 }
 
-function makeMoves(prepared: PreparedSubmission, proposals: EvaluatedMoves['moves'], evidence: EvidenceValidator) {
+function makeMoves(prepared: PreparedSubmission, proposals: EvaluatedMoves['moves'], evidence: EvidenceValidator, trap: TrapAssessment) {
   const grouped = uniqueProposals(proposals, (proposal) => proposal.eventId);
   const replies = trustedReplies(prepared);
   const criteria = new Set(prepared.snapshot.case.rubric.criteria.map((criterion) => criterion.id));
@@ -117,11 +121,21 @@ function makeMoves(prepared: PreparedSubmission, proposals: EvaluatedMoves['move
     const trustAfter = reply?.trust ?? before;
     personaTrust.set(personId, trustAfter);
     const assessed = proposal?.assessmentStatus === 'assessed' && moveAssessmentIssues(proposal, move, criteria, evidence).length === 0;
+    const correction = trap.result === 'caught' && trap.moveId === move.id ? trap : null;
+    // A verified trap correction establishes the existing AI-use criterion independently of the ordinary move proposal.
+    const correctionCriterion = correction && proposal?.assessmentStatus === 'insufficient_evidence' && criteria.has('critical_ai_use')
+      ? 'critical_ai_use' : null;
+    const rubricRef = assessed ? proposal.rubricRef : correctionCriterion;
+    const moveEvidence = assessed ? proposal.evidence : [];
+    const label = correction ? 'brilliant' : proposal?.label ?? 'good';
     const review = {
       eventId: move.id, seq: move.seq, userText: move.content, trustAfter, innerThought: reply?.innerThought ?? '',
-      ...(assessed ? {
-        label: proposal.label, points: MOVE_LABEL_POINTS[proposal.label], why: proposal.why, betterMove: proposal.betterMove,
-        rubricRef: proposal.rubricRef, evidence: proposal.evidence, assessmentStatus: 'assessed' as const,
+      ...(rubricRef !== null && proposal ? {
+        label, points: MOVE_LABEL_POINTS[label], betterMove: assessed ? proposal.betterMove : null,
+        why: correction ? `You caught the Copilot error “${correction.claim}” and corrected it using the case documents.` : proposal.why,
+        rubricRef, evidence: correction ? [...moveEvidence, ...correction.evidence.filter((item) =>
+          !moveEvidence.some((existing) => existing.source === item.source && existing.sourceId === item.sourceId && existing.quote === item.quote))]
+          : moveEvidence, assessmentStatus: 'assessed' as const,
       } : {
         label: 'good' as const, points: null, why: 'This move did not have sufficient verified evidence for a score.',
         betterMove: null, rubricRef: null, evidence: [], assessmentStatus: 'insufficient_evidence' as const,
@@ -175,13 +189,14 @@ export function assessSubmission(
   const { snapshot, messages, assistance, processObservations } = prepared;
   const rubric = snapshot.case.rubric;
   const evidence = createEvidenceValidator(prepared);
-  const rows = makeMoves(prepared, proposed.moves, evidence);
+  const trap = classifyTrap(prepared, proposed.trapAssessment, evidence);
+  const rows = makeMoves(prepared, proposed.moves, evidence, trap);
   const moves = rows.map(({ review }) => review);
   const scored = rows.filter(({ review }) => review.points !== null);
   const pointsSum = scored.reduce((total, { review }) => total + (review.points ?? 0), 0);
   const maxPoints = scored.length * 100;
   const aiUseSkill = evaluateAiSkill(prepared, proposed.aiUseChecks, evidence);
-  const trapResult = classifyTrap(prepared, proposed.trapAssessment, evidence);
+  const trapResult = trap.result;
   const labelCounts = { brilliant: 0, best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
   for (const { review } of scored) labelCounts[review.label] += 1;
   const priority = (move: MoveReview) => Number(move.label === 'brilliant' || move.label === 'blunder');

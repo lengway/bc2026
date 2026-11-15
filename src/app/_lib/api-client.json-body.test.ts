@@ -17,7 +17,9 @@ it("sends an empty JSON body on a bodyless POST, as the server CSRF guard requir
     method: "POST",
   });
   const [, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit];
-  expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
+  expect(new Headers(init.headers).get("Content-Type")).toBe(
+    "application/json",
+  );
   expect(init.body).toBe("{}");
 });
 

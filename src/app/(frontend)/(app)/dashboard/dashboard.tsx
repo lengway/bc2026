@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { UpgradeCheckout } from "@/app/_components/upgrade-checkout";
 import { ErrorPanel } from "@/app/_components/error-panel";
 import { useSkillPath } from "@/app/_hooks/case-hooks";
 import { useCaseHistory } from "@/app/_hooks/owner-activity-hooks";
@@ -98,6 +99,7 @@ export function Dashboard() {
       subfield={profile.data?.subfield ?? null}
       daily={daily}
       weekly={weekly}
+      weeklyUpsell={<UpgradeCheckout />}
       pending={create.isPending ? create.variables : undefined}
       onStart={start}
       startError={

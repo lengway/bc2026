@@ -129,7 +129,7 @@ export type PoolTemplate = z.infer<typeof PoolTemplate>;
 const poolColumns = `p.id,p.workspace,p.seed,p.archetype_id AS "archetypeId",p.model,
   p.prompt_version AS "promptVersion",p.generated_case AS generated,p.rubric`;
 
-export async function findUnusedTemplate(tx: SqlExecutor, profile: Profile): Promise<PoolTemplate | null> {
+export async function findUnusedTemplates(tx: SqlExecutor, profile: Profile): Promise<PoolTemplate[]> {
   const { rows } = await tx.query(`SELECT ${poolColumns} FROM onboarding_pool p
     WHERE p.field=$1 AND p.subfield=$2 AND p.level=$3
       AND NOT EXISTS (SELECT FROM cases c WHERE c.user_id=$4 AND (
@@ -140,8 +140,8 @@ export async function findUnusedTemplate(tx: SqlExecutor, profile: Profile): Pro
             OR lower(used.public->>'company')=lower(candidate.persona->'public'->>'company')
           )
         ))
-      ))`, [profile.field, profile.subfield, profile.level, profile.userId]);
-  return rows[0] ? PoolTemplate.parse(rows[0]) : null;
+      )) ORDER BY p.created_at,p.id`, [profile.field, profile.subfield, profile.level, profile.userId]);
+  return z.array(PoolTemplate).parse(rows);
 }
 
 export async function findSeededTemplates(db: SqlExecutor, field: Field, subfield: string) {
@@ -151,7 +151,7 @@ export async function findSeededTemplates(db: SqlExecutor, field: Field, subfiel
 
 export async function insertTemplate(db: SqlExecutor, profile: { field: Field; subfield: string; level: Level }, template: Omit<PoolTemplate, 'id'>) {
   return (await db.query(`INSERT INTO onboarding_pool(field,subfield,level,archetype_id,workspace,seed,model,prompt_version,generated_case,rubric)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (field,subfield,level) DO NOTHING`,
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (field,subfield,level,archetype_id) DO NOTHING`,
   [profile.field, profile.subfield, profile.level, template.archetypeId, template.workspace, template.seed,
     template.model, template.promptVersion, JSON.stringify(template.generated), JSON.stringify(template.rubric)])).rowCount === 1;
 }

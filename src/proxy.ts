@@ -57,7 +57,6 @@ export const config = {
     "/pressure/:path*",
     "/history/:path*",
     "/certificates/:path*",
-    "/help/:path*",
     "/billing/:path*",
     "/settings/:path*",
   ],

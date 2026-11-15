@@ -49,6 +49,7 @@ type DashboardProps = {
   pending?: GenerateCaseRequest;
   onStart: (input: GenerateCaseRequest) => void;
   startError?: ReactNode;
+  weeklyUpsell?: ReactNode;
 };
 
 export const dashboardContainer =
@@ -226,6 +227,7 @@ export function DashboardScreen({
   pending,
   onStart,
   startError,
+  weeklyUpsell,
 }: DashboardProps) {
   const sortedSkills = orderSkillSeries(path.series);
   const next = sortedSkills.find(
@@ -335,7 +337,7 @@ export function DashboardScreen({
             }
             action={
               free ? (
-                <Link
+                weeklyUpsell ?? <Link
                   href="/settings/billing"
                   className="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-ink outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring lg:min-h-8"
                 >

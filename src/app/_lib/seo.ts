@@ -25,6 +25,11 @@ const publicPages = {
     description:
       "Try a three-minute Gambit challenge and check Copilot’s advice against fictional work documents.",
   },
+  "/help": {
+    title: "Help",
+    description:
+      "Find answers about Gambit cases, move evaluations, Copilot, skill certificates, and sharing results.",
+  },
 } satisfies Record<string, { title: string; description: string }>;
 
 export function publicMetadata(
