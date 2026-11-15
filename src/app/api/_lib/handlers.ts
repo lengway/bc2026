@@ -37,7 +37,9 @@ export function createApi(app:CoreRuntime,{streamPollMs=2000}:{streamPollMs?:num
   return {
     ...createAccountApi(app,{csrf,respond,user,token,requestKey,secure}),
     ...createOwnerActivityApi(app,{respond,user}),
-    authOptions:()=>guarded(async()=>json(z.object({guestAccessEnabled:z.boolean()}),{guestAccessEnabled:app.config.GUEST_ACCESS_ENABLED})),
+    authOptions:()=>guarded(async()=>json(z.object({guestAccessEnabled:z.boolean(),guestAutoEnabled:z.boolean()}),{guestAccessEnabled:app.config.GUEST_ACCESS_ENABLED,
+      // Jury demo: with guest Pro on, visitors are signed in as guests automatically.
+      guestAutoEnabled:app.config.GUEST_ACCESS_ENABLED&&app.config.GUEST_PRO_ENABLED})),
     session:(request:Request)=>respond(request,async()=>{
       const session=await app.identity.getSession(token(request));
       if(session) sessions.set(request,session);
