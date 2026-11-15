@@ -73,7 +73,7 @@ export function BillingSettings() {
         )}
         {isGuest && (
           <Button asChild className="min-h-11 w-fit">
-            <Link href="/login?next=/settings/billing">Sign in to upgrade</Link>
+            <Link href="/login?account=1&next=/settings/billing">Sign in to upgrade</Link>
           </Button>
         )}
         {portal.isError && (
@@ -91,7 +91,7 @@ export function BillingSettings() {
           if (selected === "pro") checkout.mutate(period);
         }}
         planHrefs={
-          isGuest ? { pro: "/login?next=/settings/billing" } : undefined
+          isGuest ? { pro: "/login?account=1&next=/settings/billing" } : undefined
         }
         pending={portal.isPending}
         checkoutPending={checkout.isPending}

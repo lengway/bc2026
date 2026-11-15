@@ -78,7 +78,7 @@ function AccountForms({ user }: { user: SessionUser }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const exit = () => {
     cache.clear();
-    router.replace("/login");
+    router.replace("/login?account=1");
     router.refresh();
   };
   const changeName = useMutation({

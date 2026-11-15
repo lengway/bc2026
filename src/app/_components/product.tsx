@@ -74,7 +74,7 @@ function ProductHeader() {
             <Link href="/pricing">Plans</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/login">
+            <Link href="/login?account=1">
               Sign in
               <ArrowRight aria-hidden="true" />
             </Link>

@@ -27,7 +27,7 @@ export default function HomePage() {
         productName="Gambit"
         hrefs={{
           start: "/login?next=/onboarding",
-          signIn: "/login",
+          signIn: "/login?account=1",
           sampleCertificate: "/s/sample",
         }}
         preview={{

@@ -22,7 +22,7 @@ export function UpgradeCheckout() {
             size="sm"
             className="min-h-11 lg:min-h-8"
           >
-            <Link href="/login?next=/settings/billing">Sign in to upgrade</Link>
+            <Link href="/login?account=1&next=/settings/billing">Sign in to upgrade</Link>
           </Button>
         ) : (
           <Button

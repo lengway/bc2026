@@ -12,6 +12,7 @@ import {
   LogOut,
   Monitor,
   Settings2,
+  LogIn,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { DropdownMenu } from "radix-ui";
@@ -85,13 +86,13 @@ export function ProfileMenu({
     mutationFn: api.logout,
     onSuccess: () => {
       cache.clear();
-      router.replace("/login");
+      router.replace("/login?account=1");
       router.refresh();
     },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 401) {
         cache.clear();
-        router.replace("/login");
+        router.replace("/login?account=1");
       } else toast.error(error.message);
     },
   });
@@ -228,6 +229,14 @@ export function ProfileMenu({
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 border-t" />
+          <DropdownMenu.Item
+            className={itemClass}
+            disabled={logout.isPending}
+            onSelect={() => logout.mutate()}
+          >
+            <LogIn aria-hidden="true" className="size-4" strokeWidth={1.5} />
+            {user.isGuest ? "Sign in to your account" : "Switch account"}
+          </DropdownMenu.Item>
           <DropdownMenu.Item
             className={itemClass}
             disabled={logout.isPending}
