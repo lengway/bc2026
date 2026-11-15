@@ -19,7 +19,13 @@ export async function apiClient<T>(
   schema: z.ZodType<T>,
   options: ApiRequestOptions = {},
 ): Promise<T> {
-  const { body, timeoutMs = 20_000, signal, ...init } = options;
+  const { body: rawBody, timeoutMs = 20_000, signal, ...init } = options;
+  // State-changing API routes accept JSON only (CSRF guard), so a bodyless POST sends {}.
+  const method = (init.method ?? "GET").toUpperCase();
+  const body =
+    rawBody === undefined && method !== "GET" && method !== "HEAD"
+      ? {}
+      : rawBody;
   const timeout = AbortSignal.timeout(timeoutMs);
   const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const headers = new Headers(init.headers);
