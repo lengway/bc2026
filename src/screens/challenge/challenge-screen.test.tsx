@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChallengeScreen } from "./challenge-screen";
 
@@ -13,6 +14,15 @@ beforeEach(() => {
 });
 
 describe("ChallengeScreen", () => {
+  it("server-renders the opening exercise, its document and the home link", () => {
+    const html = renderToStaticMarkup(<ChallengeScreen />);
+    const serverDocument = new DOMParser().parseFromString(html, "text/html");
+
+    expect(serverDocument.querySelector("h1")?.textContent).toBe("Spot the mismatch");
+    expect(serverDocument.querySelector("article")?.textContent).toContain("Executed order form");
+    expect(serverDocument.querySelector("header a[href='/']")?.textContent).toBe("Gambit");
+  });
+
   it("reveals the supporting record and practical consequence after a choice", () => {
     render(<ChallengeScreen />);
 
@@ -38,7 +48,9 @@ describe("ChallengeScreen", () => {
 
     expect(screen.getAllByRole("button", { name: /reassure them that net 60 is fine/i })).toHaveLength(1);
     expect(screen.getByRole("button", { name: /reassure them that net 60 is fine/i })).toBeDisabled();
-    expect(screen.getByText(/your choice: reassure them.*incorrect/i)).toBeInTheDocument();
+    expect(screen.getByText(/your choice: reassure them/i)).toBeInTheDocument();
+    expect(screen.getByText("Incorrect", { exact: true })).toBeInTheDocument();
+    expect(firstChoice).toHaveClass("bg-label-mistake-soft");
     expect(screen.getByText("1 / 3")).toBeInTheDocument();
   });
 
