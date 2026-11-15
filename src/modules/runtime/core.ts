@@ -28,7 +28,7 @@ export function createCoreRuntime(config:ServerConfig,overrides:{db?:Database;pr
   const mailer=overrides.mailer??createSmtpMailer({host:config.SMTP_HOST,port:config.SMTP_PORT,secure:config.SMTP_SECURE,user:config.SMTP_USER,password:config.SMTP_PASSWORD,from:config.SMTP_FROM});
   const jobs=createJobsService({db,now});
   const events=createEventsService({db,now});
-  const billing=createBillingService({db,now,appUrl:config.APP_URL,monthlyPriceId:config.STRIPE_PRICE_ID_MONTHLY,yearlyPriceId:config.STRIPE_PRICE_ID_YEARLY,
+  const billing=createBillingService({db,now,guestPro:config.GUEST_ACCESS_ENABLED&&config.GUEST_PRO_ENABLED,appUrl:config.APP_URL,monthlyPriceId:config.STRIPE_PRICE_ID_MONTHLY,yearlyPriceId:config.STRIPE_PRICE_ID_YEARLY,
     provider:overrides.billingProvider??createStripeProvider({secretKey:config.STRIPE_SECRET_KEY,webhookSecret:config.STRIPE_WEBHOOK_SECRET})});
   const caseEngine=createCaseEngineService({db,jobs,llm,catalog,now,demoMode:config.DEMO_MODE,canStart:(userId,type,tx)=>billing.can(userId,`start_case:${type}`,tx)});
   const simulation=createSimulationService({db,caseEngine,events,jobs,llm,now,operationLeaseMs:Math.max(120_000,config.LLM_TIMEOUT_MS*3+30_000)});
