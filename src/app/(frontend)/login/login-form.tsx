@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,14 +21,20 @@ import {
   textLinkClass,
 } from "@/app/_components/auth-form";
 
-const GuestAccessOptions = z.object({ guestAccessEnabled: z.boolean() });
+const GuestAccessOptions = z.object({
+  guestAccessEnabled: z.boolean(),
+  guestAutoEnabled: z.boolean().default(false),
+});
 
 export function LoginForm({
   next,
   invalidLink,
+  accountSignIn = false,
 }: {
   next: string;
   invalidLink: boolean;
+  /** `?account=1`: show the normal form even when guest demo sign-in is automatic. */
+  accountSignIn?: boolean;
 }) {
   const [mode, setMode] = useState(invalidLink ? "link" : "password");
   const [email, setEmail] = useState("");
@@ -62,8 +68,19 @@ export function LoginForm({
         method: "POST",
         body: {},
       }),
-    onSuccess: (session) => finish(session, "/dashboard"),
+    onSuccess: (session) => finish(session, next || "/dashboard"),
   });
+  const autoGuest =
+    !accountSignIn &&
+    !invalidLink &&
+    authOptions.data?.guestAutoEnabled === true &&
+    !guest.isError;
+  const startedAutoGuest = useRef(false);
+  useEffect(() => {
+    if (!autoGuest || startedAutoGuest.current) return;
+    startedAutoGuest.current = true;
+    guest.mutate();
+  }, [autoGuest, guest]);
   const preview = useMutation({
     mutationFn: async () => {
       // Email delivery is simulated only by the browser preview.
@@ -114,6 +131,18 @@ export function LoginForm({
       error={invalidEmail ? "Enter a deliverable email address." : undefined}
     />
   );
+  if (autoGuest)
+    return (
+      <div className="grid gap-4 text-sm text-muted-foreground">
+        <p role="status">Opening the Gambit demo…</p>
+        <Link
+          className={textLinkClass}
+          href={{ pathname: "/login", query: { next, account: "1" } }}
+        >
+          Sign in with your account instead
+        </Link>
+      </div>
+    );
   return (
     <>
       <Tabs
