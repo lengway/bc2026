@@ -12,7 +12,7 @@ export default function PressurePage() {
   const router = useRouter();
   const launch = useMutation({
     mutationFn: api.createPressureCase,
-    onSuccess: ({ caseId }) => router.push(`/case/${caseId}?type=onboarding`),
+    onSuccess: ({ caseId }) => router.push(`/case/${caseId}?type=pressure`),
   });
 
   return (

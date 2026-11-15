@@ -35,6 +35,53 @@ const screens = [
 ];
 
 for (const width of [320, 375, 390]) {
+  test(`populated dashboard keeps horizontal scrolling inside its cards at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 812 });
+    await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+    await page.addInitScript(() => {
+      sessionStorage.setItem("bc2026.preview.authenticated", "yes");
+      sessionStorage.setItem("gambit.preview.appFixture", "certified");
+    });
+    await page.goto("/dashboard");
+    await expect(
+      page.getByRole("table", { name: "Case results" }).getByRole("rowheader"),
+    ).toHaveCount(3);
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+
+    const statistics = page.getByRole("region", {
+      name: "Practice statistics cards",
+    });
+    const skills = page.getByRole("region", { name: "Skill cards" });
+    await expect(
+      statistics.getByRole("link", { name: "View certificates", exact: true }),
+    ).toHaveAttribute("href", "/certificates");
+
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme });
+      await expect(page.locator("html")).toHaveClass(
+        new RegExp(`\\b${colorScheme}\\b`),
+      );
+      expect(
+        await page.evaluate(() => ({
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+        })),
+        colorScheme,
+      ).toEqual({ scrollWidth: width, clientWidth: width });
+    }
+
+    for (const region of [statistics, skills]) {
+      await region.press("ArrowRight");
+      await expect
+        .poll(() => region.evaluate((element) => element.scrollLeft))
+        .toBeGreaterThan(0);
+    }
+  });
+
   test(`authenticated pages and all mobile tabs fit at ${width}px`, async ({
     page,
   }) => {

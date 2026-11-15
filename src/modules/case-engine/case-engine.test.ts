@@ -103,7 +103,7 @@ describe('case engine on PostgreSQL', () => {
     expect(calls[0].input).toMatchObject({ profile: { level: 'beginner', intakeText: 'I work with regional fleets' } });
     expect((await fixture.db.query('SELECT status FROM jobs WHERE id=$1', [job.id])).rows[0].status).toBe('completed');
     const ready = await engine.getCaseForUser(created.caseId, userId);
-    expect(ready).toMatchObject({ status: 'ready', startedAt: null, scoringGuide: { version: record.rubric.version } });
+    expect(ready).toMatchObject({ type: 'onboarding', status: 'ready', startedAt: null, scoringGuide: { version: record.rubric.version } });
     expect(JSON.stringify(ready)).not.toMatch(/realMotive|howToCatch|idealMove|term-trap|confidential cap/);
     const late = record.docs.find((doc) => doc.arrivesAtTurn === 2);
     if (!late) throw new Error('Expected a document that opens on turn two');
@@ -122,6 +122,19 @@ describe('case engine on PostgreSQL', () => {
     const nextRecord = await engine.getCaseRecord(next.caseId);
     expect(nextRecord?.archetypeId).not.toBe(record.archetypeId);
     expect(nextRecord?.personas[0].public.id).not.toBe(record.personas[0].public.id);
+  });
+
+  it('exposes the curated Pressure case without drawing on onboarding templates or a daily allowance', async () => {
+    const userId = await user();
+    const { engine, calls } = setup();
+    const { caseId } = await engine.generatePressureCase(userId);
+
+    const ready = await engine.getCaseForUser(caseId, userId);
+    expect(ready).toMatchObject({ type: 'pressure', status: 'ready', brief: { title: 'Northstar Clinics: the budget changed', timeLimitSec: 480 } });
+    expect(JSON.stringify(ready)).not.toMatch(/realMotive|cfo-update/);
+    expect((await fixture.db.query('SELECT onboarding_pool_id FROM cases WHERE id=$1', [caseId])).rows[0]).toEqual({ onboarding_pool_id: null });
+    expect(calls).toEqual([]);
+    await expect(engine.generateCase(userId, 'daily')).resolves.toMatchObject({ status: 'generating' });
   });
 
   it('publishes seeded scenario data on onboarding failure and exposes failed daily generation without a brief', async () => {

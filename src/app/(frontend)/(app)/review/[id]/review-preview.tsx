@@ -7,6 +7,7 @@ import {
   useReview,
   useCreateCase,
   useSkillPath,
+  isTransientCaseReadError,
 } from "@/app/_hooks/case-hooks";
 import { ErrorPanel } from "@/app/_components/error-panel";
 import { LoadingState } from "@/app/_components/providers";
@@ -17,23 +18,26 @@ import { formatSkill } from "@/ui/lib/format";
 import { Surface } from "@/app/_components/product";
 export function ReviewPreview({ id }: { id: string }) {
   const [slow, setSlow] = useState(false);
-  const current = useCase(id, !slow);
+  const current = useCase(id, slow ? 10_000 : true);
   const router = useRouter();
   const create = useCreateCase();
   const ready = current.data?.status === "evaluated";
+  const evaluating = current.data?.status === "evaluating";
   const query = useReview(id, ready);
   const path = useSkillPath(ready);
   useEffect(() => {
-    if (ready) return;
+    if (!evaluating) return;
     const timer = setTimeout(() => setSlow(true), 60_000);
     return () => clearTimeout(timer);
-  }, [ready]);
-  if (current.isError)
+  }, [evaluating]);
+  if (
+    current.isError &&
+    (!current.data || !isTransientCaseReadError(current.error))
+  )
     return (
       <ErrorPanel error={current.error} retry={() => void current.refetch()} />
     );
-  if (current.isPending || !current.data)
-    return <LoadingState label="Loading the review…" />;
+  if (!current.data) return <LoadingState label="Loading the review…" />;
   const view = current.data;
   if (
     !("brief" in view) ||
@@ -62,10 +66,7 @@ export function ReviewPreview({ id }: { id: string }) {
             </p>
             <Button
               variant="outline"
-              onClick={() => {
-                setSlow(false);
-                void current.refetch();
-              }}
+              onClick={() => void current.refetch({ cancelRefetch: false })}
             >
               Check again
             </Button>
@@ -76,11 +77,11 @@ export function ReviewPreview({ id }: { id: string }) {
         )}
       </>
     );
-  if (query.isPending) return <LoadingState label="Loading your results…" />;
-  if (query.isError)
+  if (query.isError && (!query.data || !isTransientCaseReadError(query.error)))
     return (
       <ErrorPanel error={query.error} retry={() => void query.refetch()} />
     );
+  if (!query.data) return <LoadingState label="Loading your results…" />;
   const {
     evaluation,
     moves,

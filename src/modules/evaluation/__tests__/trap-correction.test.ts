@@ -41,7 +41,7 @@ function marisolCase() {
   const snapshot: SubmittedSnapshot = {
     version: 1, events, drafts: [], submittedAt: at, reason: 'user', limitations: [],
     case: {
-      ...view, userId: '16000000-0000-4000-8000-000000000100', level: 'intermediate', isDemo: false, isGuest: false,
+      ...view, type: 'onboarding', userId: '16000000-0000-4000-8000-000000000100', level: 'intermediate', isDemo: false, isGuest: false,
       brief: { ...view.brief, title: 'The Purchase Order That Never Moved' },
       docs: [{ id: 'guardrails', title: 'Commercial guardrails', kind: 'note', content: { text: fixture.correction }, arrivesAtTurn: null }],
       personas: [{ public: persona, hidden: {

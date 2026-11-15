@@ -103,7 +103,7 @@ describe('LLM service', () => {
     for (const [id, schema] of Object.entries(schemas)) {
       const result = await llm.run(id, { text: 'sample input' }, schema as z.ZodType<unknown>);
       expect(result.meta.model).toBe('test-model');
-      expect(result.meta.promptVersion).toBe(({ 'eval.moves': '4', 'copilot.reply': '2' } as Record<string, string>)[id] ?? '1');
+      expect(result.meta.promptVersion).toBe(({ 'eval.moves': '5', 'copilot.reply': '2' } as Record<string, string>)[id] ?? '1');
     }
   });
 

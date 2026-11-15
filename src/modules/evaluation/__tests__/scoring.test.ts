@@ -12,6 +12,49 @@ import copycat from './golden/copycat.json';
 
 const scorer = { model: 'mock-scorer', promptVersion: '2' };
 
+// Hand-authored reconstruction of the reported Toteledger submission.
+const offlineClaim = 'Toteledger does not support offline return scanning';
+const offlineCorrection = 'Toteledger supports offline return scanning as a $2,400/year add-on.';
+
+function cheaperQuoteSubmission() {
+  const firstMove = `${offlineClaim}, so it fails the mandatory two-warehouse requirement and should be excluded from the comparison.`;
+  const { snapshot, response } = snapshotFor({
+    copilot: firstMove,
+    presented: true, trap: { status: 'missed', turn: 0 }, check: 'failed',
+    turns: [
+      { user: firstMove,
+        persona: `That is incorrect. ${offlineCorrection}`, label: 'blunder', criterion: 'objection_handling', trust: 20 },
+      { user: `Thanks for clarifying. ${offlineCorrection} What volume are you expecting at peak?`,
+        persona: 'About 200 returns per week.', label: 'good', criterion: 'discovery', trust: 25 },
+      { user: 'Could we review that volume together on Tuesday?', persona: 'Tuesday works.',
+        label: 'good', criterion: 'closing', trust: 35 },
+    ],
+  }, { telemetry: true });
+  snapshot.case.brief.title = 'The Cheaper Quote Before Peak Rental Season';
+  snapshot.case.rubric.traps[0].errorToInject = offlineClaim;
+  snapshot.case.rubric.traps[0].howToCatch = offlineCorrection;
+  const doc = snapshot.case.docs.find(({ id }) => id === 'terms')!;
+  Object.assign(doc, { title: 'Feature pricing', content: { text: offlineCorrection } });
+  const initialReply = snapshot.events.find(({ type }) => type === 'copilot_reply')!;
+  const moves = snapshot.events.filter(({ actor, type }) => actor === 'user' && type === 'message');
+  const replies = [initialReply];
+  for (const event of snapshot.events) event.seq *= 2;
+  for (const [index, move] of moves.entries()) {
+    if (index > 0) {
+      const reply = { ...initialReply, id: `26000000-0000-4000-8000-00000000000${index}`, seq: move.seq - 1,
+        content: move.content, meta: {}, createdAt: new Date(Date.parse(move.createdAt) - 5000).toISOString() };
+      replies.push(reply);
+      snapshot.events.push(reply);
+    }
+    Object.assign(snapshot.drafts[index].events[0], { kind: 'copilot_insert', sourceEventId: replies[index].id });
+  }
+  response.aiUseChecks = [];
+  response.trapAssessment!.evidence[0].quote = offlineClaim;
+  response.trapAssessment!.evidence[1].quote = offlineClaim;
+  response.trapAssessment!.evidence[2].quote = offlineCorrection;
+  return { snapshot, response, moves, replies };
+}
+
 describe('grounded score calculation', () => {
   it.each([strong, average, copycat])('calculates the manually reviewed $name transcript', (fixture) => {
     const { snapshot, response } = snapshotFor(fixture);
@@ -147,6 +190,49 @@ describe('grounded score calculation', () => {
     expect(assessSubmission(prepareSubmission(snapshot), response, scorer).evaluation.trapResult).toBe('missed');
   });
 
+  it.each(['missed', 'insufficient_evidence'] as const)('marks a verbatim negative Copilot claim missed when the scorer says %s', (status) => {
+    const { snapshot, response } = cheaperQuoteSubmission();
+    response.trapAssessment = { status, evidence: status === 'missed' ? response.trapAssessment!.evidence : [] };
+
+    const review = assessSubmission(prepareSubmission(snapshot), response, scorer);
+
+    expect(review.evaluation).toMatchObject({ trapCaught: false, trapResult: 'missed', aiDependency: 100,
+      assistance: { copilotRetainedPercent: 100 } });
+    expect(review.moves[0]).toMatchObject({ label: 'blunder', assessmentStatus: 'assessed' });
+  });
+
+  it.each(['copilot', 'buyer'] as const)('preserves the initial miss after the learner repeats a correction supplied by the %s', (source) => {
+    const { snapshot, response, moves, replies } = cheaperQuoteSubmission();
+    if (source === 'buyer') {
+      replies[1].content = 'Ask what volume they are expecting at peak.';
+      Object.assign(snapshot.drafts[1].events[0], { kind: 'insert', sourceEventId: null });
+    }
+    const [, earlierReply, document] = response.trapAssessment!.evidence;
+    response.trapAssessment = { status: 'caught', evidence: [
+      { ...response.moves[1].evidence[0], sourceId: moves[1].id,
+        quote: source === 'copilot' ? moves[1].content : offlineCorrection }, earlierReply, document,
+    ] };
+
+    const review = assessSubmission(prepareSubmission(snapshot), response, scorer);
+
+    expect(review.evaluation).toMatchObject({ trapCaught: false, trapResult: 'missed' });
+    expect(review.moves[1].label).toBe('good');
+  });
+
+  it.each([
+    `Can you confirm whether ${offlineClaim}?`,
+    `I'd like to confirm whether ${offlineClaim}.`,
+    `Copilot said “${offlineClaim}.” Is that right?`,
+    `It is incorrect that ${offlineClaim}.`,
+  ])('leaves a questioned or rejected negative claim unverified (%s)', (text) => {
+    const { snapshot, response, moves } = cheaperQuoteSubmission();
+    moves[0].content = text;
+    response.moves[0] = candidate(moves[0], 'good', 'objection_handling');
+    response.trapAssessment = { status: 'insufficient_evidence', evidence: [] };
+
+    expect(assessSubmission(prepareSubmission(snapshot), response, scorer).evaluation.trapResult).toBe('insufficient_evidence');
+  });
+
   it('uses the latest verified stance when a learner corrects or later repeats an erroneous claim', () => {
     const { snapshot, response } = snapshotFor(strong);
     const [, caught, next, last] = snapshot.events.filter((event) => event.actor === 'user' && event.type === 'message');
@@ -212,6 +298,7 @@ describe('grounded score calculation', () => {
       accuracy: null, aiDependency: null, trapResult: 'not_presented', skills: [],
       assistance: { copilotRetainedPercent: null }, aiUseSkill: { score: null },
       scoreAudit: { maxPoints: 0, scoredMoveCount: 0, completionStatus: 'insufficient_evidence' },
+      summary: 'There was too little verified evidence to score your moves.',
     });
   });
 });

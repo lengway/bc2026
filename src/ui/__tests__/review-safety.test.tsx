@@ -42,6 +42,20 @@ it("does not present an unassessed move as a confirmed grade", () => {
   expect(screen.getByText("Not enough evidence")).toBeInTheDocument();
   expect(screen.queryByText("Brilliant")).not.toBeInTheDocument();
 });
+it("uses the person's given name in the move readout", () => {
+  render(
+    <MoveDetail
+      move={moves[0]}
+      personaName="Dr. Morgan Lee"
+      moveNumber={1}
+      totalMoves={1}
+    />,
+  );
+
+  expect(
+    screen.getByRole("heading", { name: "What Morgan was thinking" }),
+  ).toBeVisible();
+});
 it("keeps unavailable public document evidence as a quotation", () => {
   render(
     <EvidenceList

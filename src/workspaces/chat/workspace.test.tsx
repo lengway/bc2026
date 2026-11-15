@@ -13,6 +13,7 @@ import { CaseDoc } from "@/contracts";
 import { api } from "@/app/_lib/api";
 import { ApiError } from "@/app/_lib/api-client";
 import { eventKey, type DisplayEvent } from "@/app/_hooks/case-hooks";
+import { makePressureCase } from "@/mocks/scenarios/pressure";
 import { makeCase, twistDoc } from "@/mocks/scenarios/sales";
 import type { EventStreamOptions } from "./realtime";
 import { ChatWorkspace } from "./workspace";
@@ -50,6 +51,106 @@ it("makes the case mission available in a compact disclosure", () => {
   expect(objective).not.toHaveAttribute("open");
   expect(objective).toHaveTextContent(view.brief.mission);
 });
+
+it("uses Morgan's given name in the conversation and reply field", async () => {
+  vi.stubGlobal("matchMedia", (media: string) => ({
+    media,
+    matches: false,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+  const view = makePressureCase(crypto.randomUUID());
+  const client = new QueryClient();
+  render(
+    <QueryClientProvider client={client}>
+      <ChatWorkspace caseView={view} />
+    </QueryClientProvider>,
+  );
+  await act(async () =>
+    stream.onEvents([
+      {
+        id: crypto.randomUUID(),
+        caseId: view.id,
+        seq: 1,
+        actor: "persona",
+        type: "message",
+        personaId: view.personas[0].id,
+        content: "What would you want to measure?",
+        clientMsgId: null,
+        draftId: null,
+        meta: {},
+        createdAt: new Date().toISOString(),
+      },
+    ]),
+  );
+
+  const log = await screen.findByRole("log", {
+    name: "Conversation with Morgan",
+  });
+  expect(within(log).getByText("Morgan", { exact: true })).toBeVisible();
+  expect(screen.getByRole("textbox", { name: "Message Morgan" })).toBeVisible();
+});
+
+it.each(["daily", "weekly"] as const)(
+  "announces the matching participant by name when a %s persona twist arrives",
+  async (type) => {
+    vi.stubGlobal("matchMedia", (media: string) => ({
+      media,
+      matches: false,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    const seed = makeCase(undefined, type);
+    const senderId = crypto.randomUUID();
+    const view = {
+      ...seed,
+      personas: [
+        seed.personas[0],
+        { ...seed.personas[0], id: senderId, name: "Morgan Lee" },
+      ],
+    };
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <ChatWorkspace caseView={view} />
+      </QueryClientProvider>,
+    );
+    const twist: EventData = {
+      id: crypto.randomUUID(),
+      caseId: view.id,
+      seq: 1,
+      actor: "system",
+      type: "twist",
+      personaId: null,
+      content: "The pilot needs finance approval.",
+      clientMsgId: null,
+      draftId: null,
+      meta: { kind: "persona_message", from: senderId },
+      createdAt: new Date().toISOString(),
+    };
+    await act(async () =>
+      stream.onEvents([
+        twist,
+        {
+          ...twist,
+          id: crypto.randomUUID(),
+          seq: 2,
+          content: "The ceiling is $60,000.",
+          meta: { kind: "email", from: "Priya Shah, CFO" },
+        },
+      ]),
+    );
+
+    expect(
+      await screen.findByRole("status", {
+        name: "New message from Morgan Lee",
+      }),
+    ).toHaveTextContent("from Morgan Lee");
+    expect(
+      screen.getByRole("status", { name: "New email from Priya Shah, CFO" }),
+    ).toHaveTextContent("from Priya Shah, CFO");
+  },
+);
 
 it("clears the unread marker when a new document is opened on mobile", async () => {
   vi.stubGlobal("matchMedia", (media: string) => ({

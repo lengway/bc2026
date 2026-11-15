@@ -14,9 +14,16 @@ export function presentedTraps({ snapshot, replies }: PreparedSubmission) {
 }
 
 function commitsClaim(text: string, claim: string) {
-  if (!normalize(text).includes(normalize(claim).replace(/[.!?]$/, ''))) return false;
-  // Exact repetition is sufficient only when it reads as a commitment. Ambiguous quotes are left to evidence review.
-  return !/[“”"]/.test(text) && !/\b(?:incorrect|wrong|false|mistak(?:e|en)|actually|rather|instead|contradicts?|not|never|said|suggested|quoted|verify|check|correct)\b/i.test(text);
+  const statement = normalize(claim).replace(/[.!?]$/, '');
+  const message = normalize(text);
+  const start = message.indexOf(statement);
+  if (!statement || start === -1) return false;
+  const before = message.slice(0, start).trimEnd();
+  const after = message.slice(start + statement.length).trimStart();
+  if (after.startsWith('?') || /\b(?:if|whether)$/.test(before)) return false;
+  // A negation inside the injected claim is part of the claim itself.
+  const surroundingText = message.replaceAll(statement, ' ');
+  return !/[“”"]/.test(text) && !/\b(?:incorrect|wrong|false|mistak(?:e|en)|actually|rather|instead|contradicts?|not|never|said|suggested|quoted|verify|check|correct)\b/i.test(surroundingText);
 }
 
 const wordSet = (text: string) => new Set(normalize(text).match(/[\p{L}\p{N}]+/gu) ?? []);
@@ -70,10 +77,18 @@ function classifyTrap(prepared: PreparedSubmission, proposal: EvaluatedMoves['tr
   }
   const docs = proposal.evidence.filter((item) => item.source === 'case_doc');
   const wrongTerms = wordSet(claim);
-  const citesCorrection = citedMove.some(({ quote }) => !source.reply.content.includes(quote) &&
-    sharedClaimTerms(quote, claim) > 0 && docs.some((doc) => (
-      sharedClaimTerms(quote, doc.quote, wrongTerms) > 0 && !negatesDocumentCorrection(move.content, claim, doc.quote)
-    )));
+  const earlierAdvice = prepared.replies.filter((reply) => reply.seq < move.seq);
+  const buyerReply = latestDirect && prepared.events.find((event) =>
+    event.actor === 'persona' && event.type === 'message' && event.personaId === latestDirect.personaId &&
+    event.meta.replyToEventId === latestDirect.id && event.seq > latestDirect.seq && event.seq < move.seq);
+  const earlierSources = (buyerReply ? [...earlierAdvice, buyerReply] : earlierAdvice).map(({ content }) => normalize(content));
+  const citesCorrection = citedMove.some(({ quote }) => {
+    const normalizedQuote = normalize(quote);
+    return !earlierSources.some((content) => content.includes(normalizedQuote)) &&
+      sharedClaimTerms(quote, claim) > 0 && docs.some((doc) => (
+        sharedClaimTerms(quote, doc.quote, wrongTerms) > 0 && !negatesDocumentCorrection(move.content, claim, doc.quote)
+      ));
+  });
   return citesCorrection ? { result: 'caught', moveId: move.id, claim, evidence: proposal.evidence } : fallback;
 }
 
@@ -227,7 +242,7 @@ export function assessSubmission(
     caseId: snapshot.case.id, accuracy: noScore ? null : Math.round(100 * pointsSum / maxPoints), labelCounts,
     aiDependency: assistance.copilotTextSimilarityPercent, trapCaught: trapResult === 'caught', trapResult,
     assistance, aiUseSkill, processObservations, outcome, topMoves, trustCurve: recordedTrustCurve(prepared),
-    summary: noScore ? 'The recorded actions did not provide enough verified evidence for a move score.' : proposed.summary,
+    summary: noScore ? 'There was too little verified evidence to score your moves.' : proposed.summary,
     skills: skillScores.filter((entry) => entry.score !== null),
     scoreAudit: {
       rubricVersion: rubric.version, scorerModel: scorer.model, scorerPromptVersion: scorer.promptVersion,

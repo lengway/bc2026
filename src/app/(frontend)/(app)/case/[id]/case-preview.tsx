@@ -29,9 +29,19 @@ export function CasePreview({ id }: { id: string }) {
     if (
       query.data?.status === "evaluating" ||
       query.data?.status === "evaluated"
-    )
+    ) {
       router.replace(`/review/${id}`);
-  }, [query.data?.status, router, id]);
+    } else if (
+      query.data?.type === "pressure" &&
+      requestedType === "onboarding"
+    ) {
+      const updated = new URLSearchParams(params.toString());
+      updated.set("type", "pressure");
+      router.replace(`/case/${id}?${updated}${window.location.hash}`, {
+        scroll: false,
+      });
+    }
+  }, [query.data?.status, query.data?.type, requestedType, params, router, id]);
   if (query.isPending) return <LoadingState label="Opening your case…" />;
   if (query.isError)
     return (

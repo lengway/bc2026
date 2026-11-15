@@ -10,12 +10,28 @@ test("mobile preview launches Pressure and can open the CFO email after reload",
   await page.goto("/dashboard");
   await page.getByRole("link", { name: /Handle a CFO curveball/ }).click();
   await page.getByRole("button", { name: "Start Pressure case" }).click();
-  await expect(page).toHaveURL(/\/case\//);
+  await expect(page).toHaveURL(/\/case\/[^/?]+\?type=pressure$/);
   await expect(
     page.getByRole("heading", {
       name: "Northstar Clinics: the budget changed",
     }),
   ).toBeVisible();
+  await expect(page.getByText("Case brief · Pressure · Sales")).toBeVisible();
+
+  const path = new URL(page.url()).pathname;
+  await page.evaluate((caseId) => {
+    const key = "bc2026.preview.cases.v2";
+    const cases: { view: { id: string; type: string } }[] = JSON.parse(
+      sessionStorage.getItem(key) ?? "[]",
+    );
+    const saved = cases.find(({ view }) => view.id === caseId);
+    if (!saved) throw new Error("Expected a saved Pressure case");
+    saved.view.type = "onboarding";
+    sessionStorage.setItem(key, JSON.stringify(cases));
+  }, path.split("/").at(-1));
+  await page.goto(`${path}?type=onboarding&source=bookmark#brief`);
+  await expect(page.getByText("Case brief · Pressure · Sales")).toBeVisible();
+  await expect(page).toHaveURL(`${path}?type=pressure&source=bookmark#brief`);
 
   await page
     .getByLabel("I understand what is recorded in this workspace.")

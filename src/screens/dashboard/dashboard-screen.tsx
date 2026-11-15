@@ -470,9 +470,10 @@ export function DashboardScreen({
             action={
               <Link
                 href="/certificates"
+                aria-label="View certificates"
                 className="inline-flex min-h-11 items-center gap-1 rounded-sm text-xs font-medium text-ink outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring lg:min-h-0"
               >
-                View<span className="sr-only"> certificates</span>
+                View
                 <ArrowRight
                   className="size-3"
                   aria-hidden="true"
