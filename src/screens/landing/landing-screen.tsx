@@ -12,6 +12,7 @@ import { cn } from "@/ui/lib/utils";
 import { Button } from "@/ui/primitives/button";
 import { GambitMark } from "@/ui/brand";
 import { ThemeToggle } from "@/ui/theme-toggle";
+import { LandingAuthActions } from "./landing-auth-actions";
 import { LandingPricing } from "./landing-pricing";
 import { ReviewPreview, type ReviewPreviewData } from "./review-preview";
 
@@ -164,12 +165,10 @@ export function LandingScreen({
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button asChild variant="ghost" size="lg">
-              <Link href={hrefs.signIn}>Sign in</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href={hrefs.start}>Start a case</Link>
-            </Button>
+            <LandingAuthActions
+              signInHref={hrefs.signIn}
+              startHref={hrefs.start}
+            />
           </div>
         </div>
       </header>
