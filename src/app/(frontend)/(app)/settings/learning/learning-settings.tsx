@@ -25,7 +25,7 @@ import {
   MAX_FOCUS,
   ROLES,
   SEGMENTS,
-  composeIntakeText,
+  composeIntakeRequest,
   readIntakeAnswers,
   toggleFocus,
   type IntakeAnswers,
@@ -48,24 +48,24 @@ export function LearningSettings() {
 
 function LearningForm({ initialProfile }: { initialProfile: Profile | null }) {
   const query = useQueryClient();
-  const [answers, setAnswers] = useState(() =>
-    readIntakeAnswers(initialProfile),
-  );
-  const [dailyGoal, setDailyGoal] = useState<DailyGoal>(
-    initialProfile?.dailyGoal ?? 1,
-  );
-  const [savedProfile, setSavedProfile] = useState(initialProfile);
+  const savedAnswers = readIntakeAnswers(initialProfile);
+  const [edits, setAnswers] = useState<Partial<IntakeAnswers>>({});
+  const [editedGoal, setDailyGoal] = useState<DailyGoal>();
+  const answers = { ...savedAnswers, ...edits };
+  const dailyGoal = editedGoal ?? initialProfile?.dailyGoal ?? 1;
   const save = useMutation({
-    mutationFn: () =>
-      api.intake({
-        text: composeIntakeText(answers),
-        field: "sales",
-        level: answers.level,
-        dailyGoal,
-      }),
+    mutationFn: () => {
+      const request = composeIntakeRequest(answers);
+      const years =
+        edits.experience === undefined
+          ? (initialProfile?.years ?? request.years)
+          : request.years;
+      return api.intake({ ...request, years, dailyGoal });
+    },
     onSuccess: (profile) => {
       query.setQueryData(learningProfileKey, profile);
-      setSavedProfile(profile);
+      setAnswers({});
+      setDailyGoal(undefined);
     },
   });
   function set<K extends keyof IntakeAnswers>(key: K, value: IntakeAnswers[K]) {
@@ -73,9 +73,18 @@ function LearningForm({ initialProfile }: { initialProfile: Profile | null }) {
     save.reset();
   }
   function focus(key: "strengths" | "practice", area: FocusArea) {
-    set(key, toggleFocus(answers[key], area));
+    const other = key === "practice" ? "strengths" : "practice";
+    setAnswers((before) => ({
+      ...before,
+      [key]: toggleFocus(
+        before[key] ?? savedAnswers[key],
+        area,
+        before[other] ?? savedAnswers[other],
+      ),
+    }));
+    save.reset();
   }
-  const savedFocus = readIntakeAnswers(savedProfile).practice.map(
+  const savedFocus = savedAnswers.practice.map(
     (area) => FOCUS_AREAS[area].label,
   );
   return (

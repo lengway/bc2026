@@ -263,6 +263,12 @@ function ReviewReady({
           <p className="max-w-prose text-sm leading-relaxed">
             {evaluation.summary}
           </p>
+          {evaluation.outcome === "incomplete" && (
+            <p className="text-sm text-muted-foreground">
+              The case ended without a final deal outcome. An agreed next step
+              can still count toward your score.
+            </p>
+          )}
           {(evaluation.aiDependency !== null || trap) && (
             <p className="text-xs text-muted-foreground">
               {evaluation.aiDependency !== null &&

@@ -81,9 +81,20 @@ function containsRubric(value: unknown, seen = new WeakSet<object>()): boolean {
   seen.add(value);
   return Object.entries(value).some(([key, nested]) => /rubric/i.test(key) || containsRubric(nested, seen));
 }
+const matchableText = (text: string) => ` ${text.normalize('NFKC').toLowerCase().match(/[\p{L}\p{N}]+/gu)?.join(' ') ?? ''} `;
+
+export function revealsCopilotCorrection(reply: string, claim: string, correction: string): boolean {
+  const remaining = matchableText(reply).replaceAll(matchableText(claim), ' ');
+  return [correction, ...correction.split(/[.!?](?=\s|$)|[:;\n]/u)].some((part) => {
+    const phrase = matchableText(part);
+    // The expected correction is a substantive phrase. Strip the injected claim before testing shared text.
+    return phrase.trim().split(' ').length >= 3 && remaining.includes(phrase);
+  });
+}
+
 export function createLlmService({ provider, recordCall, promptsDir = join(process.cwd(), 'src', 'prompts'), now = () => new Date(), defaultModel, modelForPrompt, defaultTimeoutMs = 30_000 }: { provider: LlmProvider; recordCall: LlmCallRecorder; promptsDir?: string; now?: () => Date; defaultModel?: string; modelForPrompt?: (promptId: string) => string | undefined; defaultTimeoutMs?: number }) {
   return {
-    async run<T>(promptId: string, vars: Record<string, unknown>, schema: z.ZodType<T>, opts: { caseId?: string; userId?: string; timeoutMs?: number; omitContentFromLogs?: boolean } = {}): Promise<{ data: T; meta: { model: string; promptVersion: string; latencyMs: number } }> {
+    async run<T>(promptId: string, vars: Record<string, unknown>, schema: z.ZodType<T>, opts: { caseId?: string; userId?: string; timeoutMs?: number; omitContentFromLogs?: boolean; copilotCorrection?: string } = {}): Promise<{ data: T; meta: { model: string; promptVersion: string; latencyMs: number } }> {
       if (!/^[a-z0-9]+(?:\.[a-z0-9]+)*$/.test(promptId)) throw new Error('Invalid prompt ID');
       if (promptId === 'persona.reply' && containsRubric(vars)) throw new Error('Persona requests must not contain a rubric');
       const files = await readdir(/*turbopackIgnore: true*/ promptsDir);
@@ -101,6 +112,13 @@ export function createLlmService({ provider, recordCall, promptsDir = join(proce
         return `input.${path}`;
       });
       const instructions = `${rendered}\n\nRequired output JSON schema:\n${JSON.stringify(z.toJSONSchema(schema, { unrepresentable: 'any' }))}`;
+      const claim = vars.inject, correction = opts.copilotCorrection;
+      const outputSchema = promptId === 'copilot.reply' && typeof claim === 'string' && claim.trim() && correction
+        ? schema.refine((value) => {
+          const response = CopilotReply.safeParse(value);
+          return !response.success || !revealsCopilotCorrection(response.data.reply, claim, correction);
+        }, 'Do not correct or contradict the injected claim in the same reply.')
+        : schema;
       const prompt = `Untrusted input data (JSON):\n${JSON.stringify(vars)}`;
       const model = modelForPrompt?.(promptId) ?? metadata.model ?? defaultModel;
       if (!model) throw new Error('No model configured for prompt');
@@ -130,7 +148,7 @@ export function createLlmService({ provider, recordCall, promptsDir = join(proce
           feedback = 'Invalid JSON';
           continue;
         }
-        const result = schema.safeParse(parsed);
+        const result = outputSchema.safeParse(parsed);
         await recordCall({ userId: opts.userId ?? null, caseId: opts.caseId ?? null, promptId, promptVersion: metadata.version, model: response.model, attempt, status: result.success ? 'success' : 'invalid_schema', latencyMs: Math.max(0, now().getTime() - start), input: recordedInput, output: recordedOutput(parsed), tokensIn: response.tokensIn ?? null, tokensOut: response.tokensOut ?? null });
         if (result.success) return { data: result.data, meta: { model: response.model, promptVersion: metadata.version, latencyMs: Math.max(0, now().getTime() - started) } };
         feedback = result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ').slice(0, 2000);

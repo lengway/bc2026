@@ -32,7 +32,7 @@ export function createProfileService({db,llm,catalog,now=systemClock}:{db:Databa
         intake_text=EXCLUDED.intake_text,field=EXCLUDED.field,subfield=EXCLUDED.subfield,level=EXCLUDED.level,
         years=EXCLUDED.years,pains=EXCLUDED.pains,goals=EXCLUDED.goals,updated_at=EXCLUDED.updated_at,
         daily_goal=COALESCE($10,profiles.daily_goal) RETURNING *`,
-      [userId,request.text,request.field,details.subfield,request.level,details.years,details.pains,details.goals,now(),request.dailyGoal??null]);
+      [userId,request.text,request.field,details.subfield,request.level,request.years??details.years,details.pains,details.goals,now(),request.dailyGoal??null]);
       return parseRow(result.rows[0]);
     },
   };

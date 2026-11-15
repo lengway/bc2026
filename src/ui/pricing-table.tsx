@@ -2,6 +2,7 @@
 
 import { Check, Minus } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { cn } from "@/ui/lib/utils";
 import { Button } from "@/ui/primitives/button";
 
@@ -31,6 +32,8 @@ type PricingTableProps = {
   currentPlan?: PlanId | null;
   /** Disables the Pro action while checkout is being created. */
   pending?: boolean;
+  checkoutPending?: boolean;
+  checkoutError?: ReactNode;
   titleAs?: "h2" | "h3";
   className?: string;
 };
@@ -70,6 +73,8 @@ export function PricingTable({
   planHrefs,
   currentPlan = null,
   pending = false,
+  checkoutPending = false,
+  checkoutError,
   titleAs: Title = "h3",
   className,
 }: PricingTableProps) {
@@ -88,6 +93,7 @@ export function PricingTable({
             key={period}
             type="button"
             aria-pressed={billing === period}
+            disabled={pending || checkoutPending}
             onClick={() => onBillingChange?.(period)}
             className={cn(
               "inline-flex h-9 items-center gap-2 rounded-md px-3.5 text-sm font-medium outline-none",
@@ -173,12 +179,18 @@ export function PricingTable({
             <Button
               size="lg"
               className="mt-auto h-11"
-              disabled={pending || currentPlan === "pro"}
+              disabled={pending || checkoutPending || currentPlan === "pro"}
+              aria-busy={checkoutPending}
               onClick={() => onSelectPlan?.("pro")}
             >
-              {currentPlan === "pro" ? "Your current plan" : "Upgrade to Pro"}
+              {currentPlan === "pro"
+                ? "Your current plan"
+                : checkoutPending
+                  ? "Opening checkout…"
+                  : "Upgrade to Pro"}
             </Button>
           )}
+          {checkoutError}
         </section>
       </div>
     </div>

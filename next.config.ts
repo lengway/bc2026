@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source:
-          "/:section(api|billing|c|case|certificates|dashboard|design|forgot-password|help|history|login|onboarding|path|prepare|pressure|reset-password|review|s|settings|signup|verify-email)/:path*",
+          "/:section(api|billing|c|case|certificates|dashboard|design|forgot-password|history|login|onboarding|path|prepare|pressure|reset-password|review|s|settings|signup|verify-email)/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];

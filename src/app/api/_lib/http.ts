@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiError } from '@/contracts';
-import { AppError } from '@/modules/shared';
+import { AppError, isAppError } from '@/modules/shared';
 
 export type ParamsContext={params:Promise<Record<string,string>>};
 export function assertJson(request:Request):void {
@@ -16,7 +16,7 @@ export function json<T>(schema:z.ZodType<T>,data:unknown,status=200,headers?:Hea
 export async function guarded(work:()=>Promise<Response>):Promise<Response> {
   try {return await work();}
   catch(error) {
-    if(error instanceof AppError) return json(ApiError,{error:{code:error.code,message:error.message}},error.status);
+    if(isAppError(error)) return json(ApiError,{error:{code:error.code,message:error.message}},error.status);
     if(error instanceof z.ZodError) return json(ApiError,{error:{code:'VALIDATION',message:'Request data is invalid.'}},400);
     // Do not print provider errors, request bodies, cookies or connection strings.
     console.error('API_REQUEST_FAILED');

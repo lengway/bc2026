@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { BillingActionError } from "@/app/_components/billing-action-error";
+import { useCheckout } from "@/app/_hooks/use-billing-checkout";
 import { useBillingSummary } from "@/app/_hooks/use-billing-summary";
 import { accountApi } from "@/app/_lib/account-api";
 import { api } from "@/app/_lib/api";
@@ -23,12 +25,10 @@ export function BillingSettings() {
     queryFn: ({ signal }) => api.session(signal),
   });
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
-  const checkout = useMutation({
-    mutationFn: () => api.checkout(period),
-    onSuccess: ({ url }) => window.location.assign(url),
-  });
+  const checkout = useCheckout();
   const portal = useMutation({
     mutationFn: accountApi.portal,
+    retry: false,
     onSuccess: ({ url }) => window.location.assign(url),
   });
   if (query.isPending)
@@ -65,6 +65,7 @@ export function BillingSettings() {
             className="min-h-11 w-fit"
             variant="outline"
             disabled={portal.isPending || checkout.isPending}
+            aria-busy={portal.isPending}
             onClick={() => portal.mutate()}
           >
             {portal.isPending ? "Opening billing…" : "Manage subscription"}
@@ -76,7 +77,10 @@ export function BillingSettings() {
           </Button>
         )}
         {portal.isError && (
-          <ErrorPanel error={portal.error} retry={() => portal.mutate()} />
+          <BillingActionError
+            error={portal.error}
+            retry={() => portal.mutate()}
+          />
         )}
       </SettingsSection>
       <PricingTable
@@ -84,16 +88,22 @@ export function BillingSettings() {
         currentPlan={plan}
         onBillingChange={update}
         onSelectPlan={(selected) => {
-          if (selected === "pro") checkout.mutate();
+          if (selected === "pro") checkout.mutate(period);
         }}
         planHrefs={
           isGuest ? { pro: "/login?next=/settings/billing" } : undefined
         }
-        pending={checkout.isPending || portal.isPending}
+        pending={portal.isPending}
+        checkoutPending={checkout.isPending}
+        checkoutError={
+          checkout.isError && (
+            <BillingActionError
+              error={checkout.error}
+              retry={() => checkout.mutate(period)}
+            />
+          )
+        }
       />
-      {checkout.isError && (
-        <ErrorPanel error={checkout.error} retry={() => checkout.mutate()} />
-      )}
     </div>
   );
 }

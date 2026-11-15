@@ -39,9 +39,9 @@ export function AccuracyStat({
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="sr-only">{value}%</span>
+      {animate && <span className="sr-only">{value}%</span>}
       <span
-        aria-hidden="true"
+        aria-hidden={animate || undefined}
         className={cn(
           "font-mono leading-none font-medium tracking-tight tabular-nums",
           SIZE_CLASS[size],

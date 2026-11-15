@@ -241,6 +241,3 @@ export function useCreateCase() {
     },
   });
 }
-export function useCheckout() {
-  return useMutation({ mutationFn: api.checkout, retry: false });
-}

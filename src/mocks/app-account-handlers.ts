@@ -227,9 +227,11 @@ export function createAppAccountHandlers({
         subfield:
           /^Role: [^(]+\(([^)]+)\)/m.exec(input.data.text)?.[1] ??
           demoProfile.subfield,
-        years: Number(
-          /(?:Experience: (?:Under )?)?(\d+)/.exec(input.data.text)?.[1] ?? 0,
-        ),
+        years:
+          input.data.years ??
+          Number(
+            /(?:Experience: (?:Under )?)?(\d+)/.exec(input.data.text)?.[1] ?? 0,
+          ),
         intakeText: input.data.text,
         level: input.data.level,
         dailyGoal: input.data.dailyGoal ?? profile?.dailyGoal ?? 1,

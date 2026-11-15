@@ -87,6 +87,25 @@ describe("readIntakeAnswers", () => {
     expect(readIntakeAnswers(profile)).toEqual(editable);
   });
 
+  it("keeps a note delimiter inside the notes or industry as ordinary text", () => {
+    const industry = "Software for In their own words: research";
+    const notes = "Read this first.\nIn their own words: follow up next week.";
+    const intakeText = composeIntakeText({
+      ...EMPTY_ANSWERS,
+      segment: "ent",
+      industry,
+      notes,
+    });
+    expect(
+      readIntakeAnswers({
+        subfield: "account_executive",
+        level: "intermediate",
+        years: 3,
+        intakeText,
+      }),
+    ).toMatchObject({ industry, notes });
+  });
+
   it("preserves legacy free-text intake", () => {
     expect(
       readIntakeAnswers({

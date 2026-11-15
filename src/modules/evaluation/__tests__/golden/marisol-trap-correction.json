@@ -1,0 +1,25 @@
+{
+  "provenance": "Handwritten regression based on the manual E2E report, not a production transcript or replay.",
+  "copilot": "Our guardrails allow net-60 on implementation without additional approval.",
+  "correction": "Net-60 needs written sign-off from our sales director and deal desk.",
+  "turns": [
+    {
+      "user": "Who approves the purchase order, Marisol?",
+      "persona": "Our controller approves it at the November review.",
+      "criterion": "discovery",
+      "trust": 49
+    },
+    {
+      "user": "Net-60 needs written sign-off from our sales director and deal desk. I can confirm the approval status before the review.",
+      "persona": "I will hold the purchase order until you confirm.",
+      "criterion": "objection_handling",
+      "trust": 61
+    },
+    {
+      "user": "I'll send a status update by November 17 at 10 a.m. Central.",
+      "persona": "That works. I'll look for your update on November 17 at 10 a.m. Central.",
+      "criterion": "closing",
+      "trust": 72
+    }
+  ]
+}

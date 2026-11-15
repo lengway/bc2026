@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const publicPaths = ["/", "/pricing", "/terms", "/challenge"];
+const publicPaths = ["/", "/pricing", "/terms", "/challenge", "/help"];
 
 test("landing serves canonical metadata and content with JavaScript disabled", async ({
   browser,
@@ -82,6 +82,26 @@ test("terms has a distinct canonical and renders without JavaScript", async ({
   await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute(
     "href",
     "https://gambit.lengway.me/terms",
+  );
+  await page.close();
+});
+
+test("signed-out visitors can read Help without JavaScript", async ({
+  browser,
+  baseURL,
+}) => {
+  const page = await browser.newPage({ baseURL, javaScriptEnabled: false });
+  const response = await page.goto("/help");
+
+  expect(response?.status()).toBe(200);
+  expect(response?.headers()["x-robots-tag"]).toBeUndefined();
+  await expect(page).toHaveURL(/\/help$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Help" }),
+  ).toBeVisible();
+  await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    "https://gambit.lengway.me/help",
   );
   await page.close();
 });

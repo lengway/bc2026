@@ -7,7 +7,7 @@ import type { Database, SqlExecutor } from '@/modules/database';
 import type { EventsService, StoredEvent } from '@/modules/events';
 import { consumeRateLimit } from '@/modules/identity';
 import type { JobsService } from '@/modules/jobs';
-import { CopilotReply, DirectorTwist, PersonaReply, type LlmService } from '@/modules/llm';
+import { CopilotReply, DirectorTwist, PersonaReply, revealsCopilotCorrection, type LlmService } from '@/modules/llm';
 import { AppError, systemClock, type Clock } from '@/modules/shared';
 import * as repo from './repo';
 import { SubmittedSnapshot } from './snapshot';
@@ -120,7 +120,7 @@ export function createSimulationService({ db,caseEngine,events,jobs,llm,now = sy
     if (!result.ok) throw unavailable();
     return result.value;
   }
-  async function stage<T>(lease: Lease, promptId: string, input: Record<string,unknown>, schema: z.ZodType<T>, merge: (checkpoint: repo.Checkpoint, data: T) => repo.Checkpoint): Promise<T> {
+  async function stage<T>(lease: Lease, promptId: string, input: Record<string,unknown>, schema: z.ZodType<T>, merge: (checkpoint: repo.Checkpoint, data: T) => repo.Checkpoint, copilotCorrection?: string): Promise<T> {
     const isPrep = await withLease(lease,async (tx,record,operation) => {
       // A resumed action can spend provider resources again even though its user event
       // already exists. Charge once per lease only when a missing stage needs the LLM;
@@ -132,7 +132,7 @@ export function createSimulationService({ db,caseEngine,events,jobs,llm,now = sy
     });
     lease.providerAttemptCharged = true;
     let data: T;
-    try { data = (await llm.run(promptId,input,schema,{ caseId: lease.caseId, omitContentFromLogs: isPrep })).data; }
+    try { data = (await llm.run(promptId,input,schema,{ caseId: lease.caseId, omitContentFromLogs: isPrep, copilotCorrection })).data; }
     catch { throw new AppError('LLM_FAILED',502,'The simulation response is unavailable. Retry the same clientMsgId.'); }
     await withLease(lease,async (tx,_record,operation) => {
       await repo.writeCheckpoint(tx,operation,merge(operation.checkpoint,data),new Date(now().getTime()+operationLeaseMs),now());
@@ -201,9 +201,11 @@ export function createSimulationService({ db,caseEngine,events,jobs,llm,now = sy
     if (!initial.record.rubric) throw unavailable();
     const callNumber = initial.history.filter((event) => event.type === 'copilot_prompt').length;
     const trap = initial.record.rubric.traps.find((item) => item.injectAtCopilotCall === callNumber);
-    const reply = initial.operation.checkpoint.copilotReply ?? await stage(lease,'copilot.reply',{
+    const saved = initial.operation.checkpoint.copilotReply;
+    const reusable = saved && (!trap || !revealsCopilotCorrection(saved.reply,trap.errorToInject,trap.howToCatch));
+    const reply = reusable ? saved : await stage(lease,'copilot.reply',{
       history: safeHistory(initial.history,true),docs: availableDocuments(initial.record),request: request.text,...(trap ? { inject: trap.errorToInject } : {}),
-    },CopilotReply.refine((reply) => reply.reply.length<=32_000,'Reply is too large'),(checkpoint,copilotReply) => ({ ...checkpoint,copilotReply }));
+    },CopilotReply.refine((reply) => reply.reply.length<=32_000,'Reply is too large'),(checkpoint,copilotReply) => ({ ...checkpoint,copilotReply }),trap?.howToCatch);
     return withLease(lease,async (tx,record,operation) => {
       const presented = trap !== undefined && reply.reply.includes(trap.errorToInject);
       const replyEvent = await events.appendWithExecutor(tx,record.id,{ actor: 'copilot',type: 'copilot_reply',content: reply.reply,

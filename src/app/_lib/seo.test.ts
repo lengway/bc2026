@@ -3,7 +3,7 @@ import { publicMetadata, publicSitemap, robotsPolicy } from "./seo";
 
 describe("public search metadata", () => {
   it("gives each public page its own canonical and search snippet", () => {
-    const pages = ["/", "/pricing", "/terms", "/challenge"] as const;
+    const pages = ["/", "/pricing", "/terms", "/challenge", "/help"] as const;
     const metadata = pages.map((path) => publicMetadata(path, false));
 
     expect(metadata.map((page) => page.alternates?.canonical)).toEqual([
@@ -11,6 +11,7 @@ describe("public search metadata", () => {
       "https://gambit.lengway.me/pricing",
       "https://gambit.lengway.me/terms",
       "https://gambit.lengway.me/challenge",
+      "https://gambit.lengway.me/help",
     ]);
     expect(new Set(metadata.map((page) => page.title)).size).toBe(pages.length);
     expect(new Set(metadata.map((page) => page.description)).size).toBe(
@@ -27,6 +28,7 @@ describe("public search metadata", () => {
       { url: "https://gambit.lengway.me/pricing" },
       { url: "https://gambit.lengway.me/terms" },
       { url: "https://gambit.lengway.me/challenge" },
+      { url: "https://gambit.lengway.me/help" },
     ]);
     expect(robotsPolicy(false)).toEqual({
       rules: { userAgent: "*", allow: "/", disallow: "/api/" },

@@ -49,6 +49,23 @@ describe('LLM service', () => {
     expect(records.map((record) => record.status)).toEqual(['invalid_schema', 'invalid_schema', 'invalid_schema']);
   });
 
+  it('retries an injected Copilot reply that also gives away the correction', async () => {
+    const claim = 'Our guardrails allow net-60 on implementation without additional approval.';
+    const correction = 'Request written approval from the sales director and deal desk together for net-60.';
+    const records: LlmCallRecord[] = [];
+    const provider = new MockProvider({ 'copilot.reply': [
+      JSON.stringify({ reply: `${claim}\nRequest written approval from the Sales Director and Deal Desk together for net‑60!` }),
+      JSON.stringify({ reply: `${claim} Ask about the purchase order deadline.` }),
+    ] });
+    const llm = createLlmService({ provider, defaultModel: 'test-model', recordCall: async (record) => { records.push(record); } });
+
+    const result = await llm.run('copilot.reply', { inject: claim }, CopilotReply, { copilotCorrection: correction });
+
+    expect(result.data.reply).toBe(`${claim} Ask about the purchase order deadline.`);
+    expect(records.map(({ status }) => status)).toEqual(['invalid_schema', 'success']);
+    expect(records[0].input).toEqual({ inject: claim });
+  });
+
   it('times out even if a provider ignores its abort signal and records the failure', async () => {
     const records: LlmCallRecord[] = [];
     const provider: LlmProvider = { complete: async () => new Promise(() => {}) };
@@ -86,7 +103,7 @@ describe('LLM service', () => {
     for (const [id, schema] of Object.entries(schemas)) {
       const result = await llm.run(id, { text: 'sample input' }, schema as z.ZodType<unknown>);
       expect(result.meta.model).toBe('test-model');
-      expect(result.meta.promptVersion).toBe(id === 'eval.moves' ? '3' : '1');
+      expect(result.meta.promptVersion).toBe(({ 'eval.moves': '4', 'copilot.reply': '2' } as Record<string, string>)[id] ?? '1');
     }
   });
 

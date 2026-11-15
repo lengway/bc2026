@@ -9,6 +9,7 @@ export const IntakeRequest = z.strictObject({
   text: z.string().trim().max(8_000),
   field: Field,
   level: Level,
+  years: z.int32().nonnegative().optional(),
   dailyGoal: DailyGoal.optional(),
 });
 export type IntakeRequest = z.infer<typeof IntakeRequest>;

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   CaseParams, CaseResponse, CASES_REQUIRED, CaseType, Field, GenerateCaseResponse, Level, MOVE_LABEL_POINTS, Profile, PublicScoringGuide, SalesCallPrep, SkillId,
 } from '@/contracts';
+import { focusAreasIn } from '@/contracts/focus';
 import { Rubric } from '@/contracts/rubric';
 import type { Archetype, CatalogService } from '@/modules/catalog';
 import { currentCertificates } from '@/modules/credentials';
@@ -12,7 +13,7 @@ import type { Job, JobsService } from '@/modules/jobs';
 import { GeneratedCase, type LlmService } from '@/modules/llm';
 import { AppError, systemClock, type Clock } from '@/modules/shared';
 import {
-  createPendingCase, failCase, findSeededTemplates, findUnusedTemplate, hasActiveSubscription, hasUsableFreeCase, clearFinishedPrepInputs,
+  createPendingCase, failCase, findSeededTemplates, findUnusedTemplates, hasActiveSubscription, hasUsableFreeCase, clearFinishedPrepInputs,
   insertTemplate, lockAndReadProfile, publishCase, readCase, readGenerationLease, readHistory, readRecoverablePrep, readUsedArchetypes, reconcileFailedCases,
   type CaseRecord, type HistoryRow, type PoolTemplate, type Publication,
 } from './repo';
@@ -20,6 +21,7 @@ import { pressureScenario } from './pressure-case';
 
 const timeLimits = { onboarding: 480, daily: 600, weekly: 2_400, prep: 600 } satisfies Record<CaseType, number>;
 const weeklyWindowMs = 7 * 86_400_000;
+const onboardingVariants = 3;
 const accuracyFormula = 'round(100 × pointsSum / maxPoints), with maxPoints = 100 × scoredMoveCount. No scored moves means no accuracy score.';
 const aiUseFormula = 'round(100 × earnedPoints / assessedMaxPoints). No assessed checks means no AI-use score.';
 const publicCriteria: Record<string, { title: string; description: string }> = {
@@ -107,6 +109,17 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     return (type === 'daily' || type === 'prep') && !await hasUsableFreeCase(tx, userId, new Date(instant.getTime() - weeklyWindowMs));
   }
 
+  async function selectOnboardingTemplate(tx: SqlExecutor, profile: Profile) {
+    const templates = await findUnusedTemplates(tx, profile);
+    const wanted = focusAreasIn(profile.intakeText);
+    if (templates.length < 2 || !wanted.size) return templates[0];
+    const { archetypes } = await catalog.getPack(profile.field);
+    const matching = new Set(archetypes
+      .filter(({ focus }) => focus.some((area) => wanted.has(area)))
+      .map(({ id }) => id));
+    return templates.find(({ archetypeId }) => matching.has(archetypeId)) ?? templates[0];
+  }
+
   async function generateCase(userId: string, type: CaseType, { skill, prep }: { skill?: SkillId; prep?: SalesCallPrep } = {}): Promise<GenerateCaseResponse> {
     const request = CaseType.safeParse(type);
     if (!request.success) throw new AppError('VALIDATION', 400, 'Invalid case type.');
@@ -126,7 +139,7 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
       const generationProfile = details?.success
         ? { ...profile, intakeText: '', years: null, pains: [], goals: [] }
         : profile;
-      const pool = request.data === 'onboarding' ? await findUnusedTemplate(tx, profile) : null;
+      const pool = request.data === 'onboarding' ? await selectOnboardingTemplate(tx, profile) : null;
       const caseId = await createPendingCase(tx, profile, request.data, 'chat', pool?.seed ?? randomUUID(), instant);
       if (pool) {
         await publishCase(tx, caseId, materialize(pool, request.data, false, pool.id), instant);
@@ -279,24 +292,31 @@ export function createCaseEngineService({ db, jobs, llm, catalog, now = systemCl
     let existing = 0;
     for (const subfield of pack.subfields) {
       const seeded = await findSeededTemplates(db, field, subfield);
-      const levels = new Set(seeded.map((template) => template.level));
+      const archetypes = pack.archetypes.filter((archetype) => archetype.subfield === subfield);
       const history: HistoryRow[] = seeded.flatMap((template) => template.generated.personas.map(({ public: persona }) => ({
         name: persona.name, company: persona.company, title: template.generated.brief.title, archetypeId: template.archetypeId,
       })));
       for (const level of Level.options) {
-        if (levels.has(level)) {
-          existing += 1;
-          continue;
-        }
+        const used = new Set(seeded.filter((template) => template.level === level).map(({ archetypeId }) => archetypeId));
         const profile = { field, subfield, level, intakeText: '', years: null, pains: [], goals: [] };
-        const archetype = await catalog.pickArchetype(profile, historyValues(history, 'archetypeId'));
-        const template = await generateScenario(profile, 'onboarding', randomUUID(), archetype, history);
-        const saved = await insertTemplate(db, profile, { ...template, workspace: pack.workspace });
-        if (saved) inserted += 1;
-        else existing += 1;
-        history.push(...template.generated.personas.map(({ public: persona }) => ({
-          name: persona.name, company: persona.company, title: template.generated.brief.title, archetypeId: template.archetypeId,
-        })));
+        const levelIndex = Level.options.indexOf(level);
+        const distance = (archetype: Archetype) => Math.abs(Level.options.indexOf(archetype.difficulty) - levelIndex);
+        existing += used.size;
+        while (used.size < onboardingVariants) {
+          const covered = new Set(pack.archetypes.filter(({ id }) => used.has(id)).flatMap(({ focus }) => focus));
+          const novelty = (archetype: Archetype) => archetype.focus.filter((area) => !covered.has(area)).length;
+          const [archetype] = archetypes.filter(({ id }) => !used.has(id))
+            .sort((a, b) => distance(a) - distance(b) || novelty(b) - novelty(a));
+          if (!archetype) break;
+          const template = await generateScenario(profile, 'onboarding', randomUUID(), archetype, history);
+          const saved = await insertTemplate(db, profile, { ...template, workspace: pack.workspace });
+          used.add(archetype.id);
+          if (saved) inserted += 1;
+          else existing += 1;
+          history.push(...template.generated.personas.map(({ public: persona }) => ({
+            name: persona.name, company: persona.company, title: template.generated.brief.title, archetypeId: template.archetypeId,
+          })));
+        }
       }
     }
     return { inserted, existing };

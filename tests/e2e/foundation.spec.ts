@@ -113,7 +113,7 @@ test("onboarding, three moves, twist, evidence review and matching limited case 
     .fill("I work in sales, 5 years. Renewal conversations are difficult.");
   await page.getByRole("button", { name: "Review my profile" }).click();
   await expect(
-    page.getByText("Sales · Account management · 5 years", { exact: true }),
+    page.getByText("Sales · Account management · 3 years", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Edit my answers" }).click();
   await page.getByRole("radio", { name: "6+ years", exact: true }).check();
@@ -195,6 +195,12 @@ test("onboarding, three moves, twist, evidence review and matching limited case 
   await expect(
     discovery.getByText("1 of 3 cases", { exact: true }),
   ).toBeVisible();
+  await page.goto("/settings/learning");
+  await expect(
+    page.getByRole("textbox", { name: "Practice notes" }),
+  ).toHaveValue(
+    "I work in sales, 6 years. Renewal conversations are difficult.",
+  );
   expect(errors).toEqual([]);
 });
 test("weekly practice on Free links to plan information", async ({ page }) => {
@@ -362,7 +368,7 @@ test("expired server deadline submits once and disables writing", async ({
   });
   expect(count).toBe(1);
 });
-test("a counterpart leaving ends the case and opens the review", async ({
+test("the scripted buyer walking out after pressure ends the case and opens the review", async ({
   page,
 }) => {
   await signIn(page);
@@ -370,12 +376,17 @@ test("a counterpart leaving ends the case and opens the review", async ({
     sessionStorage.setItem("bc2026.preview.scenario", "left"),
   );
   await start(page);
-  await page.getByLabel("Message Dana").fill("Can we discuss the renewal?");
+  await page
+    .getByLabel("Message Dana")
+    .fill("Accept the renewal today, or we will withdraw these terms.");
   await page.getByRole("button", { name: "Send message", exact: true }).click();
   await expect(page).toHaveURL(/\/review\//);
   await expect(
     page.getByRole("heading", { name: "Conversation", exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Result" })).toContainText(
+    "Client left",
+  );
   await expect(page.getByLabel("Message Dana")).toHaveCount(0);
 });
 test("public SSR case record and full transcript exclude private diagnostics", async ({

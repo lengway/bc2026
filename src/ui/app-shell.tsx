@@ -36,7 +36,9 @@ function Navigation({
     <nav
       aria-label={mobile ? "Mobile navigation" : "Main navigation"}
       className={
-        mobile ? "grid grid-cols-4 gap-1 px-2 pt-1" : "grid gap-1 px-2"
+        mobile
+          ? "fixed inset-x-0 bottom-0 z-20 grid w-full max-w-dvw grid-cols-4 gap-1 border-t bg-background px-2 pt-1 pb-[env(safe-area-inset-bottom)] lg:hidden"
+          : "grid gap-1 px-2"
       }
     >
       {APP_NAVIGATION.map(({ href, label, Icon }) => {
@@ -54,7 +56,7 @@ function Navigation({
             className={cn(
               "flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium outline-none transition-colors duration-150 ease-out hover:bg-muted motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-ring",
               mobile
-                ? "flex-col justify-center gap-0.5 py-1 text-[0.6875rem]"
+                ? "min-w-0 flex-col justify-center gap-0.5 py-1 text-center text-[0.6875rem]"
                 : collapsed
                   ? "justify-center"
                   : "px-3",
@@ -66,7 +68,11 @@ function Navigation({
               strokeWidth={1.5}
               aria-hidden="true"
             />
-            {(mobile || !collapsed) && <span>{label}</span>}
+            {(mobile || !collapsed) && (
+              <span className={mobile ? "max-w-full wrap-anywhere" : undefined}>
+                {label}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -96,7 +102,7 @@ export function AppShell({
   return (
     <div
       className={cn(
-        "flex-1 lg:grid",
+        "w-full min-w-0 flex-1 lg:grid",
         collapsed
           ? "lg:grid-cols-[64px_minmax(0,1fr)]"
           : "lg:grid-cols-[240px_minmax(0,1fr)]",
@@ -187,9 +193,7 @@ export function AppShell({
           {children}
         </div>
       </div>
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background pb-[env(safe-area-inset-bottom)] lg:hidden">
-        <Navigation pathname={pathname} mobile />
-      </div>
+      <Navigation pathname={pathname} mobile />
     </div>
   );
 }

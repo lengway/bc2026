@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useId } from "react";
 import { cn } from "@/ui/lib/utils";
 import { FOCUS_AREAS, type FocusArea } from "@/contracts";
 import { FOCUS_CHOICES, MAX_FOCUS } from "./intake";
@@ -38,8 +39,13 @@ export function Choice({
   detail?: string;
   disabled?: boolean;
 }) {
+  const id = useId();
+  const labelId = `${id}-label`;
+  const detailId = `${id}-detail`;
+
   return (
     <label
+      htmlFor={id}
       className={cn(
         "flex min-h-12 items-center gap-3 rounded-lg border px-3.5 py-2.5 text-sm transition-colors duration-150 ease-out",
         disabled
@@ -49,17 +55,24 @@ export function Choice({
       )}
     >
       <input
+        id={id}
         type="radio"
         name={name}
+        aria-labelledby={labelId}
+        aria-describedby={detail ? detailId : undefined}
         checked={checked}
         disabled={disabled}
         onChange={onChange}
         className="size-4 shrink-0 accent-ink"
       />
       <span className="grid gap-0.5">
-        <span className="font-medium">{label}</span>
+        <span id={labelId} className="font-medium">
+          {label}
+        </span>
         {detail && (
-          <span className="text-xs text-muted-foreground">{detail}</span>
+          <span id={detailId} className="text-xs text-muted-foreground">
+            {detail}
+          </span>
         )}
       </span>
     </label>
