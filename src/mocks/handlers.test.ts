@@ -3,7 +3,11 @@ import { setupServer } from "msw/node";
 import { createMockHandlers } from "./handlers";
 import { api } from "@/app/_lib/api";
 import { apiClient } from "@/app/_lib/api-client";
-import { CaseHistoryPage, OwnedCertificates } from "@/contracts";
+import {
+  CaseHistoryPage,
+  CreateCaseResponse,
+  OwnedCertificates,
+} from "@/contracts";
 import { simulateBrowserOrigin } from "../../tests/browser-fetch";
 const server = setupServer();
 let restoreOrigin = () => {};
@@ -93,6 +97,62 @@ it("plays the Sales scenario and repeats a request without duplicating a turn", 
     api.move(created.caseId, { ...input, clientMsgId: crypto.randomUUID() }),
   ).rejects.toMatchObject({ code: "VALIDATION", status: 409 });
 });
+it("launches Pressure practice and reveals the CFO email after the second reply", async () => {
+  const previewOptions = { initialSession: true, persist: true, typingMs: 0 };
+  server.resetHandlers(...createMockHandlers(previewOptions));
+  sessionStorage.removeItem("bc2026.preview.cases.v2");
+  const response = await fetch("http://localhost:3000/api/cases/pressure", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  expect(response.status).toBe(202);
+  const { caseId } = CreateCaseResponse.parse(await response.json());
+  const before = await api.case(caseId);
+  expect(before.status).toBe("ready");
+  if (!("brief" in before)) throw new Error("Missing Pressure case brief");
+  expect(before.brief.title).toMatch(/Northstar Clinics/);
+  expect(before.docs.map(({ id }) => id)).not.toContain("cfo-update");
+
+  const personaId = before.personas[0].id;
+  await api.start(caseId);
+  const first = await api.move(caseId, {
+    clientMsgId: crypto.randomUUID(),
+    personaId,
+    text: "Who owns the finance approval?",
+    draftId: null,
+  });
+  expect(first.events.find(({ type }) => type === "twist")).toBeUndefined();
+  server.resetHandlers(...createMockHandlers(previewOptions));
+  const second = await api.move(caseId, {
+    clientMsgId: crypto.randomUUID(),
+    personaId,
+    text: "Could we start with a one-clinic pilot?",
+    draftId: null,
+  });
+  expect(second.events).toContainEqual(
+    expect.objectContaining({
+      type: "twist",
+      content: expect.stringContaining("$60,000"),
+      meta: {
+        documentIds: ["cfo-update"],
+        from: "Priya Shah, CFO",
+        kind: "email",
+      },
+    }),
+  );
+  expect(second.events.filter(({ type }) => type === "message")).toEqual([
+    expect.objectContaining({ actor: "user", personaId }),
+    expect.objectContaining({ actor: "persona", personaId }),
+  ]);
+  expect(second.outcome).toBeNull();
+  const after = await api.case(caseId);
+  expect("docs" in after && after.docs).toContainEqual(
+    expect.objectContaining({ id: "cfo-update", kind: "email_thread" }),
+  );
+  sessionStorage.removeItem("bc2026.preview.cases.v2");
+});
+
 it("returns a full profile from intake through the canonical API contract", async () => {
   const profile = await api.intake({
     text: "3 years in account management",
